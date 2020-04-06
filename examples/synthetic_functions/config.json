@@ -1,0 +1,15 @@
+{
+	"general": {
+		"auto_desc_gen": "False",
+		"parallel":      "True",
+		"boosted":       "False",
+		"sampling_strategies": 2
+	},
+	"parameters": [
+			{"name": "param_0", "type": "categorical", "size": 1, "category_details": "CatDetails/cat_details_param_0.pkl"},
+			{"name": "param_1", "type": "categorical", "size": 1, "category_details": "CatDetails/cat_details_param_0.pkl"}
+	],
+	"objectives": [
+			{"name": "obj", "goal": "minimize"}
+		]
+}
