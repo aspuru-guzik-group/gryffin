@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: gryffin
-Version: 0+untagged.5.gb86689b.dirty
+Version: 0+untagged.6.ga32ad4b.dirty
 Summary: Bayesian optimization for categorical variables
 Home-page: https://github.com/aspuru-guzik-group/gryffin
 Author: Florian Hase
@@ -11,6 +11,17 @@ Description: ## Gryffin: An algorithm for Bayesian optimization for categorical 
         
         ... this repository is under construction ... please stay tuned! 
         
+        
+        ## Installation
+        
+        ##### From source 
+        
+        Gryffin can be installed from source. 
+        ```
+        git clone https://github.com/aspuru-guzik-group/gryffin.git
+        cd gryffin 
+        python setup.py install
+        ```
         
         ### Reference 
         
