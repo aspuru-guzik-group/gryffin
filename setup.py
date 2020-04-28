@@ -3,7 +3,7 @@
 import versioneer
 import numpy as np
 
-from setuptools import setup 
+from setuptools import setup, find_packages
 from distutils.extension import Extension
 
 #===============================================================================
@@ -56,7 +56,7 @@ setup(name='gryffin',
 	],
 	url='https://github.com/aspuru-guzik-group/gryffin',
 	author='Florian Hase',
-	packages=['gryffin'],
+	packages=find_packages('./src/'),
 	package_dir={'': 'src'},
 	zip_safe=False,
 	ext_modules=ext_modules,
