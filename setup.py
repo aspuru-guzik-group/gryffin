@@ -43,8 +43,9 @@ else:
 #===============================================================================
 
 setup(name='gryffin',
-	version=versioneer.get_version(),
-	cmdclass=versioneer.get_cmdclass(),
+	#version=versioneer.get_version(),
+	version='0.1.0',
+        cmdclass=versioneer.get_cmdclass(),
 	description='Bayesian optimization for categorical variables', 
 	long_description=readme(),
 	long_description_content_type='text/markdown',
