@@ -38,7 +38,7 @@ else:
 	ext_modules += [
 		Extension('gryffin.bayesian_network.kernel_evaluations',
 			['src/gryffin/bayesian_network/kernel_evaluations.c']),
-		Extension('gryffin.bayesian_network.kernel_prob_reshaping.pyx',
+		Extension('gryffin.bayesian_network.kernel_prob_reshaping',
 			['src/gryffin/bayesian_network/kernel_prob_reshaping.c']),]
 
 #===============================================================================
