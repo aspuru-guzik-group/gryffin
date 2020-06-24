@@ -24,6 +24,7 @@ else:
 
 cmdclass    = {}
 ext_modules = []
+use_cython = False
 
 if use_cython:
 	ext_modules += [
