@@ -123,7 +123,7 @@ class Gryffin(Logger):
 
 
 		end_time = datetime.now()
-		self.log('[TIME]:  ', end_time - start_time, '  (overall)', 'INFO')
+		self.log('[TIME]:  ' + str(end_time - start_time) + ',   (overall)', 'INFO')
 		#print('[TIME]:  ', end_time - start_time, '  (overall)')
 		#print('***********************************************')
 
