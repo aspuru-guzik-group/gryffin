@@ -62,7 +62,7 @@ class DescriptorGenerator(Logger):
 		
 #		FNULL = open(os.devnull, 'w')
 #		subprocess.call('%s %s' % (self.exec_name, config_name), shell = True, stdout = FNULL, stderr = subprocess.STDOUT)
-		subprocess.call('%s %s' % (self.exec_name, config_name), shell = True)
+		subprocess.call('python %s %s' % (self.exec_name, config_name), shell = True)
 		print('SUBMITTED DESC GENERATION')		
 		results_name = '%s/completed_descriptor_generation_%d_%s.pkl' % (self.config.get('scratch_dir'), feature_index, identifier)
 
