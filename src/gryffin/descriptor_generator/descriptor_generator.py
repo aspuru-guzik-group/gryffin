@@ -27,7 +27,7 @@ class DescriptorGenerator(Logger):
 
 		self.config        = config
 		self.is_generating = False
-		self.exec_name = '%s/DescriptorGenerator/generation_process.py' % self.config.get('home')
+		self.exec_name = '%s/descriptor_generator/generation_process.py' % self.config.get('home')
 
 		# define registers
 		self.auto_gen_descs     = {}
