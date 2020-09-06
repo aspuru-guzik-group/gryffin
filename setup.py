@@ -21,18 +21,14 @@ ext_modules = [
 	Extension('gryffin.bayesian_network.kernel_prob_reshaping',
 		['src/gryffin/bayesian_network/kernel_prob_reshaping.c']),]
 
+# Preinstall numpy
+from setuptools import dist
+dist.Distribution().fetch_build_eggs(['numpy>=1.10'])
+import numpy as np
 
-class build(build_orig):
-
-    def finalize_options(self):
-        super().finalize_options()
-        # I stole this line from ead's answer:
-        __builtins__.__NUMPY_SETUP__ = False
-        import numpy
-        # or just modify my_c_lib_ext directly here, ext_modules should contain a reference anyway
-        extension = next(m for m in self.distribution.ext_modules if m == ext_modules[0])
-        extension.include_dirs.append(numpy.get_include())
-
+def requirements():
+	with open('requirements.txt', 'r') as content:
+		return content.readlines()
 
 #===============================================================================
 
@@ -55,11 +51,8 @@ setup(name='gryffin',
 	package_dir={'': 'src'},
 	zip_safe=False,
 	ext_modules=ext_modules,
-	cmdclass={'build': build},
 	tests_require=['pytest'],
-	install_requires=[
-		'numpy',
-		'sqlalchemy',
-		],
+	include_dirs=np.get_include(),
+	install_requires=requirements(),
 	python_requires='>=3.6',
 )
