@@ -34,7 +34,7 @@ def requirements():
 
 setup(name='gryffin',
 	#version=versioneer.get_version(),
-	version='0.1.0',
+	version='0.1.1',
     # cmdclass=versioneer.get_cmdclass(),
 	description='Bayesian optimization for categorical variables', 
 	long_description=readme(),
