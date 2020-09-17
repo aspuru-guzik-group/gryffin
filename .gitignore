@@ -1,5 +1,7 @@
 # files created by planners
 outcmaes/
+*pyc
+*.swp
 
 ############
 ### LOGS ###
