@@ -1,5 +1,6 @@
 #!/usr/bin/env python 
 
-from gryffin import Gryffin 
+def test_import():
+    from gryffin import Gryffin 
 
 #==============================================================================
