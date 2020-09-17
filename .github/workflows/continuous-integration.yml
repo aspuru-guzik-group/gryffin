@@ -1,7 +1,7 @@
 
 name: continuous_integration
 
-on: [pull_request, push]
+on: [pull_request]
 
 jobs:
   build: 
