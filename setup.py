@@ -1,10 +1,11 @@
 #!/usr/bin/env python 
 
-import versioneer
-import numpy as np
+# import versioneer
+# import numpy as np
 
 from setuptools import setup, find_packages
 from distutils.extension import Extension
+from distutils.command.build import build as build_orig
 
 #===============================================================================
 
@@ -14,37 +15,27 @@ def readme():
 
 #===============================================================================
 
-try: 
-	from Cython.Distutils import build_ext
-	from Cython.Build     import cythonize
-except ImportError:
-	use_cython = False
-else:
-	use_cython = True
+ext_modules = [
+	Extension('gryffin.bayesian_network.kernel_evaluations',
+		['src/gryffin/bayesian_network/kernel_evaluations.c']),
+	Extension('gryffin.bayesian_network.kernel_prob_reshaping',
+		['src/gryffin/bayesian_network/kernel_prob_reshaping.c']),]
 
-cmdclass    = {}
-ext_modules = []
+# Preinstall numpy
+from setuptools import dist
+dist.Distribution().fetch_build_eggs(['numpy>=1.10'])
+import numpy as np
 
-if use_cython:
-	ext_modules += [
-		Extension('gryffin.bayesian_network.kernel_evaluations',
-			['src/gryffin/bayesian_network/kernel_evaluations.pyx']),
-		Extension('gryffin.bayesian_network.kernel_prob_reshaping',
-			['src/gryffin/bayesian_network/kernel_prob_reshaping.pyx']),]
-	ext_modules = cythonize(ext_modules)
-	cmdclass.update({'build_ext': build_ext})
-else:
-	ext_modules += [
-		Extension('gryffin.bayesian_network.kernel_evaluations',
-			['src/gryffin/bayesian_network/kernel_evaluations.c']),
-		Extension('gryffin.bayesian_network.kernel_prob_reshaping.pyx',
-			['src/gryffin/bayesian_network/kernel_prob_reshaping.c']),]
+def requirements():
+	with open('requirements.txt', 'r') as content:
+		return content.readlines()
 
 #===============================================================================
 
 setup(name='gryffin',
-	version=versioneer.get_version(),
-	cmdclass=versioneer.get_cmdclass(),
+	#version=versioneer.get_version(),
+	version='0.1.1',
+    # cmdclass=versioneer.get_cmdclass(),
 	description='Bayesian optimization for categorical variables', 
 	long_description=readme(),
 	long_description_content_type='text/markdown',
@@ -61,10 +52,7 @@ setup(name='gryffin',
 	zip_safe=False,
 	ext_modules=ext_modules,
 	tests_require=['pytest'],
-	install_requires=[
-		'numpy',
-		'sqlalchemy',
-		],
 	include_dirs=np.get_include(),
+	install_requires=requirements(),
 	python_requires='>=3.6',
 )

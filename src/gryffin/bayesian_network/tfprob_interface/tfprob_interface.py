@@ -301,7 +301,7 @@ class TfprobNetwork(object):
 #				self.inference.print_progress(info_dict)
 #			self.inference.finalize()
 			end = time.time()
-			print('[TIME]:  ', end - start, '  (inference)')
+#			print('[TIME]:  ', end - start, '  (inference)')
 
 			# sample posterior
 			self.trace = {}
@@ -315,7 +315,7 @@ class TfprobNetwork(object):
 			start        = time.time()	
 			post_kernels = self.numpy_graph.compute_kernels(posterior_samples)
 			end          = time.time()
-			print('[TIME]:  ', end - start, '  (sampling from posterior)')
+#			print('[TIME]:  ', end - start, '  (sampling from posterior)')
 
 
 			for key in post_kernels.keys():

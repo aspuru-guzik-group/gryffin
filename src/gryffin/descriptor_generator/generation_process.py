@@ -26,6 +26,7 @@ class Generator(object):
 	def construct_comp_graph(self):
 
 		tf.compat.v1.reset_default_graph()
+		tf.compat.v1.disable_eager_execution()
 		self.tf_descs = tf.compat.v1.placeholder(tf.float32, [None, self.num_descs])
 		self.tf_objs  = tf.compat.v1.placeholder(tf.float32, [None, 1])
 		

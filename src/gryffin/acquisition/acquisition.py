@@ -135,7 +135,8 @@ class Acquisition(Logger):
 				random_proposals, kernel_contribution, dominant_samples = dominant_samples,
 			)
 		end   = time.time()
-		print('[TIME]:  ', end - start, '  (optimizing proposals)')
+		#print('[TIME]:  ', end - start, '  (optimizing proposals)')
+		self.log('[TIME]:  ' + str(end - start) + '  (optimizing proposals)', 'INFO')
 
 
 		extended_proposals = np.array([random_proposals for _ in range(len(sampling_param_values))])
