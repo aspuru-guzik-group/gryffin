@@ -101,14 +101,28 @@ class Gryffin(Logger):
 			dominant_strategy_value = np.array([sampling_param_values[dominant_strategy_index]])
 
 			# prepare sample generation / selection
-			best_params         = obs_params_kwn[np.argmin(obs_objs_kwn)]
+			if obs_objs_kwn.shape[0] > 0:  # if we have kwn samples ==> pick params with best merit
+				best_params = obs_params_kwn[np.argmin(obs_objs_kwn)]
+			else:
+				print(obs_objs_ukwn)
+				# if we have do not have any feasible sample ==> pick any feasible param at random
+				best_params_idx = np.random.choice(np.flatnonzero(obs_objs_ukwn == obs_objs_ukwn.min()))
+				best_params = obs_params_ukwn[best_params_idx]
 			kernel_contribution = self.bayesian_network.kernel_contribution
 
-			# sample from BNN for feasibility surrogate is we have at least one unfeasible point
+			# get sensitivity parameter and do some checks
 			feas_sensitivity = self.config.get('feas_sensitivity')
+			if feas_sensitivity < 0.0:
+				self.log('Config parameter `feas_sensitivity` should be positive, applying np.abs()', 'WARNING')
+				feas_sensitivity = np.abs(feas_sensitivity)
+			elif feas_sensitivity == 0.0:
+				self.log('Config parameter `feas_sensitivity` cannot be zero, falling back to default value of 1', 'WARNING')
+				feas_sensitivity = 1.0
+
+			# sample from BNN for feasibility surrogate is we have at least one unfeasible point
 			if np.sum(obs_objs_ukwn) > 0.0001:
 				self.bayesian_network_feas.sample(obs_params_ukwn, obs_objs_ukwn)
-				self.bayesian_network_feas.build_kernels()
+				self.bayesian_network_feas.build_kernels(descriptors)
 				unfeas_frac = sum(obs_objs_ukwn) / len(obs_objs_ukwn)  # fraction of unfeasible samples
 				unfeas_frac = unfeas_frac ** feas_sensitivity  # adjust sensitivity to presence of unfeasible samples
 				kernel_contribution_feas = self.bayesian_network_feas.kernel_contribution

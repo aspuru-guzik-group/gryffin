@@ -28,7 +28,7 @@ class ObservationProcessor(Logger):
 
 	def adjust_objectives(self, objs):
 		'''adjust objectives based on optimization goal'''
-		optim_goals   = self.config.obj_goals	
+		optim_goals   = self.config.obj_goals
 		adjusted_objs = np.empty(objs.shape)
 		for obj_index, obj_goal in enumerate(optim_goals):
 			if obj_goal == 'minimize':
@@ -157,8 +157,11 @@ class ObservationProcessor(Logger):
 		# process standard params/objs
 		raw_objs_kwn, raw_params_kwn = np.array(raw_objs_kwn), np.array(raw_params_kwn)
 		params_kwn = raw_params_kwn
-		adjusted_objs_kwn = self.adjust_objectives(raw_objs_kwn)
-		objs_kwn = self.scalarize_objectives(adjusted_objs_kwn)
+		if raw_objs_kwn.shape[0] > 0:  # guard against empty objs, which can happen if first sample is nan
+			adjusted_objs_kwn = self.adjust_objectives(raw_objs_kwn)
+			objs_kwn = self.scalarize_objectives(adjusted_objs_kwn)
+		else:
+			objs_kwn = raw_objs_kwn
 
 		# process feasibility space
 		raw_objs_ukwn, raw_params_ukwn = np.array(raw_objs_ukwn), np.array(raw_params_ukwn)
