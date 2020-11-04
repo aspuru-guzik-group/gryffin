@@ -104,7 +104,6 @@ class Gryffin(Logger):
 			if obs_objs_kwn.shape[0] > 0:  # if we have kwn samples ==> pick params with best merit
 				best_params = obs_params_kwn[np.argmin(obs_objs_kwn)]
 			else:
-				print(obs_objs_ukwn)
 				# if we have do not have any feasible sample ==> pick any feasible param at random
 				best_params_idx = np.random.choice(np.flatnonzero(obs_objs_ukwn == obs_objs_ukwn.min()))
 				best_params = obs_params_ukwn[best_params_idx]
@@ -123,7 +122,8 @@ class Gryffin(Logger):
 			if np.sum(obs_objs_ukwn) > 0.0001:
 				self.bayesian_network_feas.sample(obs_params_ukwn, obs_objs_ukwn)
 				self.bayesian_network_feas.build_kernels(descriptors)
-				unfeas_frac = sum(obs_objs_ukwn) / len(obs_objs_ukwn)  # fraction of unfeasible samples
+				# fraction of unfeasible samples - use mask to avoid counting mirrored samples
+				unfeas_frac = sum(obs_objs_ukwn[mirror_mask_ukwn]) / len(obs_objs_ukwn[mirror_mask_ukwn])
 				unfeas_frac = unfeas_frac ** feas_sensitivity  # adjust sensitivity to presence of unfeasible samples
 				kernel_contribution_feas = self.bayesian_network_feas.kernel_contribution
 			else:

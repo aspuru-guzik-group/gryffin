@@ -132,7 +132,7 @@ class ObservationProcessor(Logger):
 
 					# add feasibility info to ukwn lists (i.e. all feasible)
 					raw_params_ukwn.append(param)
-					raw_objs_ukwn.append([0.] * len(obj_vector))
+					raw_objs_ukwn.append([0.])  # single objective
 
 					# keep track of mirrored params
 					if i == 0:
@@ -146,7 +146,7 @@ class ObservationProcessor(Logger):
 			else:
 				for i, param in enumerate(mirrored_params):
 					raw_params_ukwn.append(param)
-					raw_objs_ukwn.append([1.] * len(obj_vector))
+					raw_objs_ukwn.append([1.])  # single objective
 
 					# keep track of mirrored params
 					if i == 0:
@@ -167,7 +167,9 @@ class ObservationProcessor(Logger):
 		raw_objs_ukwn, raw_params_ukwn = np.array(raw_objs_ukwn), np.array(raw_params_ukwn)
 		params_ukwn = raw_params_ukwn
 		adjusted_objs_ukwn = self.adjust_objectives(raw_objs_ukwn)  # parse them so they,e.g., get inverted if we maximise
-		objs_ukwn = self.scalarize_objectives(adjusted_objs_ukwn)
+		# we do not scalarize: (i) we consider all objective known/unknown at the same time, (ii) it introduces a bug
+		#  because it flips zeros and ones of the feasibility samples
+		objs_ukwn = adjusted_objs_ukwn.flatten()
 
 		return params_kwn, objs_kwn, mirror_mask_kwn, params_ukwn, objs_ukwn, mirror_mask_ukwn
 
