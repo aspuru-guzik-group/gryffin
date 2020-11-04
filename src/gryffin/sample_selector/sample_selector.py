@@ -20,15 +20,21 @@ class SampleSelector(Logger):
 		self.num_cpus = multiprocessing.cpu_count()
 
 
-	def compute_exp_objs(self, proposals, kernel_contribution, batch_index, return_index, result_dict = None):
+	def compute_exp_objs(self, proposals, kernel_contribution, kernel_contribution_feas, unfeas_frac, batch_index,
+						 return_index, result_dict=None):
 
 		samples  = proposals[batch_index]
 		exp_objs = np.empty(len(samples))
 
 		for sample_index, sample in enumerate(samples):
 			num, inv_den = kernel_contribution(sample)
-			kernel_contrib = (num + self.sampling_param_values[batch_index]) * inv_den
-			exp_objs[sample_index] = np.exp( - kernel_contrib)
+			num_feas, inv_den_feas = kernel_contribution_feas(sample)
+
+			kernel_contrib_samp = (num + self.sampling_param_values[batch_index]) * inv_den
+			kernel_contrib_feas = (num_feas + self.sampling_param_values[batch_index]) * inv_den_feas
+			kernel_contrib = unfeas_frac * kernel_contrib_feas + (1. - unfeas_frac) * kernel_contrib_samp
+
+			exp_objs[sample_index] = np.exp(-kernel_contrib)
 
 		if result_dict.__class__.__name__ == 'DictProxy':
 			result_dict[return_index] = exp_objs
@@ -36,8 +42,8 @@ class SampleSelector(Logger):
 			return exp_objs
 
 
-	
-	def select(self, num_samples, proposals, kernel_contribution, sampling_param_values, obs_params):
+	def select(self, num_samples, proposals, kernel_contribution, kernel_contribution_feas, unfeas_frac,
+			   sampling_param_values, obs_params):
 
 		num_obs = len(obs_params)	
 		feature_ranges = self.config.feature_ranges
@@ -59,7 +65,9 @@ class SampleSelector(Logger):
 					split_start = split_size * split_index
 					split_end   = split_size * (split_index + 1)
 					return_index = num_splits * batch_index + split_index
-					process = Process(target = self.compute_exp_objs, args = (proposals[:, split_start : split_end], kernel_contribution, batch_index, return_index, result_dict))
+					process = Process(target=self.compute_exp_objs, args=(proposals[:, split_start: split_end],
+																		  kernel_contribution, kernel_contribution_feas, unfeas_frac,
+																		  batch_index, return_index, result_dict))
 					processes.append(process)
 					process.start()
 				for process_index, process in enumerate(processes):
@@ -70,7 +78,9 @@ class SampleSelector(Logger):
 			result_dict = {}
 			for batch_index in range(len(sampling_param_values)):
 				return_index = batch_index
-				result_dict[return_index] = self.compute_exp_objs(proposals, kernel_contribution, batch_index, return_index)
+				result_dict[return_index] = self.compute_exp_objs(proposals, kernel_contribution,
+																  kernel_contribution_feas, unfeas_frac,
+																  batch_index, return_index)
 
 		# collect results
 		exp_objs = []

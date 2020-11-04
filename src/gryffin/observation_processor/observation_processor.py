@@ -92,9 +92,15 @@ class ObservationProcessor(Logger):
 		param_names   = self.config.param_names
 		param_options = self.config.param_options
 		param_types   = self.config.param_types
+		mirror_mask_kwn = []
+		mirror_mask_ukwn = []
 
 		# get raw results
-		raw_params, raw_objs = [], []
+		raw_params_kwn = []  # known result = feasible
+		raw_objs_kwn = []
+		raw_params_ukwn = []  # unknown result = unfeasible
+		raw_objs_ukwn = []
+
 		for obs_dict in obs_dicts:
 			
 			# get param-vector
@@ -115,17 +121,51 @@ class ObservationProcessor(Logger):
 			# get obj-vector
 			obj_vector = np.array([obs_dict[obj_name] for obj_name in self.config.obj_names])
 
+			# --------------------
 			# add processed params
-			for param in mirrored_params:
-				raw_params.append(param)
-				raw_objs.append(obj_vector)
+			# --------------------
+			if any(np.isnan(obj_vector)) is False:
+				# add to known if there is no nan (note: we expect all objs to either feasible or unfeasible)
+				for i, param in enumerate(mirrored_params):
+					raw_params_kwn.append(param)
+					raw_objs_kwn.append(obj_vector)
 
-		raw_objs, raw_params = np.array(raw_objs), np.array(raw_params)
+					# add feasibility info to ukwn lists (i.e. all feasible)
+					raw_params_ukwn.append(param)
+					raw_objs_ukwn.append([0.] * len(obj_vector))
 
-		params = raw_params	
-		adjusted_objs = self.adjust_objectives(raw_objs)
-		objs          = self.scalarize_objectives(adjusted_objs)
+					# keep track of mirrored params
+					if i == 0:
+						mirror_mask_kwn.append(True)
+						mirror_mask_ukwn.append(True)
+					else:
+						mirror_mask_kwn.append(False)
+						mirror_mask_ukwn.append(False)
 
-		return params, objs
+			# if we have nan ==> unfeasible, add only to ukwn list
+			else:
+				for i, param in enumerate(mirrored_params):
+					raw_params_ukwn.append(param)
+					raw_objs_ukwn.append([1.] * len(obj_vector))
+
+					# keep track of mirrored params
+					if i == 0:
+						mirror_mask_ukwn.append(True)
+					else:
+						mirror_mask_ukwn.append(False)
+
+		# process standard params/objs
+		raw_objs_kwn, raw_params_kwn = np.array(raw_objs_kwn), np.array(raw_params_kwn)
+		params_kwn = raw_params_kwn
+		adjusted_objs_kwn = self.adjust_objectives(raw_objs_kwn)
+		objs_kwn = self.scalarize_objectives(adjusted_objs_kwn)
+
+		# process feasibility space
+		raw_objs_ukwn, raw_params_ukwn = np.array(raw_objs_ukwn), np.array(raw_params_ukwn)
+		params_ukwn = raw_params_ukwn
+		adjusted_objs_ukwn = self.adjust_objectives(raw_objs_ukwn)  # parse them so they,e.g., get inverted if we maximise
+		objs_ukwn = self.scalarize_objectives(adjusted_objs_ukwn)
+
+		return params_kwn, objs_kwn, mirror_mask_kwn, params_ukwn, objs_ukwn, mirror_mask_ukwn
 
 

@@ -42,12 +42,16 @@ class Acquisition(Logger):
 		return samples
 
 
-	def _proposal_optimization_thread(self, proposals, kernel_contribution, batch_index, return_index, return_dict = None, dominant_samples = None):
+	def _proposal_optimization_thread(self, proposals, kernel_contribution, kernel_contribution_feas, unfeas_frac,
+									  batch_index, return_index, return_dict = None, dominant_samples = None):
 		self.log('starting process for %d' % batch_index, 'INFO')
 
 		def kernel(x):
-			num, inv_den = kernel_contribution(x)
-			return (num + self.sampling_param_values[batch_index]) * inv_den 
+			num, inv_den = kernel_contribution(x)  # standard acquisition for samples
+			num_feas, inv_den_feas = kernel_contribution_feas(x)  # feasibility acquisition
+			acq_samp = (num + self.sampling_param_values[batch_index]) * inv_den
+			acq_feas = (num_feas + self.sampling_param_values[batch_index]) * inv_den_feas
+			return unfeas_frac * acq_feas + (1. - unfeas_frac) * acq_samp
 	
 		if dominant_samples is not None:
 			ignore = self.config.feature_process_constrained
@@ -69,7 +73,7 @@ class Acquisition(Logger):
 			return optimized	
 
 
-	def _optimize_proposals(self, random_proposals, kernel_contribution, dominant_samples = None):
+	def _optimize_proposals(self, random_proposals, kernel_contribution, kernel_contribution_feas, unfeas_frac, dominant_samples=None):
 
 		if self.config.get('parallel'):
 			result_dict = Manager().dict()
@@ -85,7 +89,10 @@ class Acquisition(Logger):
 					split_start  = split_size * split_index
 					split_end    = split_size * (split_index + 1)
 					return_index = num_splits * batch_index + split_index
-					process = Process(target = self._proposal_optimization_thread, args = (random_proposals[split_start : split_end], kernel_contribution, batch_index, return_index, result_dict, dominant_samples))
+					process = Process(target=self._proposal_optimization_thread, args=(random_proposals[split_start: split_end],
+																					   kernel_contribution, kernel_contribution_feas,
+																					   unfeas_frac, batch_index, return_index,
+																					   result_dict, dominant_samples))
 					processes.append(process)
 					process.start()
 
@@ -97,7 +104,10 @@ class Acquisition(Logger):
 			result_dict = {}
 			for batch_index in range(len(self.sampling_param_values)):
 				return_index = batch_index
-				result_dict[batch_index] = self._proposal_optimization_thread(random_proposals, kernel_contribution, batch_index, return_index, dominant_samples = dominant_samples)
+				result_dict[batch_index] = self._proposal_optimization_thread(random_proposals, kernel_contribution,
+																			  kernel_contribution_feas, unfeas_frac,
+																			  batch_index, return_index,
+																			  dominant_samples=dominant_samples)
 
 		# collect optimized samples
 		samples = []
@@ -111,9 +121,7 @@ class Acquisition(Logger):
 		return np.array(samples)
 
 
-
-
-	def propose(self, best_params, kernel_contribution, sampling_param_values, 
+	def propose(self, best_params, kernel_contribution, kernel_contribution_feas, unfeas_frac, sampling_param_values,
 				num_samples = 200, 
 				parallel = 'True',
 				dominant_samples  = None,
@@ -125,17 +133,15 @@ class Acquisition(Logger):
 
 		self.sampling_param_values = sampling_param_values
 		random_proposals = self._propose_randomly(
-				best_params, num_samples, dominant_samples = dominant_samples,
+				best_params, num_samples, dominant_samples=dominant_samples,
 			)
 
 
 		import time
 		start = time.time()
-		optimized_proposals = self._optimize_proposals(
-				random_proposals, kernel_contribution, dominant_samples = dominant_samples,
-			)
-		end   = time.time()
-		#print('[TIME]:  ', end - start, '  (optimizing proposals)')
+		optimized_proposals = self._optimize_proposals(random_proposals, kernel_contribution, kernel_contribution_feas,
+													   unfeas_frac, dominant_samples=dominant_samples)
+		end = time.time()
 		self.log('[TIME]:  ' + str(end - start) + '  (optimizing proposals)', 'INFO')
 
 

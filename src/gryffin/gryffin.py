@@ -33,12 +33,13 @@ class Gryffin(Logger):
 		self.update_verbosity(self.config.get('verbosity'))
 		self.create_folders()
 
-		self.random_sampler       = RandomSampler(self.config.general, self.config.parameters)
-		self.obs_processor        = ObservationProcessor(self.config)
-		self.descriptor_generator = DescriptorGenerator(self.config)
-		self.bayesian_network     = BayesianNetwork(self.config)
-		self.acquisition          = Acquisition(self.config)
-		self.sample_selector      = SampleSelector(self.config)
+		self.random_sampler        = RandomSampler(self.config.general, self.config.parameters)
+		self.obs_processor         = ObservationProcessor(self.config)
+		self.descriptor_generator  = DescriptorGenerator(self.config)
+		self.bayesian_network      = BayesianNetwork(self.config)
+		self.bayesian_network_feas = BayesianNetwork(self.config)
+		self.acquisition           = Acquisition(self.config)
+		self.sample_selector       = SampleSelector(self.config)
 
 		self.iter_counter = 0
 
@@ -70,26 +71,26 @@ class Gryffin(Logger):
 
 		if observations is None:
 			# no observations, need to fall back to random sampling
-			samples = self.random_sampler.draw(num = self.config.get('batches') * self.config.get('sampling_strategies'))
+			samples = self.random_sampler.draw(num=self.config.get('batches') * self.config.get('sampling_strategies'))
 			if self.config.process_constrained:
 				dominant_features = self.config.feature_process_constrained
 				samples[:, dominant_features] = samples[0, dominant_features]
 
 		elif len(observations) == 0:
 			self.log('Could not find any observations, falling back to random sampling', 'WARNING')
-			samples = self.random_sampler.draw(num = self.config.get('batches') * self.config.get('sampling_strategies'))
+			samples = self.random_sampler.draw(num=self.config.get('batches') * self.config.get('sampling_strategies'))
 			if self.config.process_constrained:
 				dominant_features = self.config.feature_process_constrained
 				samples[:, dominant_features] = samples[0, dominant_features]
 
 		else:
-			obs_params, obs_objs = self.obs_processor.process(observations)	
+			obs_params_kwn, obs_objs_kwn, mirror_mask_kwn, obs_params_ukwn, obs_objs_ukwn, mirror_mask_ukwn = self.obs_processor.process(observations)
 
 			# run descriptor generation
 			if self.config.get('auto_desc_gen') and len(obs_params) > 2:
 				self.descriptor_generator.generate(obs_params, obs_objs)
 			
-			self.bayesian_network.sample(obs_params, obs_objs)
+			self.bayesian_network.sample(obs_params_kwn, obs_objs_kwn)
 
 			# extract descriptors and build kernels
 			descriptors = self.descriptor_generator.get_descriptors()
@@ -100,33 +101,53 @@ class Gryffin(Logger):
 			dominant_strategy_value = np.array([sampling_param_values[dominant_strategy_index]])
 
 			# prepare sample generation / selection
-			best_params         = obs_params[np.argmin(obs_objs)]
+			best_params         = obs_params_kwn[np.argmin(obs_objs_kwn)]
 			kernel_contribution = self.bayesian_network.kernel_contribution
+
+			# sample from BNN for feasibility surrogate is we have at least one unfeasible point
+			feas_sensitivity = self.config.get('feas_sensitivity')
+			if np.sum(obs_objs_ukwn) > 0.0001:
+				self.bayesian_network_feas.sample(obs_params_ukwn, obs_objs_ukwn)
+				self.bayesian_network_feas.build_kernels()
+				unfeas_frac = sum(obs_objs_ukwn) / len(obs_objs_ukwn)  # fraction of unfeasible samples
+				unfeas_frac = unfeas_frac ** feas_sensitivity  # adjust sensitivity to presence of unfeasible samples
+				kernel_contribution_feas = self.bayesian_network_feas.kernel_contribution
+			else:
+				kernel_contribution_feas = lambda x: (0., 0.)
+				unfeas_frac = 0.
 
 			# if there are process constraining parameters, run those first
 			if self.config.process_constrained:
 				proposed_samples     = self.acquisition.propose(best_params, kernel_contribution, dominant_strategy_value)
-				constraining_samples = self.sample_selector.select(self.config.get('batches'), proposed_samples, kernel_contribution, dominant_strategy_value, obs_params)
+				constraining_samples = self.sample_selector.select(self.config.get('batches'), proposed_samples,
+																   kernel_contribution, dominant_strategy_value,
+																   obs_params_kwn)
 			else:
 				constraining_samples = None
 
 			# then select the remaining proposals
 			proposed_samples = self.acquisition.propose(
-					best_params, kernel_contribution, sampling_param_values, 
-					dominant_samples  = constraining_samples,
-					dominant_strategy = dominant_strategy_index,
-				)
+					best_params, kernel_contribution, kernel_contribution_feas, unfeas_frac, sampling_param_values,
+					dominant_samples=constraining_samples,
+					dominant_strategy=dominant_strategy_index)
 
-			samples = self.sample_selector.select(
-					self.config.get('batches'), proposed_samples, kernel_contribution, sampling_param_values, obs_params
-				)
+			# note: provide `obs_params_ukwn` as it contains the params for _all_ samples, including the unfeasible ones
+			samples = self.sample_selector.select(self.config.get('batches'), proposed_samples, kernel_contribution,
+												  kernel_contribution_feas, unfeas_frac, sampling_param_values, obs_params_ukwn)
 
+			# store info so to be able to recontruct surrogate and acquisition function if needed
+			self.last_kernel_contribution = kernel_contribution
+			self.last_kernel_contribution_feas = kernel_contribution_feas
+			self.last_sampling_param_values = sampling_param_values
+			self.last_unfeas_frac = unfeas_frac
+			self.last_params_kwn = obs_params_kwn[mirror_mask_kwn]
+			self.last_objs_kwn = obs_objs_kwn[mirror_mask_kwn]
+			self.last_params_ukwn = obs_params_ukwn[mirror_mask_ukwn]
+			self.last_objs_ukwn = obs_objs_ukwn[mirror_mask_ukwn]
+			self.last_recommended_samples = samples
 
 		end_time = datetime.now()
 		self.log('[TIME]:  ' + str(end_time - start_time) + ',   (overall)', 'INFO')
-		#print('[TIME]:  ', end_time - start_time, '  (overall)')
-		#print('***********************************************')
-
 
 		if as_array:
 			# return as is
@@ -180,6 +201,38 @@ class Gryffin(Logger):
 
 	def read_db(self, outfile = 'database.csv', verbose = True):
 		self.db_handler.read_db(outfile, verbose)
+
+	def get_surrogate(self, x):
+		"""
+		Retrieve the last surrogate function
+		"""
+		pass
+
+	def get_acquisition(self, x, lambda_strategy=None, separate=False):
+		"""
+		Retrieve the last acquisition functions for a specific lambda value.
+		"""
+		num, inv_den = self.last_kernel_contribution(x)
+		num_feas, inv_den_feas = self.last_kernel_contribution_feas(x)
+		if lambda_strategy is None:
+			values = []
+			for l in self.last_sampling_param_values:
+				acq_samp = (num + l) * inv_den
+				acq_feas = (num_feas + l) * inv_den_feas
+				if separate is False:
+					acquisition = self.last_unfeas_frac * acq_feas + (1. - self.last_unfeas_frac) * acq_samp
+					values.append(acquisition)
+				else:
+					values.append([acq_samp, acq_feas])
+			return values
+		else:
+			acq_samp = (num + lambda_strategy) * inv_den
+			acq_feas = (num_feas + lambda_strategy) * inv_den_feas
+			if separate is False:
+				acquisition = self.last_unfeas_frac * acq_feas + (1. - self.last_unfeas_frac) * acq_samp
+				return acquisition
+			else:
+				return acq_samp, acq_feas
 
 
 #========================================================================
