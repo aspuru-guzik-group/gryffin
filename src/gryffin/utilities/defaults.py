@@ -16,6 +16,7 @@ default_general_configurations = {
 	'sampling_strategies':    2,
 	'scratch_dir':           './.scratch',
 	'softness':               0.001,
+	'feas_sensitivity':       1,
 	'continuous_optimizer':  'adam',
 	'categorical_optimizer': 'naive',
 	'discrete_optimizer':    'naive',
