@@ -157,7 +157,11 @@ class BayesianNetwork(Logger):
 				num, inv_den, _ = self.kernel_evaluator.get_kernel(proposed_sample.astype(np.float64))
 			return num, inv_den
 
+		def empty_kernel_contribution(proposed_sample):
+			return 0., 0.
+
 		self.kernel_contribution = kernel_contribution
+		self.empty_kernel_contribution = empty_kernel_contribution
 
 
 

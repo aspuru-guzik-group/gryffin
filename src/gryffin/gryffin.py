@@ -5,7 +5,7 @@ __author__ = 'Florian Hase'
 #========================================================================
 
 import os, sys
-import numpy as np 
+import numpy as np
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from .acquisition           import Acquisition
@@ -21,15 +21,15 @@ from .utilities             import ConfigParser, Logger, GryffinNotFoundError
 class Gryffin(Logger):
 
 	def __init__(self, config_file = None, config_dict = None):
-	
+
 		Logger.__init__(self, 'Gryffin', verbosity = 0)
 
 		# parse configuration
 		self.config = ConfigParser(config_file, config_dict)
 		self.config.parse()
 		self.config.set_home(os.path.dirname(os.path.abspath(__file__)))
-	
-		np.random.seed(self.config.get('random_seed'))	
+
+		np.random.seed(self.config.get('random_seed'))
 		self.update_verbosity(self.config.get('verbosity'))
 		self.create_folders()
 
@@ -87,27 +87,31 @@ class Gryffin(Logger):
 			obs_params_kwn, obs_objs_kwn, mirror_mask_kwn, obs_params_ukwn, obs_objs_ukwn, mirror_mask_ukwn = self.obs_processor.process(observations)
 
 			# run descriptor generation
+			# TODO: fix
 			if self.config.get('auto_desc_gen') and len(obs_params) > 2:
 				self.descriptor_generator.generate(obs_params, obs_objs)
-			
-			self.bayesian_network.sample(obs_params_kwn, obs_objs_kwn)
 
 			# extract descriptors and build kernels
 			descriptors = self.descriptor_generator.get_descriptors()
 
-			self.bayesian_network.build_kernels(descriptors)
-			sampling_param_values   = self.bayesian_network.sampling_param_values
+			# get lambda values for exploration/exploitation
+			sampling_param_values = self.bayesian_network.sampling_param_values
 			dominant_strategy_index = self.iter_counter % len(sampling_param_values)
 			dominant_strategy_value = np.array([sampling_param_values[dominant_strategy_index]])
 
-			# prepare sample generation / selection
-			if obs_objs_kwn.shape[0] > 0:  # if we have kwn samples ==> pick params with best merit
+			# cannot sample anything is obs_params_kwn is empty!
+			if obs_params_kwn.shape[0] > 0:
+				self.bayesian_network.sample(obs_params_kwn, obs_objs_kwn)
+				self.bayesian_network.build_kernels(descriptors)
+				kernel_contribution = self.bayesian_network.kernel_contribution
+				# if we have kwn samples ==> pick params with best merit
 				best_params = obs_params_kwn[np.argmin(obs_objs_kwn)]
 			else:
+				# empty kernel contributions
+				kernel_contribution = self.bayesian_network.empty_kernel_contribution
 				# if we have do not have any feasible sample ==> pick any feasible param at random
 				best_params_idx = np.random.choice(np.flatnonzero(obs_objs_ukwn == obs_objs_ukwn.min()))
 				best_params = obs_params_ukwn[best_params_idx]
-			kernel_contribution = self.bayesian_network.kernel_contribution
 
 			# get sensitivity parameter and do some checks
 			feas_sensitivity = self.config.get('feas_sensitivity')
@@ -119,7 +123,7 @@ class Gryffin(Logger):
 				feas_sensitivity = 1.0
 
 			# sample from BNN for feasibility surrogate is we have at least one unfeasible point
-			if np.sum(obs_objs_ukwn) > 0.0001:
+			if obs_params_ukwn.shape[0] > 0:
 				self.bayesian_network_feas.sample(obs_params_ukwn, obs_objs_ukwn)
 				self.bayesian_network_feas.build_kernels(descriptors)
 				# fraction of unfeasible samples - use mask to avoid counting mirrored samples
@@ -127,10 +131,11 @@ class Gryffin(Logger):
 				unfeas_frac = unfeas_frac ** feas_sensitivity  # adjust sensitivity to presence of unfeasible samples
 				kernel_contribution_feas = self.bayesian_network_feas.kernel_contribution
 			else:
-				kernel_contribution_feas = lambda x: (0., 0.)
+				kernel_contribution_feas = self.bayesian_network_feas.empty_kernel_contribution
 				unfeas_frac = 0.
 
 			# if there are process constraining parameters, run those first
+			# TODO: implement infeasible values for constrained batches
 			if self.config.process_constrained:
 				proposed_samples     = self.acquisition.propose(best_params, kernel_contribution, dominant_strategy_value)
 				constraining_samples = self.sample_selector.select(self.config.get('batches'), proposed_samples,
@@ -200,7 +205,7 @@ class Gryffin(Logger):
 
 
 		if self.config.get_db('has_db'):
-			db_entry = {'start_time': start_time, 'end_time': end_time, 
+			db_entry = {'start_time': start_time, 'end_time': end_time,
 						'received_obs': observations, 'suggested_params': return_samples}
 			if self.config.get('auto_desc_gen'):
 				# get summary of learned descriptors
