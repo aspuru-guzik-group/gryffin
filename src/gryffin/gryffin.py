@@ -33,13 +33,14 @@ class Gryffin(Logger):
 		self.update_verbosity(self.config.get('verbosity'))
 		self.create_folders()
 
-		self.random_sampler        = RandomSampler(self.config.general, self.config.parameters)
-		self.obs_processor         = ObservationProcessor(self.config)
-		self.descriptor_generator  = DescriptorGenerator(self.config)
-		self.bayesian_network      = BayesianNetwork(self.config)
-		self.bayesian_network_feas = BayesianNetwork(self.config)
-		self.acquisition           = Acquisition(self.config)
-		self.sample_selector       = SampleSelector(self.config)
+		self.random_sampler            = RandomSampler(self.config.general, self.config.parameters)
+		self.obs_processor             = ObservationProcessor(self.config)
+		self.descriptor_generator      = DescriptorGenerator(self.config)
+		self.descriptor_generator_feas = DescriptorGenerator(self.config)
+		self.bayesian_network          = BayesianNetwork(self.config)
+		self.bayesian_network_feas     = BayesianNetwork(self.config)
+		self.acquisition               = Acquisition(self.config)
+		self.sample_selector           = SampleSelector(self.config)
 
 		self.iter_counter = 0
 
@@ -88,18 +89,22 @@ class Gryffin(Logger):
 
 			# run descriptor generation
 			# TODO: fix
-			if self.config.get('auto_desc_gen') and len(obs_params) > 2:
-				self.descriptor_generator.generate(obs_params, obs_objs)
+			if self.config.get('auto_desc_gen'):
+				if len(obs_params_kwn) > 2:
+					self.descriptor_generator.generate(obs_params_kwn, obs_objs_kwn)
+				if len(obs_params_ukwn) > 2:
+					self.descriptor_generator_feas.generate(obs_params_ukwn, obs_objs_ukwn)
 
 			# extract descriptors and build kernels
 			descriptors = self.descriptor_generator.get_descriptors()
+			descriptors_feas = self.descriptor_generator_feas.get_descriptors()
 
 			# get lambda values for exploration/exploitation
 			sampling_param_values = self.bayesian_network.sampling_param_values
 			dominant_strategy_index = self.iter_counter % len(sampling_param_values)
 			dominant_strategy_value = np.array([sampling_param_values[dominant_strategy_index]])
 
-			# cannot sample anything is obs_params_kwn is empty!
+			# sample bnn for known parameters
 			if obs_params_kwn.shape[0] > 0:
 				self.bayesian_network.sample(obs_params_kwn, obs_objs_kwn)
 				self.bayesian_network.build_kernels(descriptors)
@@ -107,7 +112,7 @@ class Gryffin(Logger):
 				# if we have kwn samples ==> pick params with best merit
 				best_params = obs_params_kwn[np.argmin(obs_objs_kwn)]
 			else:
-				# empty kernel contributions
+				# empty kernel contributions - cannot sample anything is obs_params_kwn is empty!
 				kernel_contribution = self.bayesian_network.empty_kernel_contribution
 				# if we have do not have any feasible sample ==> pick any feasible param at random
 				best_params_idx = np.random.choice(np.flatnonzero(obs_objs_ukwn == obs_objs_ukwn.min()))
@@ -125,7 +130,7 @@ class Gryffin(Logger):
 			# sample from BNN for feasibility surrogate is we have at least one unfeasible point
 			if obs_params_ukwn.shape[0] > 0:
 				self.bayesian_network_feas.sample(obs_params_ukwn, obs_objs_ukwn)
-				self.bayesian_network_feas.build_kernels(descriptors)
+				self.bayesian_network_feas.build_kernels(descriptors_feas)
 				# fraction of unfeasible samples - use mask to avoid counting mirrored samples
 				unfeas_frac = sum(obs_objs_ukwn[mirror_mask_ukwn]) / len(obs_objs_ukwn[mirror_mask_ukwn])
 				unfeas_frac = unfeas_frac ** feas_sensitivity  # adjust sensitivity to presence of unfeasible samples
