@@ -159,9 +159,10 @@ class BayesianNetwork(Logger):
 
 		self.kernel_contribution = kernel_contribution
 
-	@staticmethod
-	def empty_kernel_contribution(proposed_sample):
-			return 0., 0.
+	def empty_kernel_contribution(self, proposed_sample):
+			num = 0.
+			inv_den = self.volume  # = 1/p(x) = 1/inverse_volume
+			return num, inv_den
 
 
 
