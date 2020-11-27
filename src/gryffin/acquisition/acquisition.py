@@ -22,8 +22,12 @@ class Acquisition(Logger):
 		Logger.__init__(self, 'Acquisition', self.config.get('verbosity'))
 		self.random_sampler   = RandomSampler(self.config.general, self.config.parameters)
 		self.total_num_vars   = len(self.config.feature_names)
-		self.local_optimizers = None		
-		self.num_cpus         = multiprocessing.cpu_count()
+		self.local_optimizers = None
+		# figure out how many CPUs to use
+		if self.config.get('num_cpus') == 'all':
+			self.num_cpus = multiprocessing.cpu_count()
+		else:
+			self.num_cpus = int(self.config.get('num_cpus'))
 
 
 	def _propose_randomly(self, best_params, num_samples, dominant_samples = None):
@@ -75,7 +79,7 @@ class Acquisition(Logger):
 
 	def _optimize_proposals(self, random_proposals, kernel_contribution, kernel_contribution_feas, unfeas_frac, dominant_samples=None):
 
-		if self.config.get('parallel'):
+		if self.num_cpus > 1:
 			result_dict = Manager().dict()
 
 			# get the number of splits
@@ -122,11 +126,7 @@ class Acquisition(Logger):
 
 
 	def propose(self, best_params, kernel_contribution, kernel_contribution_feas, unfeas_frac, sampling_param_values,
-				num_samples = 200, 
-				parallel = 'True',
-				dominant_samples  = None,
-				dominant_strategy = None,
-			):
+				num_samples=200, dominant_samples=None):
 
 		self.local_optimizers = [ParameterOptimizer(self.config) for _ in range(len(sampling_param_values))]
 		assert len(self.local_optimizers) == len(sampling_param_values)
@@ -143,7 +143,6 @@ class Acquisition(Logger):
 													   unfeas_frac, dominant_samples=dominant_samples)
 		end = time.time()
 		self.log('[TIME]:  ' + str(end - start) + '  (optimizing proposals)', 'INFO')
-
 
 		extended_proposals = np.array([random_proposals for _ in range(len(sampling_param_values))])
 		combined_proposals = np.concatenate((extended_proposals, optimized_proposals), axis = 1)

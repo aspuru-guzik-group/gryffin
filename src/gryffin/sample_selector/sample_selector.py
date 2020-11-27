@@ -16,8 +16,12 @@ class SampleSelector(Logger):
 
 	def __init__(self, config):
 		self.config = config
-		Logger.__init__(self, 'SampleSelector', verbosity = self.config.get('verbosity'))
-		self.num_cpus = multiprocessing.cpu_count()
+		Logger.__init__(self, 'SampleSelector', verbosity=self.config.get('verbosity'))
+		# figure out how many CPUs to use
+		if self.config.get('num_cpus') == 'all':
+			self.num_cpus = multiprocessing.cpu_count()
+		else:
+			self.num_cpus = int(self.config.get('num_cpus'))
 
 
 	def compute_exp_objs(self, proposals, kernel_contribution, kernel_contribution_feas, unfeas_frac, batch_index,
@@ -51,7 +55,7 @@ class SampleSelector(Logger):
 		self.sampling_param_values = sampling_param_values		
 	
 		# compute acq func values
-		if self.config.get('parallel'):
+		if self.num_cpus > 1:
 			result_dict = Manager().dict()
 			
 			# get the number of splits

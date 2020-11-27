@@ -10,7 +10,7 @@ default_general_configurations = {
 	'backend':               'tensorflow',
 	'batches':                1,
 	'boosted':                True,
-	'parallel':               True,
+	'num_cpus':               1,  # Options are a number, or 'all'
 	'random_seed':            100691,
 	'sampler':               'uniform',
 	'sampling_strategies':    2,

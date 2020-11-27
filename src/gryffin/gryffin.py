@@ -139,20 +139,20 @@ class Gryffin(Logger):
 				unfeas_frac = 0.
 
 			# if there are process constraining parameters, run those first
-			# TODO: implement infeasible values for constrained batches
 			if self.config.process_constrained:
-				proposed_samples     = self.acquisition.propose(best_params, kernel_contribution, dominant_strategy_value)
+				proposed_samples = self.acquisition.propose(best_params, kernel_contribution,
+															kernel_contribution_feas, unfeas_frac,
+															sampling_param_values, dominant_samples=None)
 				constraining_samples = self.sample_selector.select(self.config.get('batches'), proposed_samples,
-																   kernel_contribution, dominant_strategy_value,
-																   obs_params_kwn)
+																   kernel_contribution, kernel_contribution_feas, unfeas_frac,
+																   dominant_strategy_value, obs_params_ukwn)
 			else:
 				constraining_samples = None
 
 			# then select the remaining proposals
 			proposed_samples = self.acquisition.propose(
 					best_params, kernel_contribution, kernel_contribution_feas, unfeas_frac, sampling_param_values,
-					dominant_samples=constraining_samples,
-					dominant_strategy=dominant_strategy_index)
+					dominant_samples=constraining_samples)
 
 			# note: provide `obs_params_ukwn` as it contains the params for _all_ samples, including the unfeasible ones
 			samples = self.sample_selector.select(self.config.get('batches'), proposed_samples, kernel_contribution,
