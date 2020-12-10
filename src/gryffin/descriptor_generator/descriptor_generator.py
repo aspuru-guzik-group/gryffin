@@ -13,6 +13,7 @@ import subprocess
 
 import numpy      as np 
 import tensorflow as tf
+import multiprocessing
 
 from gryffin.utilities            import Logger
 from gryffin.utilities.decorators import thread
@@ -37,6 +38,11 @@ class DescriptorGenerator(Logger):
 		self.reduced_gen_descs  = {}
 		self.weights            = {}
 		self.sufficient_indices = {}
+
+		if self.config.get('num_cpus') == 'all':
+			self.num_cpus = multiprocessing.cpu_count()
+		else:
+			self.num_cpus = int(self.config.get('num_cpus'))
 
 
 	@thread
@@ -145,8 +151,9 @@ class DescriptorGenerator(Logger):
 			self.single_generate(sampled_descriptors, sampled_objs, feature_index, result_dict)
 
 			# avoid parallel execution if not desired
-			if not self.config.get('parallel'):
-				if feature_types[feature_index] == 'continuous': continue
+			if self.num_cpus == 1:
+				if feature_types[feature_index] == 'continuous':
+					continue
 				while not feature_index in result_dict:
 					time.sleep(0.1)
 
