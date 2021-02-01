@@ -4,15 +4,14 @@ __author__ = 'Florian Hase'
 
 #========================================================================
 
-import os, sys
+import os
 import copy
 import time
 import uuid
 import pickle
 import subprocess
 
-import numpy      as np 
-import tensorflow as tf
+import numpy      as np
 import multiprocessing
 
 from gryffin.utilities            import Logger
@@ -46,12 +45,15 @@ class DescriptorGenerator(Logger):
 
 
 	@thread
-	def single_generate(self, descs, objs, feature_index, result_dict = None):
+	def single_generate(self, descs, objs, feature_index, result_dict=None):
 
 		# collect all relevant properties
 		sim_dict = {}
 		for prop in dir(self):
-			if callable(getattr(self, prop)) or prop.startswith(('__', 'W', 'config')): continue
+			if callable(getattr(self, prop)) or prop.startswith(('__', 'W', 'config')):
+				continue
+			if prop.startswith('sufficient_indices'):
+				continue
 			sim_dict[prop] = getattr(self, prop)
 
 		sim_dict['num_samples'] = descs.shape[0]
@@ -61,13 +63,11 @@ class DescriptorGenerator(Logger):
 		sim_dict['objs']        = objs
 		sim_dict['grid_descs']  = self.config.feature_descriptors[feature_index]
 	
-		identifier  = str(uuid.uuid4())[:8]
+		identifier = str(uuid.uuid4())[:8]
 		config_name = '%s/descriptor_generation_%d_%s.pkl' % (self.config.get('scratch_dir'), feature_index, identifier)
 		with open(config_name, 'wb') as content:
 			pickle.dump(sim_dict, content)
-		
-#		FNULL = open(os.devnull, 'w')
-#		subprocess.call('%s %s' % (self.exec_name, config_name), shell = True, stdout = FNULL, stderr = subprocess.STDOUT)
+
 		subprocess.call('python %s %s' % (self.exec_name, config_name), shell = True)
 		print('SUBMITTED DESC GENERATION')		
 		results_name = '%s/completed_descriptor_generation_%d_%s.pkl' % (self.config.get('scratch_dir'), feature_index, identifier)
@@ -95,17 +95,12 @@ class DescriptorGenerator(Logger):
 		self.gen_descs_cov[feature_index]      = results['gen_descs_cov']
 		self.reduced_gen_descs[feature_index]  = results['reduced_gen_descs']
 		self.weights[feature_index]            = results['weights']	
-		self.sufficient_indices[feature_index] = results['sufficient_indices']
-
-#		print("WEIGHTS", feature_index, self.weights[feature_index])
-#		print("REDUCED_DESCS", feature_index, results['reduced_gen_descs'].shape)
+		#self.sufficient_indices[feature_index] = results['sufficient_indices']  # unused
 
 		result_dict[feature_index] = results['reduced_gen_descs']
 
 		os.remove(config_name)
 		os.remove(results_name)
-
-
 
 	@thread
 	def generate(self, obs_params, obs_objs):
@@ -117,12 +112,6 @@ class DescriptorGenerator(Logger):
 		result_dict         = {}
 		feature_types       = self.config.feature_types
 		feature_descriptors = self.config.feature_descriptors
-
-#		print('FEATURE DESCRIPTORS', feature_descriptors, np.array(feature_descriptors[0]).shape)
-#		print('*'*10)
-#		for element in feature_descriptors:
-#			print(element)
-#		print('*'*10)
 
 		for feature_index, feature_options in enumerate(self.config.feature_options):
 
@@ -158,7 +147,8 @@ class DescriptorGenerator(Logger):
 					time.sleep(0.1)
 
 		for feature_index in range(len(self.config.feature_options)):
-			if feature_types[feature_index] == 'continuous': continue
+			if feature_types[feature_index] == 'continuous':
+				continue
 			while not feature_index in result_dict:
 				time.sleep(0.1)
 
@@ -185,12 +175,15 @@ class DescriptorGenerator(Logger):
 		
 		summary = {}
 		feature_types = self.config.feature_types
+		# If we have not generated new descriptors
 		if not hasattr(self, 'gen_feature_descriptors'):
 			for feature_index in range(len(self.config.feature_options)):
 				contribs = {}
-				if feature_types[feature_index] == 'continuous': continue
+				if feature_types[feature_index] == 'continuous':
+					continue
 				feature_descriptors = self.config.feature_descriptors[feature_index]
-				if feature_descriptors is None: continue
+				if feature_descriptors is None:
+					continue
 				for desc_index in range(feature_descriptors.shape[1]):
 					desc_summary_dict = {}
 					desc_summary_dict['relevant_given_descriptors']     = np.arange(len(feature_descriptors[:, desc_index]))
@@ -199,17 +192,20 @@ class DescriptorGenerator(Logger):
 				summary['feature_%d' % feature_index] = copy.deepcopy(contribs)
 			return summary
 
-
+		# If we have generated new descriptors
 		for feature_index in range(len(self.config.feature_options)):
 	
-			if feature_types[feature_index] == 'continuous': continue
+			if feature_types[feature_index] == 'continuous':
+				continue
 	
 			weights            = self.weights[feature_index]
-			reduced_gen_descs  = self.reduced_gen_descs[feature_index]
-			sufficient_indices = self.sufficient_indices[feature_index]
+			#reduced_gen_descs  = self.reduced_gen_descs[feature_index]  # unused variable?
+			#sufficient_indices = self.sufficient_indices[feature_index]
 
-			if weights is None: continue
-			if len(sufficient_indices) == 0: continue
+			if weights is None:
+				continue
+			#if len(sufficient_indices) == 0:
+			#	continue
 
 			# normalize weights
 			normed_weights = np.empty(weights.shape)

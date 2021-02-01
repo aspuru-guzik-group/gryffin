@@ -211,16 +211,15 @@ class Gryffin(Logger):
 		if self.config.get_db('has_db'):
 			db_entry = {'start_time': start_time, 'end_time': end_time,
 						'received_obs': observations, 'suggested_params': return_samples}
-			if self.config.get('auto_desc_gen'):
+			# !! Do no call summary, which causes oom issues
+			#if self.config.get('auto_desc_gen'):
 				# get summary of learned descriptors
-				descriptor_summary = self.descriptor_generator.get_summary()
-				db_entry['descriptor_summary'] = descriptor_summary
+			#	descriptor_summary = self.descriptor_generator.get_summary()
+			#	db_entry['descriptor_summary'] = descriptor_summary
 			self.db_handler.save(db_entry)
 
 		self.iter_counter += 1
 		return return_samples
-
-
 
 	def read_db(self, outfile = 'database.csv', verbose = True):
 		self.db_handler.read_db(outfile, verbose)
