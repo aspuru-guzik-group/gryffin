@@ -11,13 +11,12 @@ import uuid
 import pickle
 import subprocess
 
-import numpy      as np
+import numpy as np
 import multiprocessing
 
-from gryffin.utilities            import Logger
+from gryffin.utilities import Logger
 from gryffin.utilities.decorators import thread
 
-#========================================================================
 
 class DescriptorGenerator(Logger):
 
@@ -43,7 +42,6 @@ class DescriptorGenerator(Logger):
 		else:
 			self.num_cpus = int(self.config.get('num_cpus'))
 
-
 	@thread
 	def single_generate(self, descs, objs, feature_index, result_dict=None):
 
@@ -51,8 +49,6 @@ class DescriptorGenerator(Logger):
 		sim_dict = {}
 		for prop in dir(self):
 			if callable(getattr(self, prop)) or prop.startswith(('__', 'W', 'config')):
-				continue
-			if prop.startswith('sufficient_indices'):
 				continue
 			sim_dict[prop] = getattr(self, prop)
 
@@ -68,7 +64,7 @@ class DescriptorGenerator(Logger):
 		with open(config_name, 'wb') as content:
 			pickle.dump(sim_dict, content)
 
-		subprocess.call('python %s %s' % (self.exec_name, config_name), shell = True)
+		subprocess.call('python %s %s' % (self.exec_name, config_name), shell=True)
 		print('SUBMITTED DESC GENERATION')		
 		results_name = '%s/completed_descriptor_generation_%d_%s.pkl' % (self.config.get('scratch_dir'), feature_index, identifier)
 
@@ -95,7 +91,7 @@ class DescriptorGenerator(Logger):
 		self.gen_descs_cov[feature_index]      = results['gen_descs_cov']
 		self.reduced_gen_descs[feature_index]  = results['reduced_gen_descs']
 		self.weights[feature_index]            = results['weights']	
-		#self.sufficient_indices[feature_index] = results['sufficient_indices']  # unused
+		self.sufficient_indices[feature_index] = results['sufficient_indices']
 
 		result_dict[feature_index] = results['reduced_gen_descs']
 
@@ -159,7 +155,6 @@ class DescriptorGenerator(Logger):
 		end = time.time()
 		self.desc_gen_time = end - start
 
-
 	def get_descriptors(self):
 		while self.is_generating:
 			time.sleep(0.1)
@@ -169,7 +164,6 @@ class DescriptorGenerator(Logger):
 			return self.gen_feature_descriptors
 		else:
 			return self.config.feature_descriptors
-
 
 	def get_summary(self):
 		
@@ -199,13 +193,13 @@ class DescriptorGenerator(Logger):
 				continue
 	
 			weights            = self.weights[feature_index]
-			#reduced_gen_descs  = self.reduced_gen_descs[feature_index]  # unused variable?
-			#sufficient_indices = self.sufficient_indices[feature_index]
+			sufficient_indices = self.sufficient_indices[feature_index]
+			print('sufficient_indices', sufficient_indices)
 
 			if weights is None:
 				continue
-			#if len(sufficient_indices) == 0:
-			#	continue
+			if len(sufficient_indices) == 0:
+				continue
 
 			# normalize weights
 			normed_weights = np.empty(weights.shape)
@@ -214,7 +208,6 @@ class DescriptorGenerator(Logger):
 
 			# identify contributing indices
 			contribs = {}
-#			for new_desc_index in range(reduced_gen_descs.shape[1]):
 			for new_desc_index in sufficient_indices:
 				desc_summary_dict = {}
 				relevant_weights  = normed_weights[new_desc_index]
@@ -230,8 +223,5 @@ class DescriptorGenerator(Logger):
 			summary['feature_%d' % feature_index] = copy.deepcopy(contribs)
 
 		return summary
-			 
 
-
-#========================================================================
 
