@@ -2,9 +2,8 @@
 
 __author__ = 'Florian Hase'
 
-#========================================================================
-
-import os, sys
+import os
+import sys
 import numpy as np
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
@@ -16,13 +15,12 @@ from .random_sampler        import RandomSampler
 from .sample_selector       import SampleSelector
 from .utilities             import ConfigParser, Logger, GryffinNotFoundError
 
-#========================================================================
 
 class Gryffin(Logger):
 
-	def __init__(self, config_file = None, config_dict = None):
+	def __init__(self, config_file=None, config_dict=None):
 
-		Logger.__init__(self, 'Gryffin', verbosity = 0)
+		Logger.__init__(self, 'Gryffin', verbosity=0)
 
 		# parse configuration
 		self.config = ConfigParser(config_file, config_dict)
@@ -44,7 +42,6 @@ class Gryffin(Logger):
 
 		self.iter_counter = 0
 
-
 	def create_folders(self):
 
 		if not os.path.isdir(self.config.get('scratch_dir')):
@@ -53,19 +50,17 @@ class Gryffin(Logger):
 			except FileNotFoundError:
 				GryffinNotFoundError('Could not create scratch directory: %s' % self.config.get('scratch_dir'))
 
-		if self.config.get_db('has_db') and not os.path.isdir(self.config.get_db('path')):
+		if self.config.get('save_database') is True and not os.path.isdir(self.config.get_db('path')):
 			try:
 				os.mkdir(self.config.get_db('path'))
 			except FileNotFoundError:
-				GryffinNotFoundError('Could not create database directory: %s' % self.config.get_db('path'))		
+				GryffinNotFoundError('Could not create database directory: %s' % self.config.get_db('path'))
 
-		if self.config.get_db('has_db'):
+		if self.config.get('save_database') is True:
 			from .database_handler import DatabaseHandler
 			self.db_handler = DatabaseHandler(self.config)
 
-
-
-	def recommend(self, observations = None, as_array = False):
+	def recommend(self, observations=None, as_array=False):
 		
 		from datetime import datetime
 		start_time = datetime.now()
@@ -207,21 +202,19 @@ class Gryffin(Logger):
 				sample_dicts.append(sample_dict)
 			return_samples = sample_dicts
 
-
-		if self.config.get_db('has_db'):
+		if self.config.get('save_database') is True:
 			db_entry = {'start_time': start_time, 'end_time': end_time,
 						'received_obs': observations, 'suggested_params': return_samples}
-			# !! Do no call summary, which causes oom issues
-			#if self.config.get('auto_desc_gen'):
-				# get summary of learned descriptors
-			#	descriptor_summary = self.descriptor_generator.get_summary()
-			#	db_entry['descriptor_summary'] = descriptor_summary
+			if self.config.get('auto_desc_gen') is True:
+				# save summary of learned descriptors
+				descriptor_summary = self.descriptor_generator.get_summary()
+				db_entry['descriptor_summary'] = descriptor_summary
 			self.db_handler.save(db_entry)
 
 		self.iter_counter += 1
 		return return_samples
 
-	def read_db(self, outfile = 'database.csv', verbose = True):
+	def read_db(self, outfile='database.csv', verbose=True):
 		self.db_handler.read_db(outfile, verbose)
 
 	def get_surrogate(self, x):
@@ -255,17 +248,3 @@ class Gryffin(Logger):
 				return acquisition
 			else:
 				return acq_samp, acq_feas
-
-
-#========================================================================
-
-if __name__ == '__main__':
-
-	observations = [
-			{'param_0': [-1.0, -1.0], 'param_1':  [1.0], 'obj_0': 0.1, 'obj_1': 0.2},
-			{'param_0': [1.0, 1.0],  'param_1': [-1.0], 'obj_0': 0.2, 'obj_1': 0.1},
-		]
-
-	gryffin = Gryffin()
-	samples = gryffin.recommend(observations = observations)
-	print(samples)

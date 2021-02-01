@@ -14,6 +14,7 @@ default_general_configurations = {
 	'random_seed':            100691,
 	'sampler':               'uniform',
 	'sampling_strategies':    2,
+	'save_database':          True,
 	'scratch_dir':           './.scratch',
 	'softness':               0.001,
 	'feas_sensitivity':       1,
