@@ -26,23 +26,31 @@ class ObservationProcessor(Logger):
 		self.soft_upper     = self.feature_uppers - 0.1 * (self.feature_uppers - self.feature_lowers)
 
 
-	def adjust_objectives_and_thres(self, objs):
-		'''adjust objectives and thresholds based on optimization goal'''
+	def adjust_objectives_and_absolutes(self, objs):
+		'''adjust objectives and absolutes based on optimization goal'''
 		optim_goals   = self.config.obj_goals	
 		adjusted_objs = np.empty(objs.shape)
+		
+		adjusted_abs = np.zeros(len(optim_goals)) + np.nan
+		
 		for obj_index, obj_goal in enumerate(optim_goals):
 			if obj_goal == 'minimize':
 				adjusted_objs[:, obj_index] =   objs[:, obj_index]
+				
+				'''tolerances do not need to be changed whatsoever'''
+				if self.config.obj_absolutes[obj_index] is not None:
+					adjusted_abs[obj_index] = self.config.obj_absolutes[obj_index]
+				
 			elif obj_goal == 'maximize':
 				adjusted_objs[:, obj_index] = - objs[:, obj_index]
 				
-				'''invert the threshold if maximize'''
-				if np.isnan(self.absolutes[obj_index]) is False:
-				    self.absolutes[obj_index] = - self.absolutes[obj_index]
+				'''invert the absolute if maximize + absolute'''
+				if self.config.obj_absolutes[obj_index] is not None:
+					adjusted_abs[obj_index] = - self.config.obj_absolutes[obj_index]
 				
 			else:
 				GryffinUnknownSettingsError('did not understand objective goal: "%s" for objective "%s".\n\tChoose from "minimize" or "maximize"' % (obj_goal, self.config.obj_names[obj_index]))
-		return adjusted_objs
+		return adjusted_objs, adjusted_abs
 
 
 	def mirror_parameters(self, param_vector):
@@ -80,8 +88,8 @@ class ObservationProcessor(Logger):
 		return params
 
 
-	def scalarize_objectives(self, objs):
-		scalarized = self.chimera.scalarize(objs)
+	def scalarize_objectives(self, objs, abs):
+		scalarized = self.chimera.scalarize(objs, abs)
 		min_obj, max_obj = np.amin(scalarized), np.amax(scalarized)
 		if min_obj != max_obj:
 			scaled_obj = (scalarized - min_obj) / (max_obj - min_obj)
@@ -129,8 +137,8 @@ class ObservationProcessor(Logger):
 
 		params = raw_params	
 		
-		adjusted_objs = self.adjust_objectives_and_thres(raw_objs)
-		objs          = self.scalarize_objectives(adjusted_objs)
+		adjusted_objs, adjusted_abs = self.adjust_objectives_and_absolutes(raw_objs)
+		objs          = self.scalarize_objectives(adjusted_objs, adjusted_abs)
 
 		return params, objs
 
