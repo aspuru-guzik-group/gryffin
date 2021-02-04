@@ -16,7 +16,7 @@ class ObservationProcessor(Logger):
 
 	def __init__(self, config):
 		self.config  = config
-		self.chimera = Chimera(self.config.obj_tolerances, self.config.get('softness'))
+		self.chimera = Chimera(self.config.obj_tolerances, self.config.get('softness'), self.config.obj_absolutes)
 		Logger.__init__(self, 'ObservationProcessor', verbosity = self.config.get('verbosity'))
 		
 		# compute some boundaries
@@ -26,8 +26,8 @@ class ObservationProcessor(Logger):
 		self.soft_upper     = self.feature_uppers - 0.1 * (self.feature_uppers - self.feature_lowers)
 
 
-	def adjust_objectives(self, objs):
-		'''adjust objectives based on optimization goal'''
+	def adjust_objectives_and_thres(self, objs):
+		'''adjust objectives and thresholds based on optimization goal'''
 		optim_goals   = self.config.obj_goals	
 		adjusted_objs = np.empty(objs.shape)
 		for obj_index, obj_goal in enumerate(optim_goals):
@@ -35,6 +35,11 @@ class ObservationProcessor(Logger):
 				adjusted_objs[:, obj_index] =   objs[:, obj_index]
 			elif obj_goal == 'maximize':
 				adjusted_objs[:, obj_index] = - objs[:, obj_index]
+				
+				'''invert the threshold if maximize'''
+				if np.isnan(self.absolutes[obj_index]) is False:
+				    self.absolutes[obj_index] = - self.absolutes[obj_index]
+				
 			else:
 				GryffinUnknownSettingsError('did not understand objective goal: "%s" for objective "%s".\n\tChoose from "minimize" or "maximize"' % (obj_goal, self.config.obj_names[obj_index]))
 		return adjusted_objs
@@ -123,7 +128,8 @@ class ObservationProcessor(Logger):
 		raw_objs, raw_params = np.array(raw_objs), np.array(raw_params)
 
 		params = raw_params	
-		adjusted_objs = self.adjust_objectives(raw_objs)
+		
+		adjusted_objs = self.adjust_objectives_and_thres(raw_objs)
 		objs          = self.scalarize_objectives(adjusted_objs)
 
 		return params, objs
