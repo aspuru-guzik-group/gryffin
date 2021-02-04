@@ -11,7 +11,12 @@ import numpy as np
 class Chimera(object):
 
 	def __init__(self, tolerances, softness = 0.0, absolutes = None):
+		assert (tolerances is not None) or (absolutes is not None)
+		
 		self.tolerances = tolerances
+		if tolerances is None:
+			self.tolerances = np.zeros(len(absolutes)) + np.nan
+			
 		self.absolutes  = absolutes
 		if absolutes is None:
 			self.absolutes = np.zeros(len(tolerances)) + np.nan
@@ -36,7 +41,10 @@ class Chimera(object):
 			return self.soft_step(value)
 
 
-	def rescale(self, raw_objs):
+	def rescale(self, raw_objs, raw_thres):
+		
+		self.absolutes = raw_thres
+		
 		res_objs = np.empty(raw_objs.shape)
 		res_abs  = np.empty(self.absolutes.shape)
 		for index in range(raw_objs.shape[1]):
@@ -98,8 +106,8 @@ class Chimera(object):
 	
 
 	
-	def scalarize(self, raw_objs):
-		res_objs, res_abs      = self.rescale(raw_objs)
+	def scalarize(self, raw_objs, raw_thres):
+		res_objs, res_abs      = self.rescale(raw_objs, raw_thres)
 		shifted_objs, abs_tols = self.shift_objectives(res_objs, res_abs) 
 		scalarized_obj         = self.scalarize_objs(shifted_objs, abs_tols)
 		return scalarized_obj
