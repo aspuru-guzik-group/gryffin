@@ -41,9 +41,9 @@ class Chimera(object):
 			return self.soft_step(value)
 
 
-	def rescale(self, raw_objs, raw_thres):
+	def rescale(self, raw_objs, raw_abs):
 		
-		self.absolutes = raw_thres
+		self.absolutes = raw_abs
 		
 		res_objs = np.empty(raw_objs.shape)
 		res_abs  = np.empty(self.absolutes.shape)
@@ -106,8 +106,8 @@ class Chimera(object):
 	
 
 	
-	def scalarize(self, raw_objs, raw_thres):
-		res_objs, res_abs      = self.rescale(raw_objs, raw_thres)
+	def scalarize(self, raw_objs, raw_abs):
+		res_objs, res_abs      = self.rescale(raw_objs, raw_abs)
 		shifted_objs, abs_tols = self.shift_objectives(res_objs, res_abs) 
 		scalarized_obj         = self.scalarize_objs(shifted_objs, abs_tols)
 		return scalarized_obj
