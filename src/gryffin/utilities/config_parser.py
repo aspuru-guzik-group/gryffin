@@ -388,6 +388,10 @@ class ConfigParser(Logger):
 	@property
 	def obj_tolerances(self):
 		return self.objectives.tolerance
+	
+	@property
+	def obj_absolutes(self):
+		return self.objectives.absolute
 		
 	@property
 	def obj_goals(self):
