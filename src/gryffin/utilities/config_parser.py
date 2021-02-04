@@ -179,7 +179,7 @@ class ConfigParser(Logger):
 
 	def _parse_objectives(self, provided_settings):
 		self.objectives = Configuration('objectives')
-		obj_configs     = {'name': [], 'goal': [], 'hierarchy': [], 'tolerance': []}
+		obj_configs     = {'name': [], 'goal': [], 'hierarchy': [], 'tolerance': [], 'absolute': []}
 
 		if len(provided_settings) == 0:
 			self.log('need to define at least one objective', 'FATAL')
@@ -194,7 +194,10 @@ class ConfigParser(Logger):
 		else:	
 			for setting in provided_settings:
 				for key in obj_configs.keys():
-					obj_configs[key].append(setting[key])
+					if key in setting:
+						obj_configs[key].append(setting[key])
+					else:
+						obj_configs[key].append(None)
 
 		# sort entries based on hierachy
 		sort_indices = np.argsort(obj_configs['hierarchy'])		
