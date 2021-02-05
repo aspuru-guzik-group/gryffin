@@ -11,16 +11,17 @@ import numpy as np
 class Chimera(object):
 
 	def __init__(self, tolerances, softness = 0.0, absolutes = None):
-		assert (tolerances is not None) or (absolutes is not None)
-		
 		self.tolerances = tolerances
-		if tolerances is None:
-			self.tolerances = np.zeros(len(absolutes)) + np.nan
-			
 		self.absolutes  = absolutes
 		if absolutes is None:
 			self.absolutes = np.zeros(len(tolerances)) + np.nan
 		self.softness   = softness
+		
+		for i in range(len(tolerances)):
+			if tolerances[i] is None and absolutes[i] is None:
+				self.tolerances[i] = 0.0
+			elif tolerances[i] is None:
+				tolerances[i] = np.nan
 
 
 	def soft_step(self, value):
