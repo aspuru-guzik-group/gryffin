@@ -21,7 +21,7 @@ class Chimera(object):
 			if tolerances[i] is None and absolutes[i] is None:
 				self.tolerances[i] = 0.0
 			elif tolerances[i] is None:
-				tolerances[i] = np.nan
+				self.tolerances[i] = np.nan
 
 
 	def soft_step(self, value):
