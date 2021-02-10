@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+import json
+
 __author__ = 'Florian Hase'
 
 # =============================
@@ -60,3 +62,22 @@ default_configuration = {
 }
 
 
+def get_config_defaults(json_file=None):
+    """Returns the default configurations for Gryffin.
+
+    Parameters
+    ----------
+    json_file: str
+        Whether to write the default configurations to a json file with this name. Default is None, i.e.
+        do not save json file.
+
+    Returns
+    -------
+    config : dict
+        The default configurations for Gryffin, either as dict or json string.
+    """
+    if json_file is not None:
+        with open(json_file, 'w') as f:
+            json.dump(default_configuration, f, indent=4)
+
+    return default_configuration
