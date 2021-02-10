@@ -91,7 +91,6 @@ class ConfigParser(Logger):
 				general_value = general_value == 'True'
 			self.general.add_attr(general_key, general_value)
 
-
 	def _parse_database(self, provided_settings):
 		self.database = Configuration('database')
 		for general_key, general_value in default_database_configurations.items():
@@ -100,11 +99,6 @@ class ConfigParser(Logger):
 			if general_value in ['True', 'False']:
 				general_value = general_value == 'True'
 			self.database.add_attr(general_key, general_value)
-		if self.database.format in ['sqlite']:
-			self.database.add_attr('has_db', True)
-		else:
-			self.database.add_attr('has_db', False)
-
 
 	def _parse_parameters(self, provided_settings):
 		self.parameters   = Configuration('parameters')

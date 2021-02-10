@@ -5,7 +5,8 @@ __author__ = 'Florian Hase'
 #========================================================================
 
 import time
-import numpy as np 
+import numpy as np
+import multiprocessing
 from multiprocessing import Process, Manager
 
 from gryffin.utilities import Logger
@@ -22,6 +23,11 @@ class CategoryReshaper(Logger):
 		Logger.__init__(self, 'CategoryReshaper', verbosity = self.config.get('verbosity'))
 
 		self.kernel_reshaper = KernelReshaper()
+
+		if self.config.get('num_cpus') == 'all':
+			self.num_cpus = multiprocessing.cpu_count()
+		else:
+			self.num_cpus = int(self.config.get('num_cpus'))
 
 
 	def cython_recompute_probs(self, cat_probs, descriptors, index, return_dict = None):
@@ -112,7 +118,7 @@ class CategoryReshaper(Logger):
 			parsed_probs.append(parsed_prob)
 
 		# run reshaping algorithm
-		if self.config.get('parallel'):
+		if self.num_cpus > 1:
 			result_dict = Manager().dict()
 			processes   = []
 			for feature_index in range(len(parsed_probs)):

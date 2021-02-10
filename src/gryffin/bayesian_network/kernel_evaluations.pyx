@@ -125,7 +125,6 @@ cdef class KernelEvaluator:
 			else:
 				probs[obs_index] = obs_probs * inv_sqrt_two_pi**num_continuous / self.num_samples
 		return probs
-		return probs
 
 
 
