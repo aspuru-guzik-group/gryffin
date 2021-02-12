@@ -120,22 +120,26 @@ class ConfigParser(Logger):
                 # check order
                 if setting['high'] <= setting['low']:
                     GryffinValueError('upper limit (%f) needs to be larger than the lower limit (%f) for parameter "%s"' % (setting['high'], setting['low'], setting['name']))
-                setting['options']     = np.arange(setting['low'], setting['high'], dtype = np.int32)
-                setting['descriptors'] = np.arange(setting['low'], setting['high'], dtype = np.float64)
+                setting['options']     = np.arange(setting['low'], setting['high'], dtype=np.int32)
+                setting['descriptors'] = np.arange(setting['low'], setting['high'], dtype=np.float64)
                 setting['descriptors'] = np.reshape(setting['descriptors'], (len(setting['descriptors']), 1))
                 num_cats = len(setting['options'])
 
             elif setting['type'] == 'categorical':
-                if 'category_details' in setting:
-                    options, descriptors   = self.category_parser.parse(setting['category_details'])
-                    setting['options']     = options
-                    setting['descriptors'] = descriptors
-                else:
-                    setting['category_details'] = None
-                    if not 'descriptors' in setting:
-                        setting['descriptors'] = None
-                        if self.general.auto_desc_gen:
-                            self.log('Automatic descriptor generation requested, but no descriptors provided for parameter "%s". Will not generate descriptors for this parameter. This messag will only be shown once.' % setting['name'], 'WARNING')
+                if 'category_details' not in setting:
+                    self.log('`category_details` needs to be defined for a categorical variable to know '
+                             'which options to be considered', 'FATAL')
+
+                options, descriptors = self.category_parser.parse(setting['category_details'])
+                setting['options'] = options
+                setting['descriptors'] = descriptors
+
+                # if someone is requesting the descriptor transformation but descriptors are not provided,
+                #  something is wrong and the user needs to fix the input
+                if self.general.auto_desc_gen is True and descriptors is None:
+                    self.log('Automatic descriptor generation requested, but no descriptors provided for '
+                             'parameter "%s".' % setting['name'], 'FATAL')
+
                 num_cats = len(setting['options'])
             else:
                 self.log('Did not understand parameter type "%s" for parameter "%s". Please choose from "continuous", "discrete" or "categorical".' % (setting['type'], setting['name']), 'FATAL')

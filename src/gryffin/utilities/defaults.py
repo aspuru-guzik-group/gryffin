@@ -53,7 +53,8 @@ default_configuration = {
     },
     'parameters': [
         {'name': 'param_0', 'type': 'continuous', 'low': 0, 'high': 1, 'size': 1},
-        {'name': 'param_1', 'type': 'continuous', 'low': 0, 'high': 1, 'size': 1},
+        {'name': 'param_1', 'type': 'continuous', 'low': 0, 'high': 1, 'size': 1}
+        # {'name': 'param_1', 'type': 'categorical', 'category_details': {'A':[1,2], 'B'[2,1], ..., 'Z':[4,5]},
     ],
     'objectives': [
         {'name': 'obj_0', 'goal': 'min', 'tolerance': 0.2, 'absolute': False},
