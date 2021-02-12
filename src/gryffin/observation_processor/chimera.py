@@ -70,11 +70,18 @@ class Chimera(object):
 		for obj_index, obj in enumerate(transposed_objs):
 
 			# get absolute tolerances
-			minimum = np.amin(obj[domain])
-			maximum = np.amax(obj[domain])
-			mins.append(minimum)
-			maxs.append(maximum)
-			tolerance = minimum + self.tolerances[obj_index] * (maximum - minimum)
+			
+			# top tolerance% of obj range
+# 			minimum = np.amin(obj[domain])
+# 			maximum = np.amax(obj[domain])
+# 			mins.append(minimum)
+# 			maxs.append(maximum)
+# 			tolerance = minimum + self.tolerances[obj_index] * (maximum - minimum)
+			
+			# top tolerance% of obj
+			sorted_obj = np.sort(obj[domain])
+			tolerance = sorted_obj[int(len[obj] * self.tolerances[obj_index])]
+	
 			if np.isnan(tolerance):
 				tolerance = res_abs[obj_index]			
 
