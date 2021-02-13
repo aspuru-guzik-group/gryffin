@@ -80,10 +80,12 @@ class Chimera(object):
 			
 			# top tolerance% of obj
 			sorted_obj = np.sort(obj[domain])
-			tolerance = sorted_obj[int(len(obj) * self.tolerances[obj_index])]
+			if np.isnan(self.tolerances[obj_index]):
+				tolerance = res_abs[obj_index]	
+			else:
+				tolerance = sorted_obj[int(len(obj) * self.tolerances[obj_index])]
 	
-			if np.isnan(tolerance):
-				tolerance = res_abs[obj_index]			
+					
 
 			# adjust region of interest
 			interest = np.where(obj[domain] < tolerance)[0]
