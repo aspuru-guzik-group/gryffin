@@ -83,7 +83,7 @@ class Chimera(object):
 			if np.isnan(self.tolerances[obj_index]):
 				tolerance = res_abs[obj_index]	
 			else:
-				tolerance = sorted_obj[int(len(sorted_onj) * self.tolerances[obj_index])]
+				tolerance = sorted_obj[int(len(sorted_obj) * self.tolerances[obj_index])]
 	
 					
 
