@@ -8,12 +8,8 @@ __author__ = 'Florian Hase'
 
 import  cython 
 cimport cython
-
-from cython.parallel import prange
-
 import  numpy as np 
-cimport numpy as np 
-
+cimport numpy as np
 from libc.math cimport exp, abs, round
 
 #========================================================================
@@ -90,9 +86,6 @@ cdef class KernelEvaluator:
 			num_continuous += 1
 			kernel_index   += kernel_sizes[kernel_index]
 
-
-#		print(self.num_obs, self.num_samples, self.num_kernels)
-
 		for obs_index in range(self.num_obs):
 			obs_probs = 0.
 
@@ -126,78 +119,6 @@ cdef class KernelEvaluator:
 				probs[obs_index] = obs_probs * inv_sqrt_two_pi**num_continuous / self.num_samples
 		return probs
 
-
-
-
-
-#	@cython.boundscheck(False)	
-#	@cython.cdivision(True)
-	cdef double [:] _OLD_probs(self, double [:] sample):
-
-		cdef int sample_index, obs_index, feature_index, kernel_index
-		cdef int num_indices
-		cdef double total_prob
-
-		cdef double [:, :, :] locs       = self.np_locs
-		cdef double [:, :, :] sqrt_precs = self.np_sqrt_precs 
-		cdef double [:, :, :] cat_probs  = self.np_cat_probs
-	
-		cdef int [:] kernel_types     = self.np_kernel_types
-		cdef int [:] kernel_sizes     = self.np_kernel_sizes 
-
-		cdef double [:] probs = self.np_probs
-		for obs_index in range(self.num_obs):
-			probs[obs_index] = 0.
-
-		cdef double cat_prob
-		cdef double obs_probs
-	
-#		for sample_index in range(self.num_samples):
-		for obs_index in range(self.num_obs):		
-			
-			obs_probs = 0.
-
-#			for obs_index in range(self.num_obs):
-			for sample_index in range(self.num_samples):
-	
-				total_prob    = 1.
-				feature_index = 0
-				kernel_index  = 0
-
-				while kernel_index < self.num_kernels:
-#				for feature_index in range(num_indices):	
-
-					if kernel_types[kernel_index] == 0:
-						total_prob *= _gauss(sample[feature_index], locs[sample_index, obs_index, kernel_index], sqrt_precs[sample_index, obs_index, kernel_index])
-
-					elif kernel_types[kernel_index] == 1:
-
-						cat_prob = cat_probs[sample_index, obs_index, kernel_index + <int>round(sample[feature_index])]
-#						if cat_prob < lower_prob_bounds[feature_index]:
-#						if cat_prob < 1e-2:
-#							break
-
-						total_prob *= cat_prob
-
-					kernel_index  += kernel_sizes[kernel_index]
-					feature_index += 1
-
-#				else:
-				obs_probs += total_prob
-
-				if sample_index == 100:
-					if 0.01 * obs_probs < self.lower_prob_bound:
-						probs[obs_index] = 0.01 * obs_probs
-						break
-
-#			probs[obs_index] = obs_probs / self.num_samples
-			else:
-				probs[obs_index] = obs_probs / self.num_samples
-#			print(np.asarray(probs), np.asarray(sample), np.asarray(kernel_types))
-		return probs
-
-
-#	@cython.boundscheck(False)
 	cpdef get_kernel(self, np.ndarray sample):
 
 		cdef int obs_index
@@ -220,13 +141,27 @@ cdef class KernelEvaluator:
 
 		inv_den = 1. / (self.inv_vol + den)
 
-#		print('-->', num, den)
-#		print('OBJETIVES', self.np_objs)
-
 		return num, inv_den, probs_sample
-	
 
+	cpdef get_surrogate(self, np.ndarray sample):
 
+		cdef int obs_index
+		cdef double temp_0, temp_1
+		cdef double inv_den
+		cdef double y_pred
+		cdef double [:] sample_memview = sample
+		probs_sample = self._probs(sample_memview)
 
+		# construct numerator and denominator of acquisition
+		cdef double num = 0.
+		cdef double den = 0.
+		cdef double [:] objs = self.np_objs
 
+		for obs_index in range(self.num_obs):
+			temp_0 = objs[obs_index]
+			temp_1 = probs_sample[obs_index]
+			num += temp_0 * temp_1
+			den += temp_1
 
+		y_pred = num / den
+		return y_pred

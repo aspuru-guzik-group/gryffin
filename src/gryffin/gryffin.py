@@ -221,7 +221,7 @@ class Gryffin(Logger):
 		"""
 		Retrieve the last surrogate function
 		"""
-		pass
+		return self.bayesian_network.surrogate(x)
 
 	def get_acquisition(self, x, lambda_strategy=None, separate=False):
 		"""
