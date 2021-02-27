@@ -10,6 +10,7 @@ from . import CategoryReshaper
 from gryffin.utilities import Logger
 from gryffin.utilities import GryffinUnknownSettingsError
 from .kernel_evaluations import KernelEvaluator
+from .tfprob_interface import TfprobNetwork, run_network
 
 
 class BayesianNetwork(Logger):
@@ -31,13 +32,6 @@ class BayesianNetwork(Logger):
         if model_details == None:
             from .model_details import model_details
         self.model_details = model_details
-
-        # set up bnn
-        if self.config.get('backend') == 'tensorflow':
-            from .tfprob_interface import TfprobNetwork, run_network
-            self.network_executable = '{}/bayesian_network/tfprob_interface/tfprob_interface.py'.format(self.config.get('home'))
-        else:
-            GryffinUnknownSettingsError('did not understand backend: "%s".\n\tChoose from "tensorflow"' % self.config_general.backend)
 
         # get domain volume
         self.volume     = 1.

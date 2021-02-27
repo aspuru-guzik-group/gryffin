@@ -8,7 +8,6 @@ __author__ = 'Florian Hase'
 # Default general configuration
 # =============================
 default_general_configurations = {
-    'backend':               'tensorflow',  # Options are 'tensorflow' or 'edward'
     'num_cpus':               1,  # Options are a number, or 'all'
     'boosted':                True,
     'auto_desc_gen':          False,
