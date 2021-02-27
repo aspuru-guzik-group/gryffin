@@ -4,13 +4,12 @@ __author__ = 'Florian Hase'
 
 import time
 import pickle
-import subprocess
 import numpy as np
 from . import CategoryReshaper
 from gryffin.utilities import Logger
 from gryffin.utilities import GryffinUnknownSettingsError
 from .kernel_evaluations import KernelEvaluator
-from .tfprob_interface import TfprobNetwork, run_network
+from .tfprob_interface import TfprobNetwork
 
 
 class BayesianNetwork(Logger):
@@ -56,7 +55,7 @@ class BayesianNetwork(Logger):
             self.sampling_param_values = self.sampling_param_values[::-1]
         self.sampling_param_values *= self.inverse_volume
 
-    def sample(self, obs_params, obs_objs, num_epochs=None):
+    def sample(self, obs_params, obs_objs):
 
         # package received variables
         sim_data = {'config': self.config, 'model_details': self.model_details, 'obs_params': obs_params, 'obs_objs': obs_objs}
@@ -65,9 +64,22 @@ class BayesianNetwork(Logger):
             pickle.dump(sim_data, content)
         results_file = '%s/sampling_results.pkl' % (self.config.get('scratch_dir'))
 
+        # -----------------------
         # submit network sampling
-        #subprocess.call('python %s %s %s %s' % (self.network_executable, self.config.get('home'), sim_file, results_file), shell = True)
+        # -----------------------
+        with open(sim_file, 'rb') as content:
+            sim_data = pickle.load(content)
 
+        tfprob_network = TfprobNetwork(sim_data['config'], sim_data['model_details'])
+        tfprob_network.declare_training_data(sim_data['obs_params'], sim_data['obs_objs'])
+        tfprob_network.construct_model()
+        tfprob_network.sample()
+
+        trace_kernels, obs_objs = tfprob_network.get_kernels()
+        results = {'trace_kernels': trace_kernels, 'obs_objs': obs_objs}
+        # write results file
+        with open(results_file, 'wb') as content:
+            pickle.dump(results, content)
 
         # pick up
         with open(results_file, 'rb') as content:
