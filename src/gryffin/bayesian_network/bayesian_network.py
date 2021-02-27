@@ -57,35 +57,14 @@ class BayesianNetwork(Logger):
 
     def sample(self, obs_params, obs_objs):
 
-        # package received variables
-        sim_data = {'config': self.config, 'model_details': self.model_details, 'obs_params': obs_params, 'obs_objs': obs_objs}
-        sim_file = '%s/sampling_information.pkl' % (self.config.get('scratch_dir'))
-        with open(sim_file, 'wb') as content:
-            pickle.dump(sim_data, content)
-        results_file = '%s/sampling_results.pkl' % (self.config.get('scratch_dir'))
-
-        # -----------------------
-        # submit network sampling
-        # -----------------------
-        with open(sim_file, 'rb') as content:
-            sim_data = pickle.load(content)
-
-        tfprob_network = TfprobNetwork(sim_data['config'], sim_data['model_details'])
-        tfprob_network.declare_training_data(sim_data['obs_params'], sim_data['obs_objs'])
+        tfprob_network = TfprobNetwork(self.config, self.model_details)
+        tfprob_network.declare_training_data(obs_params, obs_objs)
         tfprob_network.construct_model()
         tfprob_network.sample()
 
         trace_kernels, obs_objs = tfprob_network.get_kernels()
-        results = {'trace_kernels': trace_kernels, 'obs_objs': obs_objs}
-        # write results file
-        with open(results_file, 'wb') as content:
-            pickle.dump(results, content)
-
-        # pick up
-        with open(results_file, 'rb') as content:
-            results_dict = pickle.loads(content.read())
-        self.trace_kernels = results_dict['trace_kernels']
-        self.obs_objs      = results_dict['obs_objs']
+        self.trace_kernels = trace_kernels
+        self.obs_objs = obs_objs
 
         # set sampling to true
         self.has_sampled = True
@@ -103,7 +82,7 @@ class BayesianNetwork(Logger):
 
         start = time.time()
         try:
-            if np.all(np.isfinite(np.array(descriptors, dtype = np.float))):
+            if np.all(np.isfinite(np.array(descriptors, dtype=np.float))):
                 probs = self.cat_reshaper.reshape(probs, descriptors)
         except ValueError:
             probs = self.cat_reshaper.reshape(probs, descriptors)
