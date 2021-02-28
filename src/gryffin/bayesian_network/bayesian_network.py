@@ -3,10 +3,9 @@
 __author__ = 'Florian Hase'
 
 import time
-import pickle
 import numpy as np
 from . import CategoryReshaper
-from gryffin.utilities import Logger
+from gryffin.utilities import Logger, parse_time
 from gryffin.utilities import GryffinUnknownSettingsError
 from .kernel_evaluations import KernelEvaluator
 from .tfprob_interface import TfprobNetwork
@@ -88,9 +87,9 @@ class BayesianNetwork(Logger):
             probs = self.cat_reshaper.reshape(probs, descriptors)
         end = time.time()
 
-        # report time only if significant, i.e. we are actually doing the reshaping
-        if end - start > 1.0:
-            self.log('ELAPSED TIME (cat reshaping) ' + str(end - start), 'INFO')
+        # report cat reshaping time only if we have categorical variables
+        if 'categorical' in self.config.kernel_types:
+            self.log('[TIME]:  ' + parse_time(start, end) + '  (reshaping categorical space)', 'INFO')
 
         # write kernel types
         kernel_type_strings = self.config.kernel_types

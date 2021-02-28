@@ -5,6 +5,7 @@ __author__ = 'Florian Hase'
 import os
 import sys
 import numpy as np
+import time
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from .acquisition           import Acquisition
@@ -13,7 +14,7 @@ from .descriptor_generator  import DescriptorGenerator
 from .observation_processor import ObservationProcessor
 from .random_sampler        import RandomSampler
 from .sample_selector       import SampleSelector
-from .utilities             import ConfigParser, Logger, GryffinNotFoundError
+from .utilities             import ConfigParser, Logger, parse_time, GryffinNotFoundError
 
 
 class Gryffin(Logger):
@@ -62,8 +63,7 @@ class Gryffin(Logger):
 
     def recommend(self, observations=None, as_array=False):
 
-        from datetime import datetime
-        start_time = datetime.now()
+        start_time = time.time()
 
         if observations is None:
             # no observations, need to fall back to random sampling
@@ -164,8 +164,8 @@ class Gryffin(Logger):
             self.last_objs_ukwn = obs_objs_ukwn[mirror_mask_ukwn]
             self.last_recommended_samples = samples
 
-        end_time = datetime.now()
-        self.log('[TIME]:  ' + str(end_time - start_time) + ',   (overall)', 'INFO')
+        end_time = time.time()
+        self.log('[TIME]:  ' + parse_time(start_time, end_time) + '  (overall)', 'INFO')
 
         if as_array:
             # return as is
