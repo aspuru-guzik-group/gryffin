@@ -87,7 +87,10 @@ class BayesianNetwork(Logger):
         except ValueError:
             probs = self.cat_reshaper.reshape(probs, descriptors)
         end = time.time()
-        self.log('ELAPSED TIME (cat reshaping) ' + str(end - start), 'INFO')
+
+        # report time only if significant, i.e. we are actually doing the reshaping
+        if end - start > 1.0:
+            self.log('ELAPSED TIME (cat reshaping) ' + str(end - start), 'INFO')
 
         # write kernel types
         kernel_type_strings = self.config.kernel_types

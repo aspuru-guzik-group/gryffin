@@ -2,23 +2,19 @@
 
 __author__ = 'Florian Hase'
 
-#========================================================================
 
 import warnings
 warnings.filterwarnings('ignore')
 
+import os
+import sys
 import pickle
 import numpy                  as np
 import tensorflow             as tf
-import tensorflow_probability as tfp
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
-from tensorflow_probability import edward2 as ed
 from tensorflow_probability import distributions as tfd
 
-import os
-import sys
-import time
 sys.path.append(os.getcwd())
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from numpy_graph import NumpyGraph
@@ -97,8 +93,8 @@ class TfprobNetwork(object):
             self.sess = tf.compat.v1.InteractiveSession()
             self.sess.as_default()
 
-            self.x = tf.convert_to_tensor(self.rescaled_features,  dtype = tf.float32)
-            self.y = tf.convert_to_tensor(self.targets,   dtype = tf.float32)
+            self.x = tf.convert_to_tensor(self.rescaled_features, dtype=tf.float32)
+            self.y = tf.convert_to_tensor(self.targets, dtype=tf.float32)
 
             # construct precisness
             self.tau_rescaling = np.zeros((self.num_obs, self.bnn_output_size))
@@ -125,8 +121,8 @@ class TfprobNetwork(object):
                 weight_shape, bias_shape = weight_shapes[layer_index], bias_shapes[layer_index]
                 activation = activations[layer_index]
 
-                weight = tfd.Normal(loc = tf.zeros(weight_shape) + self._weight_loc, scale = tf.zeros(weight_shape) + self._weight_scale)
-                bias   = tfd.Normal(loc = tf.zeros(bias_shape)   + self._bias_loc,   scale = tf.zeros(bias_shape)   + self._bias_scale)
+                weight = tfd.Normal(loc=tf.zeros(weight_shape) + self._weight_loc, scale=tf.zeros(weight_shape) + self._weight_scale)
+                bias   = tfd.Normal(loc=tf.zeros(bias_shape) + self._bias_loc, scale=tf.zeros(bias_shape) + self._bias_scale)
                 self.priors['weight_%d' % layer_index] = weight
                 self.priors['bias_%d'   % layer_index] = bias
 
@@ -136,7 +132,7 @@ class TfprobNetwork(object):
             self.prior_bnn_output = self.prior_layer_outputs[-1]
             self.prior_tau_normed = tfd.Gamma( self.num_obs**2 + tf.zeros((self.num_obs, self.bnn_output_size)), tf.ones((self.num_obs, self.bnn_output_size)))
             self.prior_tau        = self.prior_tau_normed.sample() / self.tau_rescaling
-            self.prior_scale	  = tfd.Deterministic(1. / tf.sqrt(self.prior_tau))
+            self.prior_scale      = tfd.Deterministic(1. / tf.sqrt(self.prior_tau))
 
             # construct posterior
             self.post_layer_outputs = [self.x]
@@ -145,8 +141,8 @@ class TfprobNetwork(object):
                 weight_shape, bias_shape = weight_shapes[layer_index], bias_shapes[layer_index]
                 activation = activations[layer_index]
 
-                weight = tfd.Normal(loc = tf.Variable(tf.random.normal(weight_shape)), scale = tf.nn.softplus(tf.Variable(tf.zeros(weight_shape))))
-                bias   = tfd.Normal(loc = tf.Variable(tf.random.normal(bias_shape)),   scale = tf.nn.softplus(tf.Variable(tf.zeros(bias_shape))))
+                weight = tfd.Normal(loc=tf.Variable(tf.random.normal(weight_shape)), scale=tf.nn.softplus(tf.Variable(tf.zeros(weight_shape))))
+                bias   = tfd.Normal(loc=tf.Variable(tf.random.normal(bias_shape)), scale=tf.nn.softplus(tf.Variable(tf.zeros(bias_shape))))
 
                 self.posteriors['weight_%d' % layer_index] = weight
                 self.posteriors['bias_%d'   % layer_index] = bias
@@ -155,7 +151,8 @@ class TfprobNetwork(object):
                 self.post_layer_outputs.append(post_layer_output)
 
             self.post_bnn_output = self.post_layer_outputs[-1]
-            self.post_tau_normed = tfd.Gamma( self.num_obs**2 + tf.Variable(tf.zeros((self.num_obs, self.bnn_output_size))), tf.nn.softplus(tf.Variable(tf.ones((self.num_obs, self.bnn_output_size)))))
+            self.post_tau_normed = tfd.Gamma(self.num_obs**2 + tf.Variable(tf.zeros((self.num_obs, self.bnn_output_size))),
+                                             tf.nn.softplus(tf.Variable(tf.ones((self.num_obs, self.bnn_output_size)))))
             self.post_tau        = self.post_tau_normed.sample() / self.tau_rescaling
             self.post_sqrt_tau   = tf.sqrt(self.post_tau)
             self.post_scale	     = tfd.Deterministic(1. / self.post_sqrt_tau)
@@ -254,8 +251,10 @@ class TfprobNetwork(object):
             print('completed sampling')
 
     def sample(self, num_epochs=None, num_draws=None):
-        if num_epochs is None: num_epochs = self._num_epochs
-        if num_draws  is None: num_draws  = self._num_draws
+        if num_epochs is None:
+            num_epochs = self._num_epochs
+        if num_draws is None:
+            num_draws = self._num_draws
 
         with self.graph.as_default():
 
