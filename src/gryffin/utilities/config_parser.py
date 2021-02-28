@@ -103,7 +103,11 @@ class ConfigParser(Logger):
         # parse parameter configuration
         for setting in provided_settings:
 
+            # we assume size=1 is not specified
+            if 'size' not in setting:
+                setting['size'] = 1
             size = setting['size']
+
             num_cats = 1
 
             if 'process_constrained' in setting:
