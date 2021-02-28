@@ -24,7 +24,7 @@ def parse_time(start, end):
     if elapsed <= 1.0:
         ms = elapsed * 1000.
         time_string = f"{ms:.4f} ms"
-    elif 1.0 > elapsed > 60.0:
+    elif 1.0 < elapsed < 60.0:
         time_string = f"{elapsed:.2f} s"
     else:
         m, s = divmod(elapsed, 60)

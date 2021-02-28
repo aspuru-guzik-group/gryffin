@@ -17,7 +17,7 @@ from tensorflow_probability import distributions as tfd
 
 sys.path.append(os.getcwd())
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-from numpy_graph import NumpyGraph
+from .numpy_graph import NumpyGraph
 
 
 class TfprobNetwork(object):
