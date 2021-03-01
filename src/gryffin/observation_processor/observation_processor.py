@@ -73,7 +73,7 @@ class ObservationProcessor(Logger):
             scaled_obj = scalarized - min_obj
         return scaled_obj
 
-    def process(self, obs_dicts):
+    def process_observations(self, obs_dicts):
 
         param_names   = self.config.param_names
         param_options = self.config.param_options
@@ -165,5 +165,45 @@ class ObservationProcessor(Logger):
         objs_ukwn = raw_objs_ukwn.flatten()
 
         return params_kwn, objs_kwn, mirror_mask_kwn, params_ukwn, objs_ukwn, mirror_mask_ukwn
+
+    def process_params(self, param_dicts):
+        """
+        Processed a list of parameters. This is used by the Gryffin methods to retrieve the surrogate model and the
+        acquisition function. For instance, categorical options are mapped to numerical values.
+
+        Parameters
+        ----------
+        param_dicts : list
+            list of dicts with a set of input parameters.
+
+        Returns
+        -------
+        param_vectors : array
+            array with the parameter vectors.
+        """
+
+        param_names   = self.config.param_names
+        param_options = self.config.param_options
+        param_types   = self.config.param_types
+
+        param_vectors = []
+
+        for param_dict in param_dicts:
+
+            # get param vector
+            param_vector = []
+            for param_index, param_name in enumerate(param_names):
+
+                param_type = param_types[param_index]
+                if param_type == 'continuous':
+                    param = param_dict[param_name]
+                elif param_type == 'categorical':
+                    param = np.array([param_options[param_index].index(element) for element in param_dict[param_name]])
+                elif param_type == 'discrete':
+                    param = np.array([list(param_options[param_index]).index(element) for element in param_dict[param_name]])
+                param_vector.extend(param)
+            param_vectors.append(param_vector)
+
+        return np.array(param_vectors)
 
 

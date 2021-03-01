@@ -5,6 +5,7 @@ __author__ = 'Florian Hase'
 import os
 import sys
 import numpy as np
+import pandas as pd
 import time
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
@@ -100,7 +101,8 @@ class Gryffin(Logger):
                 samples[:, dominant_features] = samples[0, dominant_features]
 
         else:
-            obs_params_kwn, obs_objs_kwn, mirror_mask_kwn, obs_params_ukwn, obs_objs_ukwn, mirror_mask_ukwn = self.obs_processor.process(observations)
+            obs_params_kwn, obs_objs_kwn, mirror_mask_kwn, \
+            obs_params_ukwn, obs_objs_ukwn, mirror_mask_ukwn = self.obs_processor.process_observations(observations)
 
             # run descriptor generation
             if self.config.get('auto_desc_gen'):
@@ -243,18 +245,52 @@ class Gryffin(Logger):
     def read_db(self, outfile='database.csv', verbose=True):
         self.db_handler.read_db(outfile, verbose)
 
-    def get_surrogate(self, x):
-        """
-        Retrieve the last surrogate function
-        """
-        return self.bayesian_network.surrogate(x)
+    @staticmethod
+    def _df_to_list_of_dicts(df):
+        list_of_dicts = []
+        for index, row in df.iterrows():
+            d = {}
+            for col in df.columns:
+                d[col] = [row[col]]
+            list_of_dicts.append(d)
+        return list_of_dicts
 
-    def get_acquisition(self, x, sampling_strategies=None, separate=False):
+    def get_surrogate(self, params):
+        """
+        Retrieve the surrogate function.
+
+        Parameters
+        ----------
+        params : list or DataFrame
+            list of dicts with input parameters to evaluate. Alternatively it can also be a pandas DataFrame where
+            each column name corresponds to one of the input parameters in Gryffin.
+        """
+        if isinstance(params, pd.DataFrame):
+            params = self._df_to_list_of_dicts(params)
+
+        X = self.obs_processor.process_params(params)
+        y_preds = []
+        for x in X:
+            y_pred = self.bayesian_network.surrogate(x)
+            y_preds.append(y_pred)
+        return y_preds
+
+    def _get_acquisition_x(self, x, sampling_param_value, kernel_contribution, kernel_contribution_feas):
+        num, inv_den = kernel_contribution(x)
+        num_feas, inv_den_feas = kernel_contribution_feas(x)
+
+        # return acquisitions
+        acq_samp = (num + sampling_param_value) * inv_den
+        acq_feas = (num_feas + sampling_param_value) * inv_den_feas
+        return acq_samp, acq_feas
+
+    def get_acquisition(self, params, sampling_strategies=None, separate=False):
         """
         Retrieve the last acquisition functions for a specific lambda value.
         """
-        num, inv_den = self.last_kernel_contribution(x)
-        num_feas, inv_den_feas = self.last_kernel_contribution_feas(x)
+        if isinstance(params, pd.DataFrame):
+            params = self._df_to_list_of_dicts(params)
+        X = self.obs_processor.process_params(params)
 
         # figure out the sampling_param_values
         if sampling_strategies is None:
@@ -263,15 +299,21 @@ class Gryffin(Logger):
             sampling_strategies = np.array(sampling_strategies)
             sampling_param_values = sampling_strategies * self.bayesian_network.inverse_volume
 
-        # return acquisitions
-        values = []
-        for l in sampling_param_values:
-            acq_samp = (num + l) * inv_den
-            acq_feas = (num_feas + l) * inv_den_feas
-            if separate is False:
-                acquisition = self.last_unfeas_frac * acq_feas + (1. - self.last_unfeas_frac) * acq_samp
-                values.append(acquisition)
-            else:
-                values.append([acq_samp, acq_feas])
-        return values
+        # retrieve kernel contributions
+        kernel_contribution = self.bayesian_network.kernel_contribution
+        kernel_contribution_feas = self.bayesian_network_feas.kernel_contribution
+
+        # collect acquisition values
+        acquisition_values = []
+        for x in X:
+            acquisition_values_at_l = []
+            for sampling_param_value in sampling_param_values:
+                acq_samp, acq_feas = self._get_acquisition_x(x, sampling_param_value, kernel_contribution, kernel_contribution_feas)
+                if separate is False:
+                    acquisition = self.last_unfeas_frac * acq_feas + (1. - self.last_unfeas_frac) * acq_samp
+                    acquisition_values_at_l.append(acquisition)
+                else:
+                    acquisition_values_at_l.append([acq_samp, acq_feas])
+            acquisition_values.append(acquisition_values_at_l)
+        return acquisition_values
 
