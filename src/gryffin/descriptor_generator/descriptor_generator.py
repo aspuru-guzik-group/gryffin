@@ -7,19 +7,18 @@ import time
 import numpy as np
 import multiprocessing
 from gryffin.utilities import Logger, parse_time
-from gryffin.utilities.decorators import thread
 from .generation_process import Generator
+from concurrent.futures import ProcessPoolExecutor
 
 
 class DescriptorGenerator(Logger):
 
-    eta       = 1e-3
-    max_iter  = 10**3
+    eta = 1e-3
+    max_iter = 10**3
     def __init__(self, config):
 
         self.config        = config
         self.is_generating = False
-        #self.exec_name = '%s/descriptor_generator/generation_process.py' % self.config.get('home')
 
         # define registers
         self.auto_gen_descs     = {}
@@ -30,6 +29,10 @@ class DescriptorGenerator(Logger):
         self.weights            = {}
         self.sufficient_indices = {}
 
+        self.obs_params = None
+        self.obs_objs = None
+        self.gen_feature_descriptors = None
+
         verbosity = self.config.get('verbosity')
         Logger.__init__(self, 'DescriptorGenerator', verbosity=verbosity)
 
@@ -38,8 +41,38 @@ class DescriptorGenerator(Logger):
         else:
             self.num_cpus = int(self.config.get('num_cpus'))
 
-    #@thread
-    def single_generate(self, descs, objs, feature_index, result_dict=None):
+    def generate_single_descriptors(self, feature_index):
+        """Parse description generation for a specific parameter, ad indicated by the feature_index"""
+
+        feature_types = self.config.feature_types
+        feature_descriptors = self.config.feature_descriptors
+        obs_params = self.obs_params
+        obs_objs = self.obs_objs
+
+        # if continuous ==> no descriptors, return None
+        if feature_types[feature_index] == 'continuous':
+            self.weights[feature_index] = None
+            self.reduced_gen_descs[feature_index] = None
+            return None, feature_index
+
+        # if None, i.e. naive Gryffin ==> no descriptors, return None
+        if feature_descriptors[feature_index] is None:
+            self.weights[feature_index] = None
+            self.reduced_gen_descs[feature_index] = None
+            return None, feature_index
+
+        # if single descriptor ==> cannot get new descriptors, return the same static descriptor
+        if feature_descriptors[feature_index].shape[1] == 1:
+            self.weights[feature_index] = np.array([[1.]])
+            self.reduced_gen_descs[feature_index] = feature_descriptors[feature_index]
+            return feature_descriptors[feature_index], feature_index
+
+        # ------------------------------------------------------------------------------------------
+        # Else, we have multiple descriptors for a categorical variable and we perform the reshaping
+        # ------------------------------------------------------------------------------------------
+        params = obs_params[:, feature_index].astype(np.int32)
+        descs = feature_descriptors[feature_index][params]
+        objs = np.reshape(obs_objs, (len(obs_objs), 1))
 
         # collect all relevant properties
         sim_dict = {}
@@ -54,35 +87,9 @@ class DescriptorGenerator(Logger):
         sim_dict['objs']        = objs
         sim_dict['grid_descs']  = self.config.feature_descriptors[feature_index]
 
-        #identifier = str(uuid.uuid4())[:8]
-        #config_name = '%s/descriptor_generation_%d_%s.pkl' % (self.config.get('scratch_dir'), feature_index, identifier)
-        #with open(config_name, 'wb') as content:
-        #    pickle.dump(sim_dict, content)
-
-        #subprocess.call('python %s %s' % (self.exec_name, config_name), shell=True)
-        #print('SUBMITTED DESC GENERATION')
-        #results_name = '%s/completed_descriptor_generation_%d_%s.pkl' % (self.config.get('scratch_dir'), feature_index, identifier)
-
         # run the generation process
         generator = Generator(sim_dict)
         results = generator.generate_descriptors()
-
-        # wait for results to be written
-        #while not os.path.isfile(results_name):
-        #    time.sleep(0.05)
-        #current_size = 0
-        #while current_size != os.path.getsize(results_name):
-        #    current_size = os.path.getsize(results_name)
-        #    time.sleep(0.05)
-
-        #time.sleep(0.2)
-        #try:
-        #    with open(results_name, 'rb') as content:
-        #        results = pickle.load(content)
-        #except EOFError:
-        #    time.sleep(2)
-        #    with open(results_name, 'rb') as content:
-        #        results = pickle.load(content)
 
         self.min_corrs[feature_index]          = results['min_corrs']
         self.auto_gen_descs[feature_index]     = results['auto_gen_descs']
@@ -92,74 +99,47 @@ class DescriptorGenerator(Logger):
         self.weights[feature_index]            = results['weights']
         self.sufficient_indices[feature_index] = results['sufficient_indices']
 
-        if result_dict is not None:
-            result_dict[feature_index] = results['reduced_gen_descs']
+        return results['reduced_gen_descs'], feature_index
 
-        #os.remove(config_name)
-        #os.remove(results_name)
-
-    #@thread
-    def generate(self, obs_params, obs_objs):
+    def generate_descriptors(self, obs_params, obs_objs):
+        """Generates descriptors for each categorical parameters"""
 
         start = time.time()
 
-        self.is_generating  = True
-        result_dict         = {}
-        feature_types       = self.config.feature_types
-        feature_descriptors = self.config.feature_descriptors
+        self.obs_params = obs_params
+        self.obs_objs = obs_objs
+        result_dict = {}
 
-        for feature_index, feature_options in enumerate(self.config.feature_options):
+        feature_indices = range(len(self.config.feature_options))
 
-            if feature_types[feature_index] == 'continuous':
-                self.weights[feature_index]           = None
-                self.reduced_gen_descs[feature_index] = None
-                result_dict[feature_index]            = None
-                continue
+        # TODO: implement multiprocessing with the code below. The problem is CPU bound and multiprocessing could
+        #  speed things up. However, this currently does not work probably because the tf graph is not pickable due
+        #  to a lock. We could use multi-threading but not sure this would help much since we do not have I/O issues
+        #  here and all threads would run on the same core that is CPU bound anyway.
+        #if self.num_cpus >= 2:
+            # asynchronous execution across processes
+        #    with ProcessPoolExecutor(max_workers=self.num_cpus) as executor:
+        #        for gen_descriptor, feature_index in executor.map(self.generate_single_descriptors, feature_indices):
+        #            result_dict[feature_index] = gen_descriptor
+        #else:
+        #    for feature_index in feature_indices:
+        #        gen_descriptor, _ = self.generate_single_descriptors(feature_index)
+        #        result_dict[feature_index] = gen_descriptor
 
-            if feature_descriptors[feature_index] is None:
-                self.weights[feature_index]           = None
-                self.reduced_gen_descs[feature_index] = None
-                result_dict[feature_index]            = None
-                continue
+        for feature_index in feature_indices:
+            gen_descriptor, _ = self.generate_single_descriptors(feature_index)
+            result_dict[feature_index] = gen_descriptor
 
-            if feature_descriptors[feature_index].shape[1] == 1:
-                self.weights[feature_index]           = np.array([[1.]])
-                self.reduced_gen_descs[feature_index] = feature_descriptors[feature_index]
-                result_dict[feature_index]            = feature_descriptors[feature_index]
-                continue
-
-            sampled_params      = obs_params[:, feature_index].astype(np.int32)
-            sampled_descriptors = feature_descriptors[feature_index][sampled_params]
-            sampled_objs        = np.reshape(obs_objs, (len(obs_objs), 1))
-
-            self.single_generate(sampled_descriptors, sampled_objs, feature_index, result_dict)
-
-            # avoid parallel execution if not desired
-            if self.num_cpus == 1:
-                if feature_types[feature_index] == 'continuous':
-                    continue
-                while not feature_index in result_dict:
-                    time.sleep(0.1)
-
-        for feature_index in range(len(self.config.feature_options)):
-            if feature_types[feature_index] == 'continuous':
-                continue
-            while not feature_index in result_dict:
-                time.sleep(0.1)
-
+        # we use this to reorder correctly the descriptors following asynchronous execution
         gen_feature_descriptors = [result_dict[feature_index] for feature_index in range(len(result_dict.keys()))]
         self.gen_feature_descriptors = gen_feature_descriptors
-        self.is_generating = False
 
         end = time.time()
-        self.desc_gen_time = parse_time(start, end)
+        desc_gen_time = parse_time(start, end)
+        self.log('[TIME]:  ' + desc_gen_time + '  (descriptor generation)', 'INFO')
 
     def get_descriptors(self):
-        while self.is_generating:
-            time.sleep(0.1)
-
-        if hasattr(self, 'gen_feature_descriptors'):
-            self.log('[TIME]:  ' + self.desc_gen_time + '  (descriptor generation)', 'INFO')
+        if self.gen_feature_descriptors is not None:
             return self.gen_feature_descriptors
         else:
             return self.config.feature_descriptors
@@ -169,7 +149,7 @@ class DescriptorGenerator(Logger):
         summary = {}
         feature_types = self.config.feature_types
         # If we have not generated new descriptors
-        if not hasattr(self, 'gen_feature_descriptors'):
+        if self.gen_feature_descriptors is None:
             for feature_index in range(len(self.config.feature_options)):
                 contribs = {}
                 if feature_types[feature_index] == 'continuous':

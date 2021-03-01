@@ -87,12 +87,12 @@ class Gryffin(Logger):
             # run descriptor generation
             if self.config.get('auto_desc_gen'):
                 if len(obs_params_kwn) > 2:
-                    self.descriptor_generator.generate(obs_params_kwn, obs_objs_kwn)
+                    self.descriptor_generator.generate_descriptors(obs_params_kwn, obs_objs_kwn)
                 # we run descriptor generation for unknown points only if we have at least 1 infeasible point,
                 #  otherwise they are all feasible and there is no point running this. Remember that
                 #  feasible = 0 and infeasible = 1.
                 if len(obs_params_ukwn) > 2 and np.sum(obs_objs_ukwn) > 0.1:
-                    self.descriptor_generator_feas.generate(obs_params_ukwn, obs_objs_ukwn)
+                    self.descriptor_generator_feas.generate_descriptors(obs_params_ukwn, obs_objs_ukwn)
 
             # extract descriptors and build kernels
             descriptors = self.descriptor_generator.get_descriptors()
