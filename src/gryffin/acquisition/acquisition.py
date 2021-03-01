@@ -27,7 +27,7 @@ class Acquisition(Logger):
         else:
             self.num_cpus = int(self.config.get('num_cpus'))
 
-    def _propose_randomly(self, best_params, num_samples, dominant_samples = None):
+    def _propose_randomly(self, best_params, num_samples, dominant_samples=None):
         # get uniform samples
         if dominant_samples is None:
             uniform_samples = self.random_sampler.draw(num = self.total_num_vars * num_samples)
@@ -43,7 +43,7 @@ class Acquisition(Logger):
         return samples
 
     def _proposal_optimization_thread(self, proposals, kernel_contribution, kernel_contribution_feas, unfeas_frac,
-                                      batch_index, return_index, return_dict = None, dominant_samples = None):
+                                      batch_index, return_index, return_dict=None, dominant_samples=None):
         self.log('starting process for %d' % batch_index, 'INFO')
 
         def kernel(x):

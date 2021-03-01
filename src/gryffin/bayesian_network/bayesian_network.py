@@ -47,12 +47,12 @@ class BayesianNetwork(Logger):
         self.inverse_volume = 1 / self.volume
 
         # compute sampling parameter values
-        if self.config.get('sampling_strategies') == 1:
-            self.sampling_param_values = np.zeros(1)
-        else:
-            self.sampling_param_values = np.linspace(-1.0, 1.0, self.config.get('sampling_strategies'))
-            self.sampling_param_values = self.sampling_param_values[::-1]
-        self.sampling_param_values *= self.inverse_volume
+        #if self.config.get('sampling_strategies') == 1:
+        #    self.sampling_param_values = np.zeros(1)
+        #else:
+        #    self.sampling_param_values = np.linspace(-1.0, 1.0, self.config.get('sampling_strategies'))
+        #    self.sampling_param_values = self.sampling_param_values[::-1]
+        #self.sampling_param_values *= self.inverse_volume
 
     def sample(self, obs_params, obs_objs):
 

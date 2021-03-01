@@ -61,22 +61,40 @@ class Gryffin(Logger):
             from .database_handler import DatabaseHandler
             self.db_handler = DatabaseHandler(self.config)
 
-    def recommend(self, observations=None, as_array=False):
+    def recommend(self, observations=None, sampling_strategies=None, as_array=False):
+        """Recommends the next set(s) of parameters based on the provided observations.
+
+        Parameters
+        ----------
+        observations : list
+        sampling_strategies : list
+        as_array : bool
+
+        Returns
+        -------
+        params : list
+        """
         # TODO: allow passing lambda value so one can overwrite the config option and e.g. save computation
         #  by running acquisition opt only once instead of twice
 
         start_time = time.time()
+        if sampling_strategies is None:
+            num_sampling_strategies = self.config.get('sampling_strategies')
+            sampling_strategies = np.linspace(1, -1, num_sampling_strategies)
+        else:
+            sampling_strategies = np.array(sampling_strategies)
+            num_sampling_strategies = len(sampling_strategies)
 
         if observations is None:
             # no observations, need to fall back to random sampling
-            samples = self.random_sampler.draw(num=self.config.get('batches') * self.config.get('sampling_strategies'))
+            samples = self.random_sampler.draw(num=self.config.get('batches') * num_sampling_strategies)
             if self.config.process_constrained:
                 dominant_features = self.config.feature_process_constrained
                 samples[:, dominant_features] = samples[0, dominant_features]
 
         elif len(observations) == 0:
             self.log('Could not find any observations, falling back to random sampling', 'WARNING')
-            samples = self.random_sampler.draw(num=self.config.get('batches') * self.config.get('sampling_strategies'))
+            samples = self.random_sampler.draw(num=self.config.get('batches') * num_sampling_strategies)
             if self.config.process_constrained:
                 dominant_features = self.config.feature_process_constrained
                 samples[:, dominant_features] = samples[0, dominant_features]
@@ -96,11 +114,11 @@ class Gryffin(Logger):
 
             # extract descriptors and build kernels
             descriptors = self.descriptor_generator.get_descriptors()
-            print("--> descriptors", descriptors)
             descriptors_feas = self.descriptor_generator_feas.get_descriptors()
 
             # get lambda values for exploration/exploitation
-            sampling_param_values = self.bayesian_network.sampling_param_values
+            #sampling_param_values = self.bayesian_network.sampling_param_values
+            sampling_param_values = sampling_strategies * self.bayesian_network.inverse_volume
             dominant_strategy_index = self.iter_counter % len(sampling_param_values)
             dominant_strategy_value = np.array([sampling_param_values[dominant_strategy_index]])
 
@@ -163,6 +181,7 @@ class Gryffin(Logger):
             # store info so to be able to recontruct surrogate and acquisition function if needed
             self.last_kernel_contribution = kernel_contribution
             self.last_kernel_contribution_feas = kernel_contribution_feas
+            self.last_sampling_strategies = sampling_strategies
             self.last_sampling_param_values = sampling_param_values
             self.last_unfeas_frac = unfeas_frac
             self.last_params_kwn = obs_params_kwn[mirror_mask_kwn]
@@ -230,29 +249,29 @@ class Gryffin(Logger):
         """
         return self.bayesian_network.surrogate(x)
 
-    def get_acquisition(self, x, lambda_strategy=None, separate=False):
+    def get_acquisition(self, x, sampling_strategies=None, separate=False):
         """
         Retrieve the last acquisition functions for a specific lambda value.
         """
         num, inv_den = self.last_kernel_contribution(x)
         num_feas, inv_den_feas = self.last_kernel_contribution_feas(x)
-        if lambda_strategy is None:
-            values = []
-            for l in self.last_sampling_param_values:
-                acq_samp = (num + l) * inv_den
-                acq_feas = (num_feas + l) * inv_den_feas
-                if separate is False:
-                    acquisition = self.last_unfeas_frac * acq_feas + (1. - self.last_unfeas_frac) * acq_samp
-                    values.append(acquisition)
-                else:
-                    values.append([acq_samp, acq_feas])
-            return values
+
+        # figure out the sampling_param_values
+        if sampling_strategies is None:
+            sampling_param_values = self.last_sampling_param_values
         else:
-            acq_samp = (num + lambda_strategy) * inv_den
-            acq_feas = (num_feas + lambda_strategy) * inv_den_feas
+            sampling_strategies = np.array(sampling_strategies)
+            sampling_param_values = sampling_strategies * self.bayesian_network.inverse_volume
+
+        # return acquisitions
+        values = []
+        for l in sampling_param_values:
+            acq_samp = (num + l) * inv_den
+            acq_feas = (num_feas + l) * inv_den_feas
             if separate is False:
                 acquisition = self.last_unfeas_frac * acq_feas + (1. - self.last_unfeas_frac) * acq_samp
-                return acquisition
+                values.append(acquisition)
             else:
-                return acq_samp, acq_feas
+                values.append([acq_samp, acq_feas])
+        return values
 
