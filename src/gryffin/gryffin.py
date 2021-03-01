@@ -62,6 +62,8 @@ class Gryffin(Logger):
             self.db_handler = DatabaseHandler(self.config)
 
     def recommend(self, observations=None, as_array=False):
+        # TODO: allow passing lambda value so one can overwrite the config option and e.g. save computation
+        #  by running acquisition opt only once instead of twice
 
         start_time = time.time()
 
@@ -86,11 +88,15 @@ class Gryffin(Logger):
             if self.config.get('auto_desc_gen'):
                 if len(obs_params_kwn) > 2:
                     self.descriptor_generator.generate(obs_params_kwn, obs_objs_kwn)
-                if len(obs_params_ukwn) > 2:
+                # we run descriptor generation for unknown points only if we have at least 1 infeasible point,
+                #  otherwise they are all feasible and there is no point running this. Remember that
+                #  feasible = 0 and infeasible = 1.
+                if len(obs_params_ukwn) > 2 and np.sum(obs_objs_ukwn) > 0.1:
                     self.descriptor_generator_feas.generate(obs_params_ukwn, obs_objs_ukwn)
 
             # extract descriptors and build kernels
             descriptors = self.descriptor_generator.get_descriptors()
+            print("--> descriptors", descriptors)
             descriptors_feas = self.descriptor_generator_feas.get_descriptors()
 
             # get lambda values for exploration/exploitation
@@ -113,6 +119,7 @@ class Gryffin(Logger):
                 best_params = obs_params_ukwn[best_params_idx]
 
             # get sensitivity parameter and do some checks
+            # TODO: mv this to config parser
             feas_sensitivity = self.config.get('feas_sensitivity')
             if feas_sensitivity < 0.0:
                 self.log('Config parameter `feas_sensitivity` should be positive, applying np.abs()', 'WARNING')
@@ -122,7 +129,7 @@ class Gryffin(Logger):
                 feas_sensitivity = 1.0
 
             # sample from BNN for feasibility surrogate is we have at least one unfeasible point
-            if obs_params_ukwn.shape[0] > 0:
+            if np.sum(obs_objs_ukwn) > 0.1:
                 self.bayesian_network_feas.sample(obs_params_ukwn, obs_objs_ukwn)
                 self.bayesian_network_feas.build_kernels(descriptors_feas)
                 # fraction of unfeasible samples - use mask to avoid counting mirrored samples
