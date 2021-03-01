@@ -38,7 +38,7 @@ class Gryffin(Logger):
         self.descriptor_generator      = DescriptorGenerator(self.config)
         self.descriptor_generator_feas = DescriptorGenerator(self.config)
         self.bayesian_network          = BayesianNetwork(self.config)
-        self.bayesian_network_feas     = BayesianNetwork(self.config)
+        self.bayesian_network_feas     = BayesianNetwork(config=self.config, classification=True)
         self.acquisition               = Acquisition(self.config)
         self.sample_selector           = SampleSelector(self.config)
 
@@ -75,8 +75,6 @@ class Gryffin(Logger):
         -------
         params : list
         """
-        # TODO: allow passing lambda value so one can overwrite the config option and e.g. save computation
-        #  by running acquisition opt only once instead of twice
 
         start_time = time.time()
         if sampling_strategies is None:
@@ -119,7 +117,6 @@ class Gryffin(Logger):
             descriptors_feas = self.descriptor_generator_feas.get_descriptors()
 
             # get lambda values for exploration/exploitation
-            #sampling_param_values = self.bayesian_network.sampling_param_values
             sampling_param_values = sampling_strategies * self.bayesian_network.inverse_volume
             dominant_strategy_index = self.iter_counter % len(sampling_param_values)
             dominant_strategy_value = np.array([sampling_param_values[dominant_strategy_index]])
@@ -150,7 +147,8 @@ class Gryffin(Logger):
 
             # sample from BNN for feasibility surrogate is we have at least one unfeasible point
             if np.sum(obs_objs_ukwn) > 0.1:
-                self.bayesian_network_feas.sample(obs_params_ukwn, obs_objs_ukwn)
+                # use mask to avoid using mirrored samples here
+                self.bayesian_network_feas.sample(obs_params_ukwn[mirror_mask_ukwn], obs_objs_ukwn[mirror_mask_ukwn])
                 self.bayesian_network_feas.build_kernels(descriptors_feas)
                 # fraction of unfeasible samples - use mask to avoid counting mirrored samples
                 unfeas_frac = sum(obs_objs_ukwn[mirror_mask_ukwn]) / len(obs_objs_ukwn[mirror_mask_ukwn])
@@ -255,7 +253,7 @@ class Gryffin(Logger):
             list_of_dicts.append(d)
         return list_of_dicts
 
-    def get_surrogate(self, params):
+    def get_surrogate(self, params, feasibility=False):
         """
         Retrieve the surrogate function.
 
@@ -264,14 +262,26 @@ class Gryffin(Logger):
         params : list or DataFrame
             list of dicts with input parameters to evaluate. Alternatively it can also be a pandas DataFrame where
             each column name corresponds to one of the input parameters in Gryffin.
+        feasibility : bool
+            whether to return the feasibility surrogate. Default is False.
+
+        Returns
+        -------
+        y_pred : list
+            surrogate model evaluated at the locations defined in params.
         """
         if isinstance(params, pd.DataFrame):
             params = self._df_to_list_of_dicts(params)
 
+        if feasibility is True:
+            surrogate = self.bayesian_network_feas.surrogate
+        else:
+            surrogate = self.bayesian_network.surrogate
+
         X = self.obs_processor.process_params(params)
         y_preds = []
         for x in X:
-            y_pred = self.bayesian_network.surrogate(x)
+            y_pred = surrogate(x)
             y_preds.append(y_pred)
         return y_preds
 

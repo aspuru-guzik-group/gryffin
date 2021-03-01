@@ -13,11 +13,16 @@ from .tfprob_interface import TfprobNetwork
 
 class BayesianNetwork(Logger):
 
-    def __init__(self, config, model_details=None):
+    def __init__(self, config, classification=False, model_details=None):
 
         self.COUNTER = 0
         self.has_sampled = False
         self.config = config
+
+        self.classification = classification
+        self.logprior_0 = np.log(0.5)
+        self.logprior_1 = np.log(0.5)
+
         verbosity = self.config.get('verbosity')
         if 'bayesian_network' in verbosity:
             verbosity = verbosity['bayesian_network']
@@ -46,14 +51,6 @@ class BayesianNetwork(Logger):
                 GryffinUnknownSettingsError('did not understand parameter type: "%s" of variable "%s".\n\t(%s) Please choose from "continuous" or "categorical"' % (feature_type, self.config.feature_names[feature_index], self.template))
         self.inverse_volume = 1 / self.volume
 
-        # compute sampling parameter values
-        #if self.config.get('sampling_strategies') == 1:
-        #    self.sampling_param_values = np.zeros(1)
-        #else:
-        #    self.sampling_param_values = np.linspace(-1.0, 1.0, self.config.get('sampling_strategies'))
-        #    self.sampling_param_values = self.sampling_param_values[::-1]
-        #self.sampling_param_values *= self.inverse_volume
-
     def sample(self, obs_params, obs_objs):
 
         tfprob_network = TfprobNetwork(self.config, self.model_details)
@@ -64,6 +61,15 @@ class BayesianNetwork(Logger):
         trace_kernels, obs_objs = tfprob_network.get_kernels()
         self.trace_kernels = trace_kernels
         self.obs_objs = obs_objs
+
+        # if we are classifying feasible points, update priors
+        if self.classification is True:
+            # feasible = 0 and infeasible = 1
+            prior_0 = sum([xi < 0.5 for xi in self.obs_objs]) / len(self.obs_objs)
+            prior_1 = sum([xi > 0.5 for xi in self.obs_objs]) / len(self.obs_objs)
+            assert np.abs((prior_0 + prior_1) - 1.0) < 10e-5
+            self.logprior_0 = np.log(prior_0)
+            self.logprior_1 = np.log(prior_1)
 
         # set sampling to true
         self.has_sampled = True
@@ -130,12 +136,29 @@ class BayesianNetwork(Logger):
                 num, inv_den, _ = self.kernel_evaluator.get_kernel(proposed_sample.astype(np.float64))
             return num, inv_den
 
-        def surrogate(proposed_sample):
-            y_pred = self.kernel_evaluator.get_surrogate(proposed_sample.astype(np.float64))
+        def regression_surrogate(proposed_sample):
+            y_pred = self.kernel_evaluator.get_regression_surrogate(proposed_sample.astype(np.float64))
             return y_pred
 
         self.kernel_contribution = kernel_contribution
-        self.surrogate = surrogate
+
+        if self.classification is True:
+            self.surrogate = self.classification_surrogate
+        else:
+            self.surrogate = regression_surrogate
+
+    def classification_surrogate(self, sample):
+
+        # get log probabilities
+        self.log_density_0, self.log_density_1 = self.kernel_evaluator.get_binary_kernel_densities(sample)
+
+        posterior_0 = np.exp(self.log_density_0 + self.logprior_0)
+        posterior_1 = np.exp(self.log_density_1 + self.logprior_1)
+
+        proba_0 = posterior_0 / (posterior_0 + posterior_1)
+        proba_1 = posterior_1 / (posterior_0 + posterior_1)
+
+        return proba_0, proba_1
 
     def empty_kernel_contribution(self, proposed_sample):
         num = 0.
