@@ -86,36 +86,42 @@ cdef class KernelEvaluator:
             num_continuous += 1
             kernel_index   += kernel_sizes[kernel_index]
 
+        # for each kernel location
         for obs_index in range(self.num_obs):
             obs_probs = 0.
 
+            # for each BNN sample
             for sample_index in range(self.num_samples):
                 total_prob     = 1.
                 prec_prod      = 1.
                 exp_arg_sum    = 0.
                 feature_index, kernel_index = 0, 0
 
+                # for each kernel/dimension
                 while kernel_index < self.num_kernels:
 
                     if kernel_types[kernel_index] == 0:
-
+                        # continuous kernel
                         prec_prod      = prec_prod * sqrt_precs[sample_index, obs_index, kernel_index]
                         exp_arg_sum    = exp_arg_sum + (sqrt_precs[sample_index, obs_index, kernel_index] * (sample[feature_index] - locs[sample_index, obs_index, kernel_index]))**2
 
                     elif kernel_types[kernel_index] == 1:
+                        # categorical kernel
                         total_prob *= cat_probs[sample_index, obs_index, kernel_index + <int>round(sample[feature_index])]
 
-                    kernel_index  += kernel_sizes[kernel_index]
+                    kernel_index  += kernel_sizes[kernel_index]  # kernel size can be >1 for a certain param
                     feature_index += 1
 
                 obs_probs += total_prob * prec_prod * exp( - 0.5 * exp_arg_sum) #* inv_sqrt_two_pi**num_continuous
 
+                # we assume 1000 BNN samples, so 100 is 10%
                 if sample_index == 100:
                     if 0.01 * obs_probs * inv_sqrt_two_pi**num_continuous < self.lower_prob_bound:
                         probs[obs_index] = 0.01 * obs_probs
                         break
                 else:
-                    probs[obs_index] = obs_probs * inv_sqrt_two_pi**num_continuous / self.num_samples
+                    # we take the average across the BNN samples
+                    probs[obs_index] = (obs_probs * inv_sqrt_two_pi**num_continuous) / self.num_samples
         return probs
 
     cpdef get_kernel(self, np.ndarray sample):

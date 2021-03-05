@@ -294,7 +294,7 @@ class Gryffin(Logger):
         acq_feas = (num_feas + sampling_param_value) * inv_den_feas
         return acq_samp, acq_feas
 
-    def get_acquisition(self, params, sampling_strategies=None, separate=False):
+    def get_acquisition(self, params, sampling_strategies=None):
         """
         Retrieve the last acquisition functions for a specific lambda value.
         """
@@ -318,12 +318,8 @@ class Gryffin(Logger):
         for x in X:
             acquisition_values_at_l = []
             for sampling_param_value in sampling_param_values:
-                acq_samp, acq_feas = self._get_acquisition_x(x, sampling_param_value, kernel_contribution, kernel_contribution_feas)
-                if separate is False:
-                    acquisition = self.last_unfeas_frac * acq_feas + (1. - self.last_unfeas_frac) * acq_samp
-                    acquisition_values_at_l.append(acquisition)
-                else:
-                    acquisition_values_at_l.append([acq_samp, acq_feas])
+                acq_samp_l, _ = self._get_acquisition_x(x, sampling_param_value, kernel_contribution, kernel_contribution_feas)
+                acquisition_values_at_l.append(acq_samp_l)
             acquisition_values.append(acquisition_values_at_l)
         return acquisition_values
 
