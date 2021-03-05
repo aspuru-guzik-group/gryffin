@@ -3,6 +3,7 @@
 from .decorators      import safe_execute
 from .defaults        import default_general_configurations
 from .defaults        import default_database_configurations
+from .defaults        import default_model_configurations
 
 from .exceptions      import GryffinParseError
 from .exceptions      import GryffinModuleError

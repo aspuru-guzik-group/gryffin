@@ -10,6 +10,7 @@ from . import Logger
 from . import ParserJSON, CategoryParser
 from . import default_general_configurations
 from . import default_database_configurations
+from . import default_model_configurations
 from . import safe_execute
 
 
@@ -88,6 +89,15 @@ class ConfigParser(Logger):
             if general_value in ['True', 'False']:
                 general_value = general_value == 'True'
             self.database.add_attr(general_key, general_value)
+
+    def _parse_model(self, provided_settings):
+        self.model_details = Configuration('model')
+        for general_key, general_value in default_model_configurations.items():
+            if general_key in provided_settings:
+                general_value = provided_settings[general_key]
+            if general_value in ['True', 'False']:
+                general_value = general_value == 'True'
+            self.model_details.add_attr(general_key, general_value)
 
     def _parse_parameters(self, provided_settings):
         self.parameters   = Configuration('parameters')
@@ -400,6 +410,11 @@ class ConfigParser(Logger):
             self._parse_database(self.config['database'])
         else:
             self._parse_database({})
+
+        if 'model' in self.config:
+            self._parse_model(self.config['model'])
+        else:
+            self._parse_model({})
 
         self._parse_parameters(self.config['parameters'])
         self._parse_objectives(self.config['objectives'])

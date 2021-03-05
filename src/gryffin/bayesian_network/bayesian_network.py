@@ -32,9 +32,10 @@ class BayesianNetwork(Logger):
         self.cat_reshaper = CategoryReshaper(self.config)
 
         # get bnn model detals
-        if model_details == None:
-            from .model_details import model_details
-        self.model_details = model_details
+        if model_details is None:
+            self.model_details = self.config.model_details.to_dict()
+        else:
+            self.model_details = model_details
 
         # get domain volume
         self.volume     = 1.

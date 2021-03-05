@@ -17,7 +17,7 @@ default_general_configurations = {
     'feas_sensitivity':       1,  # sensitivity to feasibility constraints
     'random_seed':            100691,
     'sampler':               'uniform',
-    'save_database':          True,
+    'save_database':          False,
     'scratch_dir':           './.scratch',
     'continuous_optimizer':  'adam',
     'categorical_optimizer': 'naive',
@@ -40,6 +40,21 @@ default_database_configurations = {
     'log_runtimes':      True,
 }
 
+# =========================
+# Default BNN configuration
+# =========================
+default_model_configurations = {
+    'num_epochs':  2 * 10**3,
+    'learning_rate': 0.01,
+    'num_draws': 10**3,
+    'num_layers': 3,
+    'hidden_shape': 6,
+    'weight_loc': 0.,
+    'weight_scale': 1.,
+    'bias_loc': 0.,
+    'bias_scale': 1.
+}
+
 # =============================
 # Default overall configuration
 # =============================
@@ -49,6 +64,9 @@ default_configuration = {
     },
     'database': {
         key: default_database_configurations[key] for key in default_database_configurations.keys()
+    },
+    'model': {
+        key: default_model_configurations[key] for key in default_model_configurations.keys()
     },
     'parameters': [
         {'name': 'param_0', 'type': 'continuous', 'low': 0, 'high': 1, 'size': 1},
