@@ -225,7 +225,7 @@ class TfprobNetwork(object):
                     '''
 
                 else:
-                    PhoenicsUnknownSettingsError('did not understand parameter type: "%s".\n\tPlease choose from "continuous" or "categorical' % param_type)
+                    GryffinUnknownSettingsError('did not understand parameter type: "%s".\n\tPlease choose from "continuous" or "categorical' % param_type)
 
                 target_element_index += 1
                 kernel_element_index += kernel_size
@@ -259,22 +259,17 @@ class TfprobNetwork(object):
         with self.graph.as_default():
 
             # run inference
-            import time
-            start = time.time()
             for _ in range(num_epochs):
                 self.sess.run(self.train_op)
-            end = time.time()
 
             # sample posterior
             self.trace = {}
             posterior_samples = {}
             for key, kernel_parent in self.posteriors.items():
-                parent_samples = kernel_parent.sample(self._num_draws).eval()
+                parent_samples = kernel_parent.sample(num_draws).eval()
                 posterior_samples[key] = parent_samples
 
-            start        = time.time()
             post_kernels = self.numpy_graph.compute_kernels(posterior_samples)
-            end          = time.time()
 
             for key in post_kernels.keys():
                 self.trace[key] = {}

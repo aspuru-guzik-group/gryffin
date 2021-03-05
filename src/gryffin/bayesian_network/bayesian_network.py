@@ -80,7 +80,6 @@ class BayesianNetwork(Logger):
         obs_objs      = self.obs_objs
 
         # shape of the tensors below: (# samples, # obs, # kernels)
-        burnin, thinning = self.model_details['burnin'], self.model_details['thinning']
         locs       = trace_kernels['locs']
         sqrt_precs = trace_kernels['sqrt_precs']
         probs      = trace_kernels['probs']
