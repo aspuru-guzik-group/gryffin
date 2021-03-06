@@ -125,15 +125,16 @@ class Gryffin(Logger):
             if obs_params_kwn.shape[0] > 0:
                 self.bayesian_network.sample(obs_params_kwn, obs_objs_kwn)
                 self.bayesian_network.build_kernels(descriptors)
-                kernel_contribution = self.bayesian_network.kernel_contribution
                 # if we have kwn samples ==> pick params with best merit
                 best_params = obs_params_kwn[np.argmin(obs_objs_kwn)]
             else:
-                # empty kernel contributions - cannot sample anything is obs_params_kwn is empty!
-                kernel_contribution = self.bayesian_network.empty_kernel_contribution
                 # if we have do not have any feasible sample ==> pick any feasible param at random
                 best_params_idx = np.random.choice(np.flatnonzero(obs_objs_ukwn == obs_objs_ukwn.min()))
                 best_params = obs_params_ukwn[best_params_idx]
+
+            # If we have called build_kernels, we'll have actual kernels
+            # otherwise the default kernel_contribution return (0, volume)
+            kernel_contribution = self.bayesian_network.kernel_contribution
 
             # get sensitivity parameter and do some checks
             # TODO: mv this to config parser
@@ -150,40 +151,40 @@ class Gryffin(Logger):
                 # use mask to avoid using mirrored samples here
                 self.bayesian_network_feas.sample(obs_params_ukwn[mirror_mask_ukwn], obs_objs_ukwn[mirror_mask_ukwn])
                 self.bayesian_network_feas.build_kernels(descriptors_feas)
-                # fraction of unfeasible samples - use mask to avoid counting mirrored samples
-                unfeas_frac = sum(obs_objs_ukwn[mirror_mask_ukwn]) / len(obs_objs_ukwn[mirror_mask_ukwn])
-                unfeas_frac = unfeas_frac ** feas_sensitivity  # adjust sensitivity to presence of unfeasible samples
-                kernel_contribution_feas = self.bayesian_network_feas.kernel_contribution
-            else:
-                kernel_contribution_feas = self.bayesian_network_feas.empty_kernel_contribution
-                unfeas_frac = 0.
+
+            # If we have called build_kernels, we'll have actual surrogate
+            # otherwise surrogate always returns zero, i.e. feasible
+            probability_infeasible = self.bayesian_network_feas.surrogate
+            # prior_1 is fraction of unfeasible samples
+            feasibility_weight = self.bayesian_network_feas.prior_1 ** feas_sensitivity
 
             # if there are process constraining parameters, run those first
             if self.config.process_constrained:
                 proposed_samples = self.acquisition.propose(best_params, kernel_contribution,
-                                                            kernel_contribution_feas, unfeas_frac,
+                                                            probability_infeasible, feasibility_weight,
                                                             sampling_param_values, dominant_samples=None)
                 constraining_samples = self.sample_selector.select(self.config.get('batches'), proposed_samples,
-                                                                   kernel_contribution, kernel_contribution_feas, unfeas_frac,
+                                                                   kernel_contribution, probability_infeasible,
+                                                                   feasibility_weight,
                                                                    dominant_strategy_value, obs_params_ukwn)
             else:
                 constraining_samples = None
 
             # then select the remaining proposals
             proposed_samples = self.acquisition.propose(
-                best_params, kernel_contribution, kernel_contribution_feas, unfeas_frac, sampling_param_values,
+                best_params, kernel_contribution, probability_infeasible, feasibility_weight, sampling_param_values,
                 dominant_samples=constraining_samples)
 
             # note: provide `obs_params_ukwn` as it contains the params for _all_ samples, including the unfeasible ones
             samples = self.sample_selector.select(self.config.get('batches'), proposed_samples, kernel_contribution,
-                                                  kernel_contribution_feas, unfeas_frac, sampling_param_values, obs_params_ukwn)
+                                                  probability_infeasible, feasibility_weight, sampling_param_values, obs_params_ukwn)
 
             # store info so to be able to recontruct surrogate and acquisition function if needed
             self.last_kernel_contribution = kernel_contribution
-            self.last_kernel_contribution_feas = kernel_contribution_feas
+            self.last_probability_infeasible = probability_infeasible
             self.last_sampling_strategies = sampling_strategies
             self.last_sampling_param_values = sampling_param_values
-            self.last_unfeas_frac = unfeas_frac
+            self.last_feasibility_weight = feasibility_weight
             self.last_params_kwn = obs_params_kwn[mirror_mask_kwn]
             self.last_objs_kwn = obs_objs_kwn[mirror_mask_kwn]
             self.last_params_ukwn = obs_params_ukwn[mirror_mask_ukwn]

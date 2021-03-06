@@ -19,28 +19,40 @@ class BayesianNetwork(Logger):
         self.has_sampled = False
         self.config = config
 
-        self.classification = classification
-        self.logprior_0 = np.log(0.5)
-        self.logprior_1 = np.log(0.5)
+        # get domain volume
+        self.volume = None
+        self.inverse_volume = None
+        self._get_volume()
 
+        # variables for kernel density classification
+        self.classification = classification
+        self.prior_0 = 1  # default prior is all feasible
+        self.prior_1 = 0
+        self.log_prior_0 = None
+        self.log_prior_1 = None
+        self.surrogate = lambda x: 0.0  # default to returning constant if surrogate not defined
+
+        # variables for kernel density estimation and regression
+        self.kernel_contribution = lambda x: (0.0, self.volume)  # return den=0, inv_dev=volume
+        self.cat_reshaper = CategoryReshaper(self.config)
+
+        # verbosity settings
         verbosity = self.config.get('verbosity')
         if 'bayesian_network' in verbosity:
             verbosity = verbosity['bayesian_network']
         Logger.__init__(self, 'BayesianNetwork', verbosity=verbosity)
-        self.kernel_contribution = lambda x: (np.sum(x), 1.)
-        self.surrogate = lambda x: None  # default to returning None if surrogate not defined
-        self.cat_reshaper = CategoryReshaper(self.config)
 
-        # get bnn model detals
+        # get bnn model details
         if model_details is None:
             self.model_details = self.config.model_details.to_dict()
         else:
             self.model_details = model_details
 
+    def _get_volume(self):
         # get domain volume
-        self.volume     = 1.
+        self.volume = 1.
         feature_lengths = self.config.feature_lengths
-        feature_ranges  = self.config.feature_ranges
+        feature_ranges = self.config.feature_ranges
         for feature_index, feature_type in enumerate(self.config.feature_types):
             if feature_type == 'continuous':
                 self.volume *= feature_ranges[feature_index]
@@ -49,7 +61,9 @@ class BayesianNetwork(Logger):
             elif feature_type == 'discrete':
                 self.volume *= feature_ranges[feature_index]
             else:
-                GryffinUnknownSettingsError('did not understand parameter type: "%s" of variable "%s".\n\t(%s) Please choose from "continuous" or "categorical"' % (feature_type, self.config.feature_names[feature_index], self.template))
+                GryffinUnknownSettingsError(
+                    'did not understand parameter type: "%s" of variable "%s".\n\t(%s) Please choose from "continuous" or "categorical"' % (
+                    feature_type, self.config.feature_names[feature_index], self.template))
         self.inverse_volume = 1 / self.volume
 
     def sample(self, obs_params, obs_objs):
@@ -66,11 +80,9 @@ class BayesianNetwork(Logger):
         # if we are classifying feasible points, update priors
         if self.classification is True:
             # feasible = 0 and infeasible = 1
-            prior_0 = sum([xi < 0.5 for xi in self.obs_objs]) / len(self.obs_objs)
-            prior_1 = sum([xi > 0.5 for xi in self.obs_objs]) / len(self.obs_objs)
-            assert np.abs((prior_0 + prior_1) - 1.0) < 10e-5
-            self.logprior_0 = np.log(prior_0)
-            self.logprior_1 = np.log(prior_1)
+            self.prior_0 = sum([xi < 0.5 for xi in self.obs_objs]) / len(self.obs_objs)
+            self.prior_1 = sum([xi > 0.5 for xi in self.obs_objs]) / len(self.obs_objs)
+            assert np.abs((self.prior_0 + self.prior_1) - 1.0) < 10e-5
 
         # set sampling to true
         self.has_sampled = True
@@ -124,6 +136,9 @@ class BayesianNetwork(Logger):
         self.caching = np.sum(kernel_types) == len(kernel_types)
         self.cache   = {}
 
+        # -------------------------------------------------------
+        # define functions that use self.kernel_evaluator methods
+        # -------------------------------------------------------
         def kernel_contribution(proposed_sample):
             if self.caching:
                 sample_string = '-'.join([str(int(element)) for element in proposed_sample])
@@ -136,29 +151,35 @@ class BayesianNetwork(Logger):
                 num, inv_den, _ = self.kernel_evaluator.get_kernel(proposed_sample.astype(np.float64))
             return num, inv_den
 
-        def regression_surrogate(proposed_sample):
-            y_pred = self.kernel_evaluator.get_regression_surrogate(proposed_sample.astype(np.float64))
-            return y_pred
+        def prob_infeasible(proposed_sample):
+            return self.kernel_evaluator.get_probability_of_infeasibility(proposed_sample.astype(np.float64),
+                                                                          self.log_prior_0,
+                                                                          self.log_prior_1)
+
+        def infeasible_kernel_density(proposed_sample):
+            _, log_density_1 = self.kernel_evaluator.get_binary_kernel_densities(proposed_sample.astype(np.float64))
+            return np.exp(log_density_1)
 
         self.kernel_contribution = kernel_contribution
 
         if self.classification is True:
-            self.surrogate = self.classification_surrogate
+            # if prior_0 == 1, then prob_infeasible == 0
+            if 1.0 - self.prior_0 < 0.01:  # use 1% threshold to speed up computations if prior_0 close to 1
+                self.surrogate = lambda x: 0.0
+            # if prior_1 == 1, then all infeasible => use kernel density as penalty
+            elif 1.0 - self.prior_1 < 0.01:  # use 1% threshold to speed up computations if prior_1 close to 1
+                self.surrogate = infeasible_kernel_density
+            else:
+                # compute log priors and use posterior of kernel density classification model
+                self.log_prior_0 = np.log(self.prior_0)
+                self.log_prior_1 = np.log(self.prior_1)
+                self.surrogate = prob_infeasible
         else:
-            self.surrogate = regression_surrogate
+            self.surrogate = self.regression_surrogate
 
-    def classification_surrogate(self, sample):
-
-        # get log probabilities
-        self.log_density_0, self.log_density_1 = self.kernel_evaluator.get_binary_kernel_densities(sample)
-
-        posterior_0 = np.exp(self.log_density_0 + self.logprior_0)
-        posterior_1 = np.exp(self.log_density_1 + self.logprior_1)
-
-        proba_0 = posterior_0 / (posterior_0 + posterior_1)
-        proba_1 = posterior_1 / (posterior_0 + posterior_1)
-
-        return proba_0, proba_1
+    def regression_surrogate(self, proposed_sample):
+        y_pred = self.kernel_evaluator.get_regression_surrogate(proposed_sample.astype(np.float64))
+        return y_pred
 
     def empty_kernel_contribution(self, proposed_sample):
         num = 0.

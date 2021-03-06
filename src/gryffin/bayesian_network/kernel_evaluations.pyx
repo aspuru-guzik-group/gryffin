@@ -1,5 +1,6 @@
 #!/usr/bin/env python 
-  
+
+# cython: language_level=3
 # cython: profile=True
 
 __author__ = 'Florian Hase'
@@ -197,3 +198,24 @@ cdef class KernelEvaluator:
         log_density_1 = np.log(density_1) - np.log(num_1)
 
         return log_density_0, log_density_1
+
+    cpdef get_probability_of_infeasibility(self, np.ndarray sample, double log_prior_0, double log_prior_1):
+
+        # 0 = feasible, 1 = infeasible
+        cdef double prob_infeas
+        cdef double log_density_0
+        cdef double log_density_1
+        cdef double posterior_0
+        cdef double posterior_1
+
+        # get log probabilities
+        log_density_0, log_density_1 = self.get_binary_kernel_densities(sample)
+
+        # compute unnormalized posteriors
+        posterior_0 = exp(log_density_0 + log_prior_0)
+        posterior_1 = exp(log_density_1 + log_prior_1)
+
+        # get normalized posterior for prob of infeasible
+        prob_infeas = posterior_1 / (posterior_0 + posterior_1)
+
+        return prob_infeas

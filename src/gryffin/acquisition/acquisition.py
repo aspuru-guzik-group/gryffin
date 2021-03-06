@@ -30,28 +30,27 @@ class Acquisition(Logger):
     def _propose_randomly(self, best_params, num_samples, dominant_samples=None):
         # get uniform samples
         if dominant_samples is None:
-            uniform_samples = self.random_sampler.draw(num = self.total_num_vars * num_samples)
-            perturb_samples = self.random_sampler.perturb(best_params, num = self.total_num_vars * num_samples)
+            uniform_samples = self.random_sampler.draw(num=self.total_num_vars * num_samples)
+            perturb_samples = self.random_sampler.perturb(best_params, num=self.total_num_vars * num_samples)
             samples         = np.concatenate([uniform_samples, perturb_samples])
         else:
             dominant_features = self.config.feature_process_constrained
             for batch_sample in dominant_samples:
-                uniform_samples = self.random_sampler.draw(num = self.total_num_vars * num_samples // len(dominant_samples))
-                perturb_samples = self.random_sampler.perturb(best_params, num = self.total_num_vars * num_samples)
+                uniform_samples = self.random_sampler.draw(num=self.total_num_vars * num_samples // len(dominant_samples))
+                perturb_samples = self.random_sampler.perturb(best_params, num=self.total_num_vars * num_samples)
                 samples         = np.concatenate([uniform_samples, perturb_samples])
             samples[:, dominant_features] = batch_sample[dominant_features]
         return samples
 
-    def _proposal_optimization_thread(self, proposals, kernel_contribution, kernel_contribution_feas, unfeas_frac,
+    def _proposal_optimization_thread(self, proposals, kernel_contribution, probability_infeasible, feasibility_weight,
                                       batch_index, return_index, return_dict=None, dominant_samples=None):
         self.log('starting process for %d' % batch_index, 'INFO')
 
         def kernel(x):
             num, inv_den = kernel_contribution(x)  # standard acquisition for samples
-            num_feas, inv_den_feas = kernel_contribution_feas(x)  # feasibility acquisition
+            prob_infeas = probability_infeasible(x)  # feasibility acquisition
             acq_samp = (num + self.sampling_param_values[batch_index]) * inv_den
-            acq_feas = (num_feas + self.sampling_param_values[batch_index]) * inv_den_feas
-            return unfeas_frac * acq_feas + (1. - unfeas_frac) * acq_samp
+            return feasibility_weight * prob_infeas + (1. - feasibility_weight) * acq_samp
 
         if dominant_samples is not None:
             ignore = self.config.feature_process_constrained
@@ -59,11 +58,11 @@ class Acquisition(Logger):
             ignore = np.array([False for _ in range(len(self.config.feature_process_constrained))])
 
         local_optimizer = self.local_optimizers[batch_index]
-        local_optimizer.set_func(kernel, ignores = ignore)
+        local_optimizer.set_func(kernel, ignores=ignore)
 
         optimized = []
         for sample_index, sample in enumerate(proposals):
-            opt = local_optimizer.optimize(kernel, sample, max_iter = 10)
+            opt = local_optimizer.optimize(kernel, sample, max_iter=10)
             optimized.append(opt)
         optimized = np.array(optimized)
 
@@ -72,7 +71,7 @@ class Acquisition(Logger):
         else:
             return optimized
 
-    def _optimize_proposals(self, random_proposals, kernel_contribution, kernel_contribution_feas, unfeas_frac, dominant_samples=None):
+    def _optimize_proposals(self, random_proposals, kernel_contribution, probability_infeasible, feasibility_weight, dominant_samples=None):
 
         if self.num_cpus > 1:
             result_dict = Manager().dict()
@@ -89,8 +88,8 @@ class Acquisition(Logger):
                     split_end    = split_size * (split_index + 1)
                     return_index = num_splits * batch_index + split_index
                     process = Process(target=self._proposal_optimization_thread, args=(random_proposals[split_start: split_end],
-                                                                                       kernel_contribution, kernel_contribution_feas,
-                                                                                       unfeas_frac, batch_index, return_index,
+                                                                                       kernel_contribution, probability_infeasible,
+                                                                                       feasibility_weight, batch_index, return_index,
                                                                                        result_dict, dominant_samples))
                     processes.append(process)
                     process.start()
@@ -104,7 +103,7 @@ class Acquisition(Logger):
             for batch_index in range(len(self.sampling_param_values)):
                 return_index = batch_index
                 result_dict[batch_index] = self._proposal_optimization_thread(random_proposals, kernel_contribution,
-                                                                              kernel_contribution_feas, unfeas_frac,
+                                                                              probability_infeasible, feasibility_weight,
                                                                               batch_index, return_index,
                                                                               dominant_samples=dominant_samples)
 
@@ -119,7 +118,7 @@ class Acquisition(Logger):
         samples = np.array(samples)
         return np.array(samples)
 
-    def propose(self, best_params, kernel_contribution, kernel_contribution_feas, unfeas_frac, sampling_param_values,
+    def propose(self, best_params, kernel_contribution, probability_infeasible, feasibility_weight, sampling_param_values,
                 num_samples=200, dominant_samples=None):
 
         self.local_optimizers = [ParameterOptimizer(self.config) for _ in range(len(sampling_param_values))]
@@ -132,8 +131,8 @@ class Acquisition(Logger):
 
 
         start = time.time()
-        optimized_proposals = self._optimize_proposals(random_proposals, kernel_contribution, kernel_contribution_feas,
-                                                       unfeas_frac, dominant_samples=dominant_samples)
+        optimized_proposals = self._optimize_proposals(random_proposals, kernel_contribution, probability_infeasible,
+                                                       feasibility_weight, dominant_samples=dominant_samples)
         end = time.time()
         self.log('[TIME]:  ' + parse_time(start, end) + '  (optimizing proposals)', 'INFO')
 
