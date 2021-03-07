@@ -282,15 +282,6 @@ class Gryffin(Logger):
             y_preds.append(y_pred)
         return y_preds
 
-    def _get_acquisition_x(self, x, sampling_param_value, kernel_contribution, kernel_contribution_feas):
-        num, inv_den = kernel_contribution(x)
-        num_feas, inv_den_feas = kernel_contribution_feas(x)
-
-        # return acquisitions
-        acq_samp = (num + sampling_param_value) * inv_den
-        acq_feas = (num_feas + sampling_param_value) * inv_den_feas
-        return acq_samp, acq_feas
-
     def get_acquisition(self, X):
         """
         Retrieve the last acquisition functions for a specific lambda value.
