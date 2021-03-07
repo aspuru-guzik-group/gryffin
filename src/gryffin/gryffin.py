@@ -136,15 +136,7 @@ class Gryffin(Logger):
             # otherwise the default kernel_contribution return (0, volume)
             kernel_contribution = self.bayesian_network.kernel_contribution
 
-            # get sensitivity parameter and do some checks
-            # TODO: mv this to config parser
-            feas_sensitivity = self.config.get('feas_sensitivity')
-            if feas_sensitivity < 0.0:
-                self.log('Config parameter `feas_sensitivity` should be positive, applying np.abs()', 'WARNING')
-                feas_sensitivity = np.abs(feas_sensitivity)
-            elif feas_sensitivity == 0.0:
-                self.log('Config parameter `feas_sensitivity` cannot be zero, falling back to default value of 1', 'WARNING')
-                feas_sensitivity = 1.0
+
 
             # sample from BNN for feasibility surrogate is we have at least one unfeasible point
             if np.sum(obs_objs_ukwn) > 0.1:
@@ -156,35 +148,37 @@ class Gryffin(Logger):
             # otherwise surrogate always returns zero, i.e. feasible
             probability_infeasible = self.bayesian_network_feas.surrogate
             # prior_1 is fraction of unfeasible samples
-            feasibility_weight = self.bayesian_network_feas.prior_1 ** feas_sensitivity
+            frac_infeasible = self.bayesian_network_feas.prior_1
 
             # if there are process constraining parameters, run those first
             if self.config.process_constrained:
                 proposed_samples = self.acquisition.propose(best_params, kernel_contribution,
-                                                            probability_infeasible, feasibility_weight,
-                                                            sampling_param_values, dominant_samples=None)
+                                                            probability_infeasible, frac_infeasible,
+                                                            sampling_param_values, num_samples=200,
+                                                            dominant_samples=None)
                 constraining_samples = self.sample_selector.select(self.config.get('batches'), proposed_samples,
-                                                                   kernel_contribution, probability_infeasible,
-                                                                   feasibility_weight,
+                                                                   self.acquisition.eval_acquisition,
                                                                    dominant_strategy_value, obs_params_ukwn)
             else:
                 constraining_samples = None
 
             # then select the remaining proposals
-            proposed_samples = self.acquisition.propose(
-                best_params, kernel_contribution, probability_infeasible, feasibility_weight, sampling_param_values,
-                dominant_samples=constraining_samples)
+            # TODO: adapt num_samples to the size of the opt domain?
+            proposed_samples = self.acquisition.propose(best_params, kernel_contribution, probability_infeasible,
+                                                        frac_infeasible, sampling_param_values, num_samples=200,
+                                                        dominant_samples=constraining_samples)
 
             # note: provide `obs_params_ukwn` as it contains the params for _all_ samples, including the unfeasible ones
-            samples = self.sample_selector.select(self.config.get('batches'), proposed_samples, kernel_contribution,
-                                                  probability_infeasible, feasibility_weight, sampling_param_values, obs_params_ukwn)
+            samples = self.sample_selector.select(self.config.get('batches'), proposed_samples,
+                                                  self.acquisition.eval_acquisition,
+                                                  sampling_param_values, obs_params_ukwn)
 
             # store info so to be able to recontruct surrogate and acquisition function if needed
             self.last_kernel_contribution = kernel_contribution
             self.last_probability_infeasible = probability_infeasible
             self.last_sampling_strategies = sampling_strategies
             self.last_sampling_param_values = sampling_param_values
-            self.last_feasibility_weight = feasibility_weight
+            self.last_frac_infeasibile = frac_infeasible
             self.last_params_kwn = obs_params_kwn[mirror_mask_kwn]
             self.last_objs_kwn = obs_objs_kwn[mirror_mask_kwn]
             self.last_params_ukwn = obs_params_ukwn[mirror_mask_ukwn]
