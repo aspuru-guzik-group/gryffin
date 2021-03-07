@@ -43,6 +43,8 @@ class Gryffin(Logger):
         self.sample_selector           = SampleSelector(self.config)
 
         self.iter_counter = 0
+        self.sampling_param_values = None
+        self.sampling_strategies = None
 
     def create_folders(self):
 
@@ -84,6 +86,9 @@ class Gryffin(Logger):
             sampling_strategies = np.array(sampling_strategies)
             num_sampling_strategies = len(sampling_strategies)
 
+        # register last sampling strategies
+        self.sampling_strategies = sampling_strategies
+
         if observations is None:
             # no observations, need to fall back to random sampling
             samples = self.random_sampler.draw(num=self.config.get('batches') * num_sampling_strategies)
@@ -117,9 +122,9 @@ class Gryffin(Logger):
             descriptors_feas = self.descriptor_generator_feas.get_descriptors()
 
             # get lambda values for exploration/exploitation
-            sampling_param_values = sampling_strategies * self.bayesian_network.inverse_volume
-            dominant_strategy_index = self.iter_counter % len(sampling_param_values)
-            dominant_strategy_value = np.array([sampling_param_values[dominant_strategy_index]])
+            self.sampling_param_values = sampling_strategies * self.bayesian_network.inverse_volume
+            dominant_strategy_index = self.iter_counter % len(self.sampling_param_values)
+            dominant_strategy_value = np.array([self.sampling_param_values[dominant_strategy_index]])
 
             # sample bnn for known parameters
             if obs_params_kwn.shape[0] > 0:
@@ -135,8 +140,6 @@ class Gryffin(Logger):
             # If we have called build_kernels, we'll have actual kernels
             # otherwise the default kernel_contribution return (0, volume)
             kernel_contribution = self.bayesian_network.kernel_contribution
-
-
 
             # sample from BNN for feasibility surrogate is we have at least one unfeasible point
             if np.sum(obs_objs_ukwn) > 0.1:
@@ -154,7 +157,7 @@ class Gryffin(Logger):
             if self.config.process_constrained:
                 proposed_samples = self.acquisition.propose(best_params, kernel_contribution,
                                                             probability_infeasible, frac_infeasible,
-                                                            sampling_param_values, num_samples=200,
+                                                            self.sampling_param_values, num_samples=200,
                                                             dominant_samples=None)
                 constraining_samples = self.sample_selector.select(self.config.get('batches'), proposed_samples,
                                                                    self.acquisition.eval_acquisition,
@@ -165,19 +168,18 @@ class Gryffin(Logger):
             # then select the remaining proposals
             # TODO: adapt num_samples to the size of the opt domain?
             proposed_samples = self.acquisition.propose(best_params, kernel_contribution, probability_infeasible,
-                                                        frac_infeasible, sampling_param_values, num_samples=200,
+                                                        frac_infeasible, self.sampling_param_values, num_samples=200,
                                                         dominant_samples=constraining_samples)
 
             # note: provide `obs_params_ukwn` as it contains the params for _all_ samples, including the unfeasible ones
             samples = self.sample_selector.select(self.config.get('batches'), proposed_samples,
                                                   self.acquisition.eval_acquisition,
-                                                  sampling_param_values, obs_params_ukwn)
+                                                  self.sampling_param_values, obs_params_ukwn)
 
             # store info so to be able to recontruct surrogate and acquisition function if needed
             self.last_kernel_contribution = kernel_contribution
             self.last_probability_infeasible = probability_infeasible
             self.last_sampling_strategies = sampling_strategies
-            self.last_sampling_param_values = sampling_param_values
             self.last_frac_infeasibile = frac_infeasible
             self.last_params_kwn = obs_params_kwn[mirror_mask_kwn]
             self.last_objs_kwn = obs_objs_kwn[mirror_mask_kwn]
@@ -289,32 +291,24 @@ class Gryffin(Logger):
         acq_feas = (num_feas + sampling_param_value) * inv_den_feas
         return acq_samp, acq_feas
 
-    def get_acquisition(self, params, sampling_strategies=None):
+    def get_acquisition(self, X):
         """
         Retrieve the last acquisition functions for a specific lambda value.
         """
-        if isinstance(params, pd.DataFrame):
-            params = self._df_to_list_of_dicts(params)
-        X = self.obs_processor.process_params(params)
-
-        # figure out the sampling_param_values
-        if sampling_strategies is None:
-            sampling_param_values = self.last_sampling_param_values
-        else:
-            sampling_strategies = np.array(sampling_strategies)
-            sampling_param_values = sampling_strategies * self.bayesian_network.inverse_volume
-
-        # retrieve kernel contributions
-        kernel_contribution = self.bayesian_network.kernel_contribution
-        kernel_contribution_feas = self.bayesian_network_feas.kernel_contribution
+        if isinstance(X, pd.DataFrame):
+            X = self._df_to_list_of_dicts(X)
+        X_parsed = self.obs_processor.process_params(X)
 
         # collect acquisition values
-        acquisition_values = []
-        for x in X:
+        acquisition_values = {}
+        for batch_index, sampling_param in enumerate(self.sampling_param_values):
             acquisition_values_at_l = []
-            for sampling_param_value in sampling_param_values:
-                acq_samp_l, _ = self._get_acquisition_x(x, sampling_param_value, kernel_contribution, kernel_contribution_feas)
-                acquisition_values_at_l.append(acq_samp_l)
-            acquisition_values.append(acquisition_values_at_l)
+            for Xi_parsed in X_parsed:
+                acq_value = self.acquisition.eval_acquisition(Xi_parsed, batch_index)
+                acquisition_values_at_l.append(acq_value)
+
+            lambda_value = self.sampling_strategies[batch_index]
+            acquisition_values[lambda_value] = acquisition_values_at_l
+
         return acquisition_values
 

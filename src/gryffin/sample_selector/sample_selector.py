@@ -40,7 +40,9 @@ class SampleSelector(Logger):
         feature_ranges = self.config.feature_ranges
         char_dists = feature_ranges / float(num_obs)**0.5
 
-        # compute acq func values
+        # -------------------
+        # parallel processing
+        # -------------------
         if self.num_cpus > 1:
             result_dict = Manager().dict()
 
@@ -51,7 +53,6 @@ class SampleSelector(Logger):
             processes = []
             for batch_index in range(len(sampling_param_values)):
                 for split_index in range(num_splits):
-
                     split_start = split_size * split_index
                     split_end   = split_size * (split_index + 1)
                     return_index = num_splits * batch_index + split_index
@@ -63,6 +64,9 @@ class SampleSelector(Logger):
                 for process_index, process in enumerate(processes):
                     process.join()
 
+        # ---------------------
+        # sequential processing
+        # ---------------------
         else:
             num_splits  = 1
             result_dict = {}
