@@ -166,7 +166,7 @@ class Gryffin(Logger):
                 constraining_samples = None
 
             # then select the remaining proposals
-            # TODO: adapt num_samples to the size of the opt domain?
+            # note num_samples get multiplied by the number of input variables
             proposed_samples = self.acquisition.propose(best_params, kernel_contribution, probability_infeasible,
                                                         frac_infeasible, self.sampling_param_values, num_samples=200,
                                                         dominant_samples=constraining_samples)
