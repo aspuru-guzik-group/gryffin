@@ -60,22 +60,9 @@ class Acquisition(Logger):
             samples[:, dominant_features] = batch_sample[dominant_features]
         return samples
 
-    def _proposal_optimization_thread(self, proposals, batch_index, return_index, acq_min, acq_max,
+    def _proposal_optimization_thread(self, proposals, acquisition, batch_index, return_index,
                                       return_dict=None, dominant_samples=None):
         self.log('starting process for %d' % batch_index, 'INFO')
-
-        # get lambda value
-        sampling_param = self.sampling_param_values[batch_index]
-
-        # define acquisition function to be optimized
-        acquisition = AcquisitionFunction(kernel_contribution=self.kernel_contribution,
-                                          probability_infeasible=self.probability_infeasible,
-                                          sampling_param=sampling_param, frac_infeasible=self.frac_infeasible,
-                                          acq_min=acq_min, acq_max=acq_max, feas_sensitivity=self.feas_sensitivity)
-
-        # save instance for future use
-        if batch_index not in self.acquisition_functions.keys():
-            self.acquisition_functions[batch_index] = acquisition
 
         # get params to be constrained
         if dominant_samples is not None:
@@ -184,11 +171,25 @@ class Acquisition(Logger):
             num_splits = self.num_cpus // len(self.sampling_param_values) + 1
             split_size = len(random_proposals) // num_splits
 
-            processes = []
+            processes = []  # store parallel processes here
+
+            # Iterate over all sampling strategies
             for batch_index, sampling_param in enumerate(self.sampling_param_values):
+
                 # get approximate min/max of sample acquisition
                 acq_min, acq_max = self._get_approx_min_max(random_proposals, sampling_param, dominant_samples)
                 self.acqs_min_max[batch_index] = [acq_min, acq_max]
+
+                # define acquisition function to be optimized
+                acquisition = AcquisitionFunction(kernel_contribution=self.kernel_contribution,
+                                                  probability_infeasible=self.probability_infeasible,
+                                                  sampling_param=sampling_param, frac_infeasible=self.frac_infeasible,
+                                                  acq_min=acq_min, acq_max=acq_max,
+                                                  feas_sensitivity=self.feas_sensitivity)
+
+                # save acquisition instance for future use
+                if batch_index not in self.acquisition_functions.keys():
+                    self.acquisition_functions[batch_index] = acquisition
 
                 # for all splits
                 for split_index in range(num_splits):
@@ -198,8 +199,8 @@ class Acquisition(Logger):
                     return_index = num_splits * batch_index + split_index
                     # run optimization
                     process = Process(target=self._proposal_optimization_thread, args=(random_proposals[split_start: split_end],
+                                                                                       acquisition,
                                                                                        batch_index, return_index,
-                                                                                       acq_min, acq_max,
                                                                                        result_dict, dominant_samples))
                     processes.append(process)
                     process.start()
@@ -218,11 +219,24 @@ class Acquisition(Logger):
                 acq_min, acq_max = self._get_approx_min_max(random_proposals, sampling_param, dominant_samples)
                 self.acqs_min_max[batch_index] = [acq_min, acq_max]
 
+                # define acquisition function to be optimized
+                acquisition = AcquisitionFunction(kernel_contribution=self.kernel_contribution,
+                                                  probability_infeasible=self.probability_infeasible,
+                                                  sampling_param=sampling_param, frac_infeasible=self.frac_infeasible,
+                                                  acq_min=acq_min, acq_max=acq_max,
+                                                  feas_sensitivity=self.feas_sensitivity)
+
+                # save acquisition instance for future use
+                if batch_index not in self.acquisition_functions.keys():
+                    self.acquisition_functions[batch_index] = acquisition
+
                 # run the optimization
                 return_index = batch_index
-                result_dict[batch_index] = self._proposal_optimization_thread(random_proposals,
-                                                                              batch_index, return_index,
-                                                                              acq_min, acq_max,
+                result_dict[batch_index] = self._proposal_optimization_thread(proposals=random_proposals,
+                                                                              acquisition=acquisition,
+                                                                              batch_index=batch_index,
+                                                                              return_index=return_index,
+                                                                              return_dict=None,
                                                                               dominant_samples=dominant_samples)
 
         # -------------------------
@@ -251,6 +265,7 @@ class Acquisition(Logger):
         # -------------------------------------------------------------
         # register attributes we'll be using to compute the acquisition
         # -------------------------------------------------------------
+        self.acquisition_functions = {}  # reinitialize acquisition functions, otherwise we keep using old ones!
         self.sampling_param_values = sampling_param_values
         self.frac_infeasible = frac_infeasible
         self.kernel_contribution = kernel_contribution
