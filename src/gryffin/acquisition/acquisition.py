@@ -27,6 +27,7 @@ class Acquisition(Logger):
         self.sampling_param_values = None
         self.frac_infeasible = None
         self.acqs_min_max = None  # expected content is dict where key is batch_index, and dict[batch_index] = [min,max]
+        self.acquisition_functions = {}  # to keep the AcquisitionFunction instances used
 
         # figure out how many CPUs to use
         if self.config.get('num_cpus') == 'all':
@@ -71,6 +72,10 @@ class Acquisition(Logger):
                                           probability_infeasible=self.probability_infeasible,
                                           sampling_param=sampling_param, frac_infeasible=self.frac_infeasible,
                                           acq_min=acq_min, acq_max=acq_max, feas_sensitivity=self.feas_sensitivity)
+
+        # save instance for future use
+        if batch_index not in self.acquisition_functions.keys():
+            self.acquisition_functions[batch_index] = acquisition
 
         # get params to be constrained
         if dominant_samples is not None:
@@ -267,21 +272,8 @@ class Acquisition(Logger):
         return combined_proposals
 
     def eval_acquisition(self, x, batch_index):
-        """Convenience method to retrieve the last acquisition function used by the propose method"""
-
-        sampling_param = self.sampling_param_values[batch_index]  # lambda value
-        feasibility_weight = self.frac_infeasible ** self.feas_sensitivity  # feas weight
-        acq_min, acq_max = self.acqs_min_max[batch_index]
-
-        num, inv_den = self.kernel_contribution(x)  # standard acquisition for samples
-        prob_infeas = self.probability_infeasible(x)  # feasibility acquisition
-        acq_samp = (num + sampling_param) * inv_den
-
-        # approximately normalize sample acquisition so it has same scale of prob_infeas
-        acq_samp = (acq_samp - acq_min) / (acq_max - acq_min)
-
-        acq_value = feasibility_weight * prob_infeas + (1. - feasibility_weight) * acq_samp
-        return acq_value
+        acquisition = self.acquisition_functions[batch_index]
+        return acquisition(x)
 
 
 class AcquisitionFunction:
