@@ -48,12 +48,6 @@ class Gryffin(Logger):
 
     def create_folders(self):
 
-        if not os.path.isdir(self.config.get('scratch_dir')):
-            try:
-                os.mkdir(self.config.get('scratch_dir'))
-            except FileNotFoundError:
-                GryffinNotFoundError('Could not create scratch directory: %s' % self.config.get('scratch_dir'))
-
         if self.config.get('save_database') is True and not os.path.isdir(self.config.get_db('path')):
             try:
                 os.mkdir(self.config.get_db('path'))

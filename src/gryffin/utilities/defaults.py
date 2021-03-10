@@ -18,7 +18,6 @@ default_general_configurations = {
     'random_seed':            100691,
     'sampler':               'uniform',
     'save_database':          False,
-    'scratch_dir':           './.scratch',
     'continuous_optimizer':  'adam',
     'categorical_optimizer': 'naive',
     'discrete_optimizer':    'naive',
