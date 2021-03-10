@@ -212,8 +212,8 @@ class Acquisition(Logger):
 
                 # sort results in return_dict to create optimized_batch_samples list with correct sample order
                 optimized_batch_samples = []
-                for key in sorted(return_dict.keys()):
-                    optimized_batch_samples.extend(return_dict[key])
+                for idx in range(len(random_proposals_splits)):
+                    optimized_batch_samples.extend(return_dict[idx])
 
             # ---------------------
             # sequential processing
