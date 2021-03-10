@@ -5,11 +5,11 @@ __author__ = 'Florian Hase'
 import numpy as np
 import time
 import multiprocessing
-from multiprocessing import Process, Manager
+from multiprocessing import Process, Queue, Manager
 
 from . import ParameterOptimizer
 from gryffin.random_sampler import RandomSampler
-from gryffin.utilities      import Logger, parse_time
+from gryffin.utilities import Logger, parse_time
 
 
 class Acquisition(Logger):
@@ -60,8 +60,8 @@ class Acquisition(Logger):
             samples[:, dominant_features] = batch_sample[dominant_features]
         return samples
 
-    def _proposal_optimization_thread(self, proposals, acquisition, batch_index, return_index,
-                                      return_dict=None, dominant_samples=None):
+    def _proposal_optimization_thread(self, proposals, acquisition, batch_index,
+                                      return_dict=None, return_index=0, dominant_samples=None):
         self.log('starting process for %d' % batch_index, 'INFO')
 
         # get params to be constrained
@@ -159,98 +159,78 @@ class Acquisition(Logger):
 
     def _optimize_proposals(self, random_proposals, dominant_samples=None):
 
+        optimized_samples = []  # all optimized samples, i.e. for all sampling strategies
         self.acqs_min_max = {}
 
-        # -------------------
-        # parallel processing
-        # -------------------
-        if self.num_cpus > 1:
-            result_dict = Manager().dict()
+        # ------------------------------------
+        # Iterate over all sampling strategies
+        # ------------------------------------
+        for batch_index, sampling_param in enumerate(self.sampling_param_values):
 
-            # get the number of splits
-            num_splits = self.num_cpus // len(self.sampling_param_values) + 1
-            split_size = len(random_proposals) // num_splits
+            # get approximate min/max of sample acquisition
+            acq_min, acq_max = self._get_approx_min_max(random_proposals, sampling_param, dominant_samples)
+            self.acqs_min_max[batch_index] = [acq_min, acq_max]
 
-            processes = []  # store parallel processes here
+            # define acquisition function to be optimized
+            acquisition = AcquisitionFunction(kernel_contribution=self.kernel_contribution,
+                                              probability_infeasible=self.probability_infeasible,
+                                              sampling_param=sampling_param, frac_infeasible=self.frac_infeasible,
+                                              acq_min=acq_min, acq_max=acq_max,
+                                              feas_sensitivity=self.feas_sensitivity)
 
-            # Iterate over all sampling strategies
-            for batch_index, sampling_param in enumerate(self.sampling_param_values):
+            # save acquisition instance for future use
+            if batch_index not in self.acquisition_functions.keys():
+                self.acquisition_functions[batch_index] = acquisition
 
-                # get approximate min/max of sample acquisition
-                acq_min, acq_max = self._get_approx_min_max(random_proposals, sampling_param, dominant_samples)
-                self.acqs_min_max[batch_index] = [acq_min, acq_max]
+            # -------------------
+            # parallel processing
+            # -------------------
+            if self.num_cpus > 1:
+                # create shared memory dict that will contain the optimized samples for this batch/sampling strategy
+                # keys will correspond to indices so that we can resort the samples afterwards
+                return_dict = Manager().dict()
 
-                # define acquisition function to be optimized
-                acquisition = AcquisitionFunction(kernel_contribution=self.kernel_contribution,
-                                                  probability_infeasible=self.probability_infeasible,
-                                                  sampling_param=sampling_param, frac_infeasible=self.frac_infeasible,
-                                                  acq_min=acq_min, acq_max=acq_max,
-                                                  feas_sensitivity=self.feas_sensitivity)
+                # split random_proposals into approx equal chunks based on how many CPUs we're using
+                random_proposals_splits = np.array_split(random_proposals, self.num_cpus)
 
-                # save acquisition instance for future use
-                if batch_index not in self.acquisition_functions.keys():
-                    self.acquisition_functions[batch_index] = acquisition
-
-                # for all splits
-                for split_index in range(num_splits):
-
-                    split_start  = split_size * split_index
-                    split_end    = split_size * (split_index + 1)
-                    return_index = num_splits * batch_index + split_index
+                # parallelize over splits
+                # -----------------------
+                processes = []  # store parallel processes here
+                for idx, random_proposals_split in enumerate(random_proposals_splits):
                     # run optimization
-                    process = Process(target=self._proposal_optimization_thread, args=(random_proposals[split_start: split_end],
+                    process = Process(target=self._proposal_optimization_thread, args=(random_proposals_split,
                                                                                        acquisition,
-                                                                                       batch_index, return_index,
-                                                                                       result_dict, dominant_samples))
+                                                                                       batch_index,
+                                                                                       return_dict,
+                                                                                       idx,
+                                                                                       dominant_samples))
                     processes.append(process)
                     process.start()
 
-            for process_index, process in enumerate(processes):
-                process.join()
+                for process_index, process in enumerate(processes):
+                    process.join()
 
-        # ---------------------
-        # sequential processing
-        # ---------------------
-        else:
-            num_splits = 1
-            result_dict = {}
-            for batch_index, sampling_param in enumerate(self.sampling_param_values):
-                # get approximate min/max of sample acquisition
-                acq_min, acq_max = self._get_approx_min_max(random_proposals, sampling_param, dominant_samples)
-                self.acqs_min_max[batch_index] = [acq_min, acq_max]
+                # sort results in return_dict to create optimized_batch_samples list with correct sample order
+                optimized_batch_samples = []
+                for key in sorted(return_dict.keys()):
+                    optimized_batch_samples.extend(return_dict[key])
 
-                # define acquisition function to be optimized
-                acquisition = AcquisitionFunction(kernel_contribution=self.kernel_contribution,
-                                                  probability_infeasible=self.probability_infeasible,
-                                                  sampling_param=sampling_param, frac_infeasible=self.frac_infeasible,
-                                                  acq_min=acq_min, acq_max=acq_max,
-                                                  feas_sensitivity=self.feas_sensitivity)
+            # ---------------------
+            # sequential processing
+            # ---------------------
+            else:
+                # optimized samples for this batch/sampling strategy
+                optimized_batch_samples = self._proposal_optimization_thread(proposals=random_proposals,
+                                                                             acquisition=acquisition,
+                                                                             batch_index=batch_index,
+                                                                             return_dict=None,
+                                                                             return_index=0,
+                                                                             dominant_samples=dominant_samples)
 
-                # save acquisition instance for future use
-                if batch_index not in self.acquisition_functions.keys():
-                    self.acquisition_functions[batch_index] = acquisition
+            # append the optimized samples for this sampling strategy to the global list of optimized_samples
+            optimized_samples.append(optimized_batch_samples)
 
-                # run the optimization
-                return_index = batch_index
-                result_dict[batch_index] = self._proposal_optimization_thread(proposals=random_proposals,
-                                                                              acquisition=acquisition,
-                                                                              batch_index=batch_index,
-                                                                              return_index=return_index,
-                                                                              return_dict=None,
-                                                                              dominant_samples=dominant_samples)
-
-        # -------------------------
-        # collect optimized samples
-        # -------------------------
-        samples = []
-        for batch_index in range(len(self.sampling_param_values)):
-            batch_samples = []
-            for split_index in range(num_splits):
-                return_index = num_splits * batch_index + split_index
-                batch_samples.append(result_dict[return_index])
-            samples.append(np.concatenate(batch_samples))
-        samples = np.array(samples)
-        return np.array(samples)
+        return np.array(optimized_samples)
 
     def propose(self, best_params, kernel_contribution, probability_infeasible, frac_infeasible, sampling_param_values,
                 num_samples=200, dominant_samples=None):
