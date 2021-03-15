@@ -210,6 +210,7 @@ class Acquisition(Logger):
                     processes.append(process)
                     process.start()
 
+                # wait until all processes finished
                 for process in processes:
                     process.join()
 

@@ -86,6 +86,7 @@ class BayesianNetwork(Logger):
 
         # set sampling to true
         self.has_sampled = True
+        del tfprob_network  # manually dereference tfprob_network
 
     def build_kernels(self, descriptors):
         assert self.has_sampled

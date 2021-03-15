@@ -77,7 +77,7 @@ class SampleSelector(Logger):
                     processes.append(process)
                     process.start()
 
-                # join all child processes back to main
+                # wait until all processes finished
                 for process in processes:
                     process.join()
 

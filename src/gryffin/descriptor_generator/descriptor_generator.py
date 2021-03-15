@@ -99,6 +99,7 @@ class DescriptorGenerator(Logger):
         self.weights[feature_index]            = results['weights']
         self.sufficient_indices[feature_index] = results['sufficient_indices']
 
+        del generator  # manually dereference generator
         return results['reduced_gen_descs'], feature_index
 
     def generate_descriptors(self, obs_params, obs_objs):
