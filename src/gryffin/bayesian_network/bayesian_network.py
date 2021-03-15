@@ -48,6 +48,10 @@ class BayesianNetwork(Logger):
         else:
             self.model_details = model_details
 
+        # whether to use kernel caching
+        self.caching = self.config.get('caching')
+        self.cache = None
+
     def _get_volume(self):
         # get domain volume
         self.volume = 1.
@@ -133,18 +137,21 @@ class BayesianNetwork(Logger):
 
         self.kernel_evaluator = KernelEvaluator(locs, sqrt_precs, probs, kernel_types, kernel_sizes, lower_prob_bound, obs_objs, self.inverse_volume)
 
-        # check if we can construct a cache
-        self.caching = np.sum(kernel_types) == len(kernel_types)
-        self.cache   = {}
+        # check if we can construct a cache and update option
+        if self.caching is True:
+            if np.sum(kernel_types) == len(kernel_types):
+                self.cache = {}
+            else:
+                self.caching = False
 
         # -------------------------------------------------------
         # define functions that use self.kernel_evaluator methods
         # -------------------------------------------------------
         def kernel_contribution(proposed_sample):
-            if self.caching:
+            if self.caching is True:
                 sample_string = '-'.join([str(int(element)) for element in proposed_sample])
                 if sample_string in self.cache:
-                    num, inv_den  = self.cache[sample_string]
+                    num, inv_den = self.cache[sample_string]
                 else:
                     num, inv_den, _ = self.kernel_evaluator.get_kernel(proposed_sample.astype(np.float64))
                     self.cache[sample_string] = (num, inv_den)

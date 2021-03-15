@@ -10,6 +10,7 @@ __author__ = 'Florian Hase'
 default_general_configurations = {
     'num_cpus':               1,  # Options are a number, or 'all'
     'boosted':                True,
+    'caching':                True,
     'auto_desc_gen':          False,
     'batches':                1,
     'sampling_strategies':    2,
