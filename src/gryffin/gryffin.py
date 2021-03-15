@@ -15,7 +15,7 @@ from .descriptor_generator  import DescriptorGenerator
 from .observation_processor import ObservationProcessor
 from .random_sampler        import RandomSampler
 from .sample_selector       import SampleSelector
-from .utilities             import ConfigParser, Logger, parse_time, GryffinNotFoundError
+from .utilities             import ConfigParser, Logger, parse_time, GryffinNotFoundError, memory_usage
 
 
 class Gryffin(Logger):
@@ -181,6 +181,8 @@ class Gryffin(Logger):
             self.last_objs_ukwn = obs_objs_ukwn[mirror_mask_ukwn]
             self.last_recommended_samples = samples
 
+        GB, MB, kB = memory_usage()
+        self.log(f'[MEM]:  {GB} GB, {MB} MB, {kB} kB', 'INFO')
         end_time = time.time()
         self.log('[TIME]:  ' + parse_time(start_time, end_time) + '  (overall)', 'INFO')
 
