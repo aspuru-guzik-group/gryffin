@@ -37,8 +37,8 @@ class SampleSelector(Logger):
 
         if return_dict.__class__.__name__ == 'DictProxy':
             return_dict[return_index] = exp_objs
-        else:
-            return exp_objs
+
+        return exp_objs
 
     def select(self, num_samples, proposals, eval_acquisition, sampling_param_values, obs_params):
         # shape of proposals is (num strategies, num samples, num dimensions)

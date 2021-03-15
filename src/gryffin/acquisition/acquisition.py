@@ -86,8 +86,8 @@ class Acquisition(Logger):
 
         if return_dict.__class__.__name__ == 'DictProxy':
             return_dict[return_index] = optimized
-        else:
-            return optimized
+
+        return optimized
 
     def _get_approx_min_max(self, random_proposals, sampling_param, dominant_samples):
         """Approximate min and max of sample acquisition to that we can approximately normalize it"""
