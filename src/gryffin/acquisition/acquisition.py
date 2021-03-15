@@ -5,7 +5,7 @@ __author__ = 'Florian Hase'
 import numpy as np
 import time
 import multiprocessing
-from multiprocessing import Process, Queue, Manager
+from multiprocessing import Process, Manager
 
 from . import ParameterOptimizer
 from gryffin.random_sampler import RandomSampler
@@ -210,7 +210,7 @@ class Acquisition(Logger):
                     processes.append(process)
                     process.start()
 
-                for process_index, process in enumerate(processes):
+                for process in processes:
                     process.join()
 
                 # sort results in return_dict to create optimized_batch_samples list with correct sample order

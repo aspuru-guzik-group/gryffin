@@ -5,7 +5,8 @@ __author__ = 'Florian Hase'
 import numpy as np
 import multiprocessing
 from multiprocessing import Manager, Process
-from gryffin.utilities import Logger
+from gryffin.utilities import Logger, parse_time
+import time
 
 
 class SampleSelector(Logger):
@@ -19,8 +20,13 @@ class SampleSelector(Logger):
         else:
             self.num_cpus = int(self.config.get('num_cpus'))
 
-    @staticmethod
-    def compute_exp_objs(proposals, eval_acquisition, batch_index, return_index, result_dict=None):
+    def compute_exp_objs(self, proposals, eval_acquisition, batch_index, return_index=0, return_dict=None):
+        # print info
+        if return_dict is not None:
+            self.log('starting parallel process for lambda strategy number %d' % batch_index, 'INFO')
+        else:
+            self.log('starting serial process for lambda strategy number %d' % batch_index, 'INFO')
+
         # batch_index is the index of the sampling_param_values used
         samples = proposals[batch_index]
         exp_objs = np.empty(len(samples))
@@ -29,76 +35,87 @@ class SampleSelector(Logger):
             acq = eval_acquisition(sample, batch_index)  # this is a method of the Acquisition instance
             exp_objs[sample_index] = np.exp(-acq)
 
-        if result_dict.__class__.__name__ == 'DictProxy':
-            result_dict[return_index] = exp_objs
+        if return_dict.__class__.__name__ == 'DictProxy':
+            return_dict[return_index] = exp_objs
         else:
             return exp_objs
 
     def select(self, num_samples, proposals, eval_acquisition, sampling_param_values, obs_params):
+        # shape of proposals is (num strategies, num samples, num dimensions)
+
+        start = time.time()  # to keep track of time
 
         num_obs = len(obs_params)
         feature_ranges = self.config.feature_ranges
         char_dists = feature_ranges / float(num_obs)**0.5
 
-        # -------------------
-        # parallel processing
-        # -------------------
-        if self.num_cpus > 1:
-            result_dict = Manager().dict()
+        # save all objective values here
+        exp_objs = []
 
-            # get the number of splits
-            num_splits = self.num_cpus // len(sampling_param_values) + 1
-            split_size = proposals.shape[1] // num_splits
+        # ---------------------------------
+        # compute exp of acquisition values
+        # ---------------------------------
+        # TODO: this is slightly redundant as we have computed acquisition values already in Acquisition
+        #  also, eval_acquisition might be fast enough that the overhead of multiprocessing might not be worth it
+        for batch_index, sampling_param in enumerate(sampling_param_values):
 
-            processes = []
-            for batch_index in range(len(sampling_param_values)):
-                for split_index in range(num_splits):
-                    split_start = split_size * split_index
-                    split_end   = split_size * (split_index + 1)
-                    return_index = num_splits * batch_index + split_index
-                    process = Process(target=self.compute_exp_objs, args=(proposals[:, split_start: split_end],
-                                                                          eval_acquisition,
-                                                                          batch_index, return_index, result_dict))
+            # -------------------
+            # parallel processing
+            # -------------------
+            if self.num_cpus > 1:
+                return_dict = Manager().dict()
+
+                # split proposals into approx equal chunks based on how many CPUs we're using
+                proposals_splits = np.array_split(proposals, self.num_cpus, axis=1)
+
+                # parallelize over splits
+                # -----------------------
+                processes = []
+                for idx, proposals_split in enumerate(proposals_splits):
+                    process = Process(target=self.compute_exp_objs, args=(proposals_split, eval_acquisition,
+                                                                          batch_index, idx, return_dict))
                     processes.append(process)
                     process.start()
-                for process_index, process in enumerate(processes):
+
+                # join all child processes back to main
+                for process in processes:
                     process.join()
 
-        # ---------------------
-        # sequential processing
-        # ---------------------
-        else:
-            num_splits  = 1
-            result_dict = {}
-            for batch_index in range(len(sampling_param_values)):
-                return_index = batch_index
-                result_dict[return_index] = self.compute_exp_objs(proposals, eval_acquisition,
-                                                                  batch_index, return_index)
+                # sort results in return_dict to create batch_exp_objs list with correct sample order
+                batch_exp_objs = []
+                for idx in range(len(proposals_splits)):
+                    batch_exp_objs.extend(return_dict[idx])
 
-        # collect results
-        exp_objs = []
-        for batch_index in range(len(sampling_param_values)):
-            batch_exp_objs = []
-            for split_index in range(num_splits):
-                return_index = num_splits * batch_index + split_index
+            # ---------------------
+            # sequential processing
+            # ---------------------
+            else:
+                batch_exp_objs = self.compute_exp_objs(proposals=proposals, eval_acquisition=eval_acquisition,
+                                                       batch_index=batch_index, return_index=0, return_dict=None)
 
-                batch_exp_objs.append(result_dict[return_index])
-            exp_objs.append(np.concatenate(batch_exp_objs))
+            # append the proposed samples for this sampling strategy to the global list of samples
+            exp_objs.append(batch_exp_objs)
+
+        # cast to np.array
         exp_objs = np.array(exp_objs)
 
+        # ----------------------------------------
         # compute prior recommendation punishments
+        # ----------------------------------------
         for batch_index in range(len(sampling_param_values)):
             batch_proposals = proposals[batch_index, : exp_objs.shape[1]]
 
             # compute distance to each obs_param
-            distances     = [ np.sum((obs_params - batch_proposal)**2, axis=1) for batch_proposal in batch_proposals]
-            distances     = np.array(distances)
-            min_distances = np.amin(distances, axis = 1)
+            distances = [np.sum((obs_params - batch_proposal)**2, axis=1) for batch_proposal in batch_proposals]
+            distances = np.array(distances)
+            min_distances = np.amin(distances, axis=1)
             ident_indices = np.where(min_distances < 1e-8)[0]
 
             exp_objs[batch_index, ident_indices] = 0.
 
+        # ---------------
         # collect samples
+        # ---------------
         samples = []
         for sample_index in range(num_samples):
             new_samples = []
@@ -121,7 +138,7 @@ class SampleSelector(Logger):
 
                 # reweight rewards
                 reweighted_rewards = exp_objs[batch_index] * div_crits
-                largest_reward_index = np.argmax( reweighted_rewards )
+                largest_reward_index = np.argmax(reweighted_rewards)
 
                 new_sample = batch_proposals[largest_reward_index]
                 new_samples.append(new_sample)
@@ -131,6 +148,11 @@ class SampleSelector(Logger):
 
             samples.append(new_samples)
         samples = np.concatenate(samples)
+
+        # print time and return
+        end = time.time()
+        self.log('[TIME]:  ' + parse_time(start, end) + '  (selecting proposals)', 'INFO')
+
         return samples
 
 
