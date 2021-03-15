@@ -212,8 +212,16 @@ cdef class KernelEvaluator:
         log_density_0, log_density_1 = self.get_binary_kernel_densities(sample)
 
         # compute unnormalized posteriors
-        posterior_0 = exp(log_density_0 + log_prior_0)
-        posterior_1 = exp(log_density_1 + log_prior_1)
+        # but catch -inf values for density == 0, or very small ones
+        if log_density_0 < -250:  # i.e. density less than 1e-100, e.g. log(1e-100) == -230
+            posterior_1 = exp(log_prior_0)
+        else:
+            posterior_0 = exp(log_density_0 + log_prior_0)
+
+        if log_density_1 < -250:  # i.e. density less than 1e-100
+            posterior_1 = exp(log_prior_1)
+        else:
+            posterior_1 = exp(log_density_1 + log_prior_1)
 
         # get normalized posterior for prob of infeasible
         prob_infeas = posterior_1 / (posterior_0 + posterior_1)

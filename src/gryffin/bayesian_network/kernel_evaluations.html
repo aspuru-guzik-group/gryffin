@@ -2096,23 +2096,49 @@ static PyObject *__pyx_pf_7gryffin_16bayesian_network_18kernel_evaluations_15Ker
   __pyx_v_log_density_1 = __pyx_t_11;
 </pre><pre class="cython line score-0">&#xA0;<span class="">213</span>: </pre>
 <pre class="cython line score-0">&#xA0;<span class="">214</span>:         <span class="c"># compute unnormalized posteriors</span></pre>
-<pre class="cython line score-0" onclick="(function(s){s.display=s.display==='block'?'none':'block'})(this.nextElementSibling.style)">+<span class="">215</span>:         <span class="n">posterior_0</span> <span class="o">=</span> <span class="n">exp</span><span class="p">(</span><span class="n">log_density_0</span> <span class="o">+</span> <span class="n">log_prior_0</span><span class="p">)</span></pre>
-<pre class='cython code score-0 '>  __pyx_v_posterior_0 = exp((__pyx_v_log_density_0 + __pyx_v_log_prior_0));
-</pre><pre class="cython line score-0" onclick="(function(s){s.display=s.display==='block'?'none':'block'})(this.nextElementSibling.style)">+<span class="">216</span>:         <span class="n">posterior_1</span> <span class="o">=</span> <span class="n">exp</span><span class="p">(</span><span class="n">log_density_1</span> <span class="o">+</span> <span class="n">log_prior_1</span><span class="p">)</span></pre>
-<pre class='cython code score-0 '>  __pyx_v_posterior_1 = exp((__pyx_v_log_density_1 + __pyx_v_log_prior_1));
-</pre><pre class="cython line score-0">&#xA0;<span class="">217</span>: </pre>
-<pre class="cython line score-0">&#xA0;<span class="">218</span>:         <span class="c"># get normalized posterior for prob of infeasible</span></pre>
-<pre class="cython line score-5" onclick="(function(s){s.display=s.display==='block'?'none':'block'})(this.nextElementSibling.style)">+<span class="">219</span>:         <span class="n">prob_infeas</span> <span class="o">=</span> <span class="n">posterior_1</span> <span class="o">/</span> <span class="p">(</span><span class="n">posterior_0</span> <span class="o">+</span> <span class="n">posterior_1</span><span class="p">)</span></pre>
+<pre class="cython line score-0">&#xA0;<span class="">215</span>:         <span class="c"># but catch -inf values for density == 0, or very small ones</span></pre>
+<pre class="cython line score-0" onclick="(function(s){s.display=s.display==='block'?'none':'block'})(this.nextElementSibling.style)">+<span class="">216</span>:         <span class="k">if</span> <span class="n">log_density_0</span> <span class="o">&lt;</span> <span class="o">-</span><span class="mf">250</span><span class="p">:</span>  <span class="c"># i.e. density less than 1e-100, e.g. log(1e-100) == -230</span></pre>
+<pre class='cython code score-0 '>  __pyx_t_12 = ((__pyx_v_log_density_0 &lt; -250.0) != 0);
+  if (__pyx_t_12) {
+/* … */
+    goto __pyx_L5;
+  }
+</pre><pre class="cython line score-0" onclick="(function(s){s.display=s.display==='block'?'none':'block'})(this.nextElementSibling.style)">+<span class="">217</span>:             <span class="n">posterior_1</span> <span class="o">=</span> <span class="n">exp</span><span class="p">(</span><span class="n">log_prior_0</span><span class="p">)</span></pre>
+<pre class='cython code score-0 '>    __pyx_v_posterior_1 = exp(__pyx_v_log_prior_0);
+</pre><pre class="cython line score-0">&#xA0;<span class="">218</span>:         <span class="k">else</span><span class="p">:</span></pre>
+<pre class="cython line score-0" onclick="(function(s){s.display=s.display==='block'?'none':'block'})(this.nextElementSibling.style)">+<span class="">219</span>:             <span class="n">posterior_0</span> <span class="o">=</span> <span class="n">exp</span><span class="p">(</span><span class="n">log_density_0</span> <span class="o">+</span> <span class="n">log_prior_0</span><span class="p">)</span></pre>
+<pre class='cython code score-0 '>  /*else*/ {
+    __pyx_v_posterior_0 = exp((__pyx_v_log_density_0 + __pyx_v_log_prior_0));
+  }
+  __pyx_L5:;
+</pre><pre class="cython line score-0">&#xA0;<span class="">220</span>: </pre>
+<pre class="cython line score-0" onclick="(function(s){s.display=s.display==='block'?'none':'block'})(this.nextElementSibling.style)">+<span class="">221</span>:         <span class="k">if</span> <span class="n">log_density_1</span> <span class="o">&lt;</span> <span class="o">-</span><span class="mf">250</span><span class="p">:</span>  <span class="c"># i.e. density less than 1e-100</span></pre>
+<pre class='cython code score-0 '>  __pyx_t_12 = ((__pyx_v_log_density_1 &lt; -250.0) != 0);
+  if (__pyx_t_12) {
+/* … */
+    goto __pyx_L6;
+  }
+</pre><pre class="cython line score-0" onclick="(function(s){s.display=s.display==='block'?'none':'block'})(this.nextElementSibling.style)">+<span class="">222</span>:             <span class="n">posterior_1</span> <span class="o">=</span> <span class="n">exp</span><span class="p">(</span><span class="n">log_prior_1</span><span class="p">)</span></pre>
+<pre class='cython code score-0 '>    __pyx_v_posterior_1 = exp(__pyx_v_log_prior_1);
+</pre><pre class="cython line score-0">&#xA0;<span class="">223</span>:         <span class="k">else</span><span class="p">:</span></pre>
+<pre class="cython line score-0" onclick="(function(s){s.display=s.display==='block'?'none':'block'})(this.nextElementSibling.style)">+<span class="">224</span>:             <span class="n">posterior_1</span> <span class="o">=</span> <span class="n">exp</span><span class="p">(</span><span class="n">log_density_1</span> <span class="o">+</span> <span class="n">log_prior_1</span><span class="p">)</span></pre>
+<pre class='cython code score-0 '>  /*else*/ {
+    __pyx_v_posterior_1 = exp((__pyx_v_log_density_1 + __pyx_v_log_prior_1));
+  }
+  __pyx_L6:;
+</pre><pre class="cython line score-0">&#xA0;<span class="">225</span>: </pre>
+<pre class="cython line score-0">&#xA0;<span class="">226</span>:         <span class="c"># get normalized posterior for prob of infeasible</span></pre>
+<pre class="cython line score-5" onclick="(function(s){s.display=s.display==='block'?'none':'block'})(this.nextElementSibling.style)">+<span class="">227</span>:         <span class="n">prob_infeas</span> <span class="o">=</span> <span class="n">posterior_1</span> <span class="o">/</span> <span class="p">(</span><span class="n">posterior_0</span> <span class="o">+</span> <span class="n">posterior_1</span><span class="p">)</span></pre>
 <pre class='cython code score-5 '>  __pyx_t_11 = (__pyx_v_posterior_0 + __pyx_v_posterior_1);
   if (unlikely(__pyx_t_11 == 0)) {
     <span class='py_c_api'>PyErr_SetString</span>(PyExc_ZeroDivisionError, "float division");
-    <span class='error_goto'>__PYX_ERR(0, 219, __pyx_L1_error)</span>
+    <span class='error_goto'>__PYX_ERR(0, 227, __pyx_L1_error)</span>
   }
   __pyx_v_prob_infeas = (__pyx_v_posterior_1 / __pyx_t_11);
-</pre><pre class="cython line score-0">&#xA0;<span class="">220</span>: </pre>
-<pre class="cython line score-6" onclick="(function(s){s.display=s.display==='block'?'none':'block'})(this.nextElementSibling.style)">+<span class="">221</span>:         <span class="k">return</span> <span class="n">prob_infeas</span></pre>
+</pre><pre class="cython line score-0">&#xA0;<span class="">228</span>: </pre>
+<pre class="cython line score-6" onclick="(function(s){s.display=s.display==='block'?'none':'block'})(this.nextElementSibling.style)">+<span class="">229</span>:         <span class="k">return</span> <span class="n">prob_infeas</span></pre>
 <pre class='cython code score-6 '>  <span class='pyx_macro_api'>__Pyx_XDECREF</span>(__pyx_r);
-  __pyx_t_1 = <span class='py_c_api'>PyFloat_FromDouble</span>(__pyx_v_prob_infeas);<span class='error_goto'> if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 221, __pyx_L1_error)</span>
+  __pyx_t_1 = <span class='py_c_api'>PyFloat_FromDouble</span>(__pyx_v_prob_infeas);<span class='error_goto'> if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 229, __pyx_L1_error)</span>
   <span class='refnanny'>__Pyx_GOTREF</span>(__pyx_t_1);
   __pyx_r = __pyx_t_1;
   __pyx_t_1 = 0;

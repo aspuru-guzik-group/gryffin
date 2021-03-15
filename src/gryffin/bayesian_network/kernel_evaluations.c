@@ -4990,6 +4990,7 @@ static PyObject *__pyx_f_7gryffin_16bayesian_network_18kernel_evaluations_15Kern
   PyObject *(*__pyx_t_9)(PyObject *);
   double __pyx_t_10;
   double __pyx_t_11;
+  int __pyx_t_12;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
   int __pyx_clineno = 0;
@@ -5145,25 +5146,89 @@ static PyObject *__pyx_f_7gryffin_16bayesian_network_18kernel_evaluations_15Kern
   __pyx_v_log_density_0 = __pyx_t_10;
   __pyx_v_log_density_1 = __pyx_t_11;
 
-  /* "gryffin/bayesian_network/kernel_evaluations.pyx":215
- * 
- *         # compute unnormalized posteriors
- *         posterior_0 = exp(log_density_0 + log_prior_0)             # <<<<<<<<<<<<<<
- *         posterior_1 = exp(log_density_1 + log_prior_1)
- * 
- */
-  __pyx_v_posterior_0 = exp((__pyx_v_log_density_0 + __pyx_v_log_prior_0));
-
   /* "gryffin/bayesian_network/kernel_evaluations.pyx":216
  *         # compute unnormalized posteriors
- *         posterior_0 = exp(log_density_0 + log_prior_0)
- *         posterior_1 = exp(log_density_1 + log_prior_1)             # <<<<<<<<<<<<<<
+ *         # but catch -inf values for density == 0, or very small ones
+ *         if log_density_0 < -250:  # i.e. density less than 1e-100, e.g. log(1e-100) == -230             # <<<<<<<<<<<<<<
+ *             posterior_1 = exp(log_prior_0)
+ *         else:
+ */
+  __pyx_t_12 = ((__pyx_v_log_density_0 < -250.0) != 0);
+  if (__pyx_t_12) {
+
+    /* "gryffin/bayesian_network/kernel_evaluations.pyx":217
+ *         # but catch -inf values for density == 0, or very small ones
+ *         if log_density_0 < -250:  # i.e. density less than 1e-100, e.g. log(1e-100) == -230
+ *             posterior_1 = exp(log_prior_0)             # <<<<<<<<<<<<<<
+ *         else:
+ *             posterior_0 = exp(log_density_0 + log_prior_0)
+ */
+    __pyx_v_posterior_1 = exp(__pyx_v_log_prior_0);
+
+    /* "gryffin/bayesian_network/kernel_evaluations.pyx":216
+ *         # compute unnormalized posteriors
+ *         # but catch -inf values for density == 0, or very small ones
+ *         if log_density_0 < -250:  # i.e. density less than 1e-100, e.g. log(1e-100) == -230             # <<<<<<<<<<<<<<
+ *             posterior_1 = exp(log_prior_0)
+ *         else:
+ */
+    goto __pyx_L5;
+  }
+
+  /* "gryffin/bayesian_network/kernel_evaluations.pyx":219
+ *             posterior_1 = exp(log_prior_0)
+ *         else:
+ *             posterior_0 = exp(log_density_0 + log_prior_0)             # <<<<<<<<<<<<<<
+ * 
+ *         if log_density_1 < -250:  # i.e. density less than 1e-100
+ */
+  /*else*/ {
+    __pyx_v_posterior_0 = exp((__pyx_v_log_density_0 + __pyx_v_log_prior_0));
+  }
+  __pyx_L5:;
+
+  /* "gryffin/bayesian_network/kernel_evaluations.pyx":221
+ *             posterior_0 = exp(log_density_0 + log_prior_0)
+ * 
+ *         if log_density_1 < -250:  # i.e. density less than 1e-100             # <<<<<<<<<<<<<<
+ *             posterior_1 = exp(log_prior_1)
+ *         else:
+ */
+  __pyx_t_12 = ((__pyx_v_log_density_1 < -250.0) != 0);
+  if (__pyx_t_12) {
+
+    /* "gryffin/bayesian_network/kernel_evaluations.pyx":222
+ * 
+ *         if log_density_1 < -250:  # i.e. density less than 1e-100
+ *             posterior_1 = exp(log_prior_1)             # <<<<<<<<<<<<<<
+ *         else:
+ *             posterior_1 = exp(log_density_1 + log_prior_1)
+ */
+    __pyx_v_posterior_1 = exp(__pyx_v_log_prior_1);
+
+    /* "gryffin/bayesian_network/kernel_evaluations.pyx":221
+ *             posterior_0 = exp(log_density_0 + log_prior_0)
+ * 
+ *         if log_density_1 < -250:  # i.e. density less than 1e-100             # <<<<<<<<<<<<<<
+ *             posterior_1 = exp(log_prior_1)
+ *         else:
+ */
+    goto __pyx_L6;
+  }
+
+  /* "gryffin/bayesian_network/kernel_evaluations.pyx":224
+ *             posterior_1 = exp(log_prior_1)
+ *         else:
+ *             posterior_1 = exp(log_density_1 + log_prior_1)             # <<<<<<<<<<<<<<
  * 
  *         # get normalized posterior for prob of infeasible
  */
-  __pyx_v_posterior_1 = exp((__pyx_v_log_density_1 + __pyx_v_log_prior_1));
+  /*else*/ {
+    __pyx_v_posterior_1 = exp((__pyx_v_log_density_1 + __pyx_v_log_prior_1));
+  }
+  __pyx_L6:;
 
-  /* "gryffin/bayesian_network/kernel_evaluations.pyx":219
+  /* "gryffin/bayesian_network/kernel_evaluations.pyx":227
  * 
  *         # get normalized posterior for prob of infeasible
  *         prob_infeas = posterior_1 / (posterior_0 + posterior_1)             # <<<<<<<<<<<<<<
@@ -5173,17 +5238,17 @@ static PyObject *__pyx_f_7gryffin_16bayesian_network_18kernel_evaluations_15Kern
   __pyx_t_11 = (__pyx_v_posterior_0 + __pyx_v_posterior_1);
   if (unlikely(__pyx_t_11 == 0)) {
     PyErr_SetString(PyExc_ZeroDivisionError, "float division");
-    __PYX_ERR(0, 219, __pyx_L1_error)
+    __PYX_ERR(0, 227, __pyx_L1_error)
   }
   __pyx_v_prob_infeas = (__pyx_v_posterior_1 / __pyx_t_11);
 
-  /* "gryffin/bayesian_network/kernel_evaluations.pyx":221
+  /* "gryffin/bayesian_network/kernel_evaluations.pyx":229
  *         prob_infeas = posterior_1 / (posterior_0 + posterior_1)
  * 
  *         return prob_infeas             # <<<<<<<<<<<<<<
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_1 = PyFloat_FromDouble(__pyx_v_prob_infeas); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 221, __pyx_L1_error)
+  __pyx_t_1 = PyFloat_FromDouble(__pyx_v_prob_infeas); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 229, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_r = __pyx_t_1;
   __pyx_t_1 = 0;
