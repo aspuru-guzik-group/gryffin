@@ -242,14 +242,6 @@ class TfprobNetwork(object):
 
             tf.compat.v1.global_variables_initializer().run()
 
-    def sample_thread(self, kernel_value, kernel_name, return_dict):
-
-        with self.graph.as_default():
-            print('starting sampling', kernel_name)
-            samples = [kernel_value.sample().eval() for _ in range(self._num_draws)]
-            return_dict[kernel_name] = np.array(samples)
-            print('completed sampling')
-
     def sample(self, num_epochs=None, num_draws=None):
         if num_epochs is None:
             num_epochs = self._num_epochs
