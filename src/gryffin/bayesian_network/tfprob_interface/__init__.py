@@ -23,5 +23,5 @@ import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 from .numpy_graph      import NumpyGraph
-from .tfprob_interface import TfprobNetwork
+from .tfprob_interface import TfprobNetwork, run_tf_network
 

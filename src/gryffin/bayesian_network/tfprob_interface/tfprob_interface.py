@@ -9,8 +9,8 @@ warnings.filterwarnings('ignore')
 import os
 import sys
 import pickle
-import numpy                  as np
-import tensorflow             as tf
+import numpy as np
+import tensorflow as tf
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
 from tensorflow_probability import distributions as tfd
@@ -18,6 +18,7 @@ from tensorflow_probability import distributions as tfd
 sys.path.append(os.getcwd())
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from .numpy_graph import NumpyGraph
+from gryffin.utilities.decorators import processify
 
 
 class TfprobNetwork(object):
@@ -290,6 +291,20 @@ class TfprobNetwork(object):
             trace_kernels[key] = np.concatenate(kernel, axis=2)
 
         return trace_kernels, self.obs_objs
+
+
+@processify
+def run_tf_network(observed_params, observed_objs, config, model_details):
+    """Run network in a function that gets run in a temporary process. Important to keep the @processify decorator,
+    otherwise TensorFlow keeps a bunch of global variables that do not get garbage collected and memory usage
+    keeps increasing when Gryffin is run in a loop, until we run out of memory.
+    """
+    tfprob_network = TfprobNetwork(config, model_details)
+    tfprob_network.declare_training_data(observed_params, observed_objs)
+    tfprob_network.construct_model()
+    tfprob_network.sample()
+    trace_kernels, obs_objs = tfprob_network.get_kernels()
+    return trace_kernels, obs_objs
 
 
 if __name__ == '__main__':

@@ -8,7 +8,7 @@ from . import CategoryReshaper
 from gryffin.utilities import Logger, parse_time
 from gryffin.utilities import GryffinUnknownSettingsError
 from .kernel_evaluations import KernelEvaluator
-from .tfprob_interface import TfprobNetwork
+from .tfprob_interface import run_tf_network
 
 
 class BayesianNetwork(Logger):
@@ -72,12 +72,7 @@ class BayesianNetwork(Logger):
 
     def sample(self, obs_params, obs_objs):
 
-        tfprob_network = TfprobNetwork(self.config, self.model_details)
-        tfprob_network.declare_training_data(obs_params, obs_objs)
-        tfprob_network.construct_model()
-        tfprob_network.sample()
-
-        trace_kernels, obs_objs = tfprob_network.get_kernels()
+        trace_kernels, obs_objs = run_tf_network(obs_params, obs_objs, self.config, self.model_details)
         self.trace_kernels = trace_kernels
         self.obs_objs = obs_objs
 
@@ -90,7 +85,6 @@ class BayesianNetwork(Logger):
 
         # set sampling to true
         self.has_sampled = True
-        del tfprob_network  # manually dereference tfprob_network
 
     def build_kernels(self, descriptors):
         assert self.has_sampled
