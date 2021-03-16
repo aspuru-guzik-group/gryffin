@@ -7,8 +7,7 @@ import time
 import numpy as np
 import multiprocessing
 from gryffin.utilities import Logger, parse_time
-from .generation_process import Generator
-from concurrent.futures import ProcessPoolExecutor
+from .generation_process import run_generator_network
 
 
 class DescriptorGenerator(Logger):
@@ -88,8 +87,7 @@ class DescriptorGenerator(Logger):
         sim_dict['grid_descs']  = self.config.feature_descriptors[feature_index]
 
         # run the generation process
-        generator = Generator(sim_dict)
-        results = generator.generate_descriptors()
+        results = run_generator_network(sim_dict)
 
         self.min_corrs[feature_index]          = results['min_corrs']
         self.auto_gen_descs[feature_index]     = results['auto_gen_descs']
@@ -99,7 +97,6 @@ class DescriptorGenerator(Logger):
         self.weights[feature_index]            = results['weights']
         self.sufficient_indices[feature_index] = results['sufficient_indices']
 
-        del generator  # manually dereference generator
         return results['reduced_gen_descs'], feature_index
 
     def generate_descriptors(self, obs_params, obs_objs):

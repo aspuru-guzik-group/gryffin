@@ -13,4 +13,4 @@ except ModuleNotFoundError:
     GryffinModuleError(str(error_message) + extension)
 
 from .descriptor_generator import DescriptorGenerator
-from .generation_process import Generator
+from .generation_process import Generator, run_generator_network

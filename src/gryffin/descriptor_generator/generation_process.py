@@ -6,6 +6,7 @@ import sys
 import numpy as np
 import tensorflow as tf
 from copy import deepcopy
+from gryffin.utilities.decorators import processify
 
 
 class Generator(object):
@@ -15,8 +16,6 @@ class Generator(object):
 
     def __init__(self, config):
         self.config = config
-        #with open(self.config_file, 'rb') as content:
-        #    self.config = pickle.load(content)
         for key, value in self.config.items():
             setattr(self, key, value)
 
@@ -124,18 +123,16 @@ class Generator(object):
         self.config['reduced_gen_descs'] = reduced_gen_descs.astype(np.float64)
         self.config['sufficient_indices'] = sufficient_desc_indices
 
-        # write pickle file
-        #results_path     = self.config_file.split('/')
-        #results_path[-1] = 'completed_%s' % results_path[-1]
-        #results_file     = '/'.join(results_path)
-
-        #with open(results_file, 'wb') as content:
-        #    pickle.dump(self.config, content)
         results = deepcopy(self.config)
         return results
 
 
-#========================================================================
+@processify
+def run_generator_network(config_dict):
+    generator = Generator(config_dict)
+    results = generator.generate_descriptors()
+    return results
+
 
 if __name__ == '__main__':
 
