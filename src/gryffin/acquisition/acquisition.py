@@ -17,6 +17,7 @@ class Acquisition(Logger):
     def __init__(self, config, known_constraints=None):
 
         self.config = config
+        self.known_constraints = known_constraints
         Logger.__init__(self, 'Acquisition', self.config.get('verbosity'))
         self.random_sampler = RandomSampler(self.config, known_constraints)
         self.total_num_vars = len(self.config.feature_names)
@@ -130,7 +131,7 @@ class Acquisition(Logger):
         # ----------------------
         # minimise lowest values
         # ----------------------
-        optimizer_bottom = GradientOptimizer(self.config)
+        optimizer_bottom = GradientOptimizer(self.config, self.known_constraints)
         optimizer_bottom.set_func(acquisition, ignores=ignore)
         optimized = []
         for sample_index, sample in enumerate(bottom_params):
@@ -148,7 +149,7 @@ class Acquisition(Logger):
             """Invert acquisition for its maximisation"""
             return -acquisition(x)
 
-        optimizer_top = GradientOptimizer(self.config)
+        optimizer_top = GradientOptimizer(self.config, self.known_constraints)
         optimizer_top.set_func(inv_acquisition, ignores=ignore)
         optimized = []
         for sample_index, sample in enumerate(top_params):
@@ -239,11 +240,10 @@ class Acquisition(Logger):
 
     def _load_optimizers(self, num):
         if self.optimizer_type == 'adam':
-            local_optimizers = [GradientOptimizer(self.config) for _ in range(num)]
+            local_optimizers = [GradientOptimizer(self.config, self.known_constraints) for _ in range(num)]
         elif self.optimizer_type == 'genetic':
             local_optimizers = None
         else:
-            local_optimizers = None
             GryffinUnknownSettingsError(f'Did not understand optimizer choice {self.optimizer_type}.'
                                         f'\n\tPlease choose "adam" or "genetic"')
         return local_optimizers

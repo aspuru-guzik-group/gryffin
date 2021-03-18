@@ -4,15 +4,16 @@ __author__ = 'Florian Hase'
 
 
 import numpy as np
-from gryffin.utilities import Logger
-from gryffin.utilities import GryffinUnknownSettingsError
+from gryffin.utilities import Logger, GryffinUnknownSettingsError
+from gryffin.utilities import sample_arrays_to_dicts
 from . import AdamOptimizer, NaiveDiscreteOptimizer, NaiveCategoricalOptimizer
 
 
 class GradientOptimizer(Logger):
 
-    def __init__(self, config):
+    def __init__(self, config, known_constraints=None):
         self.config = config
+        self.known_constraints = known_constraints
         Logger.__init__(self, 'GradientOptimizer', verbosity=self.config.get('verbosity'))
 
         # parse positions
@@ -69,28 +70,72 @@ class GradientOptimizer(Logger):
         self.opt_cat.set_func(kernel, pos=np.arange(self.config.num_features)[pos_categories], highest=self.config.feature_sizes[self.pos_categories])
 
     def optimize(self, sample, max_iter=10):
-
+        # project sample onto opt boundaries if needed
+        # ...though it should not be needed, as RandomSampler should do this already?
         if not self._within_bounds(sample):
             sample = np.where(sample < self.config.feature_lowers, self.config.feature_lowers, sample)
             sample = np.where(sample > self.config.feature_uppers, self.config.feature_uppers, sample)
             sample = sample.astype(np.float32)
 
-        # update all optimization algorithms
+        # if no constraints, we do not need to do any checks on feasibility
+        if self.known_constraints is None:
+            optimized = self._fast_optimize(sample=sample, max_iter=max_iter)
+        else:
+            optimized = self._slow_optimize(sample=sample, max_iter=max_iter)
+        return optimized
+
+    def _single_opt_iteration(self, optimized):
+        # one step of continuous
+        if np.any(self.pos_continuous):
+            optimized = self._optimize_continuous(optimized)
+
+        # one step of categorical perturbation
+        if np.any(self.pos_categories):
+            optimized = self._optimize_categorical(optimized)
+
+        # one step of discrete optimization
+        if np.any(self.pos_discrete):
+            optimized = self._optimize_discrete(optimized)
+
+        return optimized
+
+    def _fast_optimize(self, sample, max_iter=10):
+
+        # copy sample
         sample_copy = sample.copy()
-        optimized   = sample.copy()
+        optimized = sample.copy()
+        # optimize
         for num_iter in range(max_iter):
+            # one step of optimization
+            optimized = self._single_opt_iteration(optimized)
+            # check for convergence
+            if np.any(self.pos_continuous) and np.linalg.norm(sample_copy - optimized) < 1e-7:
+                break
+            else:
+                sample_copy = optimized.copy()
+        return optimized
 
-            # one step of continuous
-            if np.any(self.pos_continuous):
-                optimized = self._optimize_continuous(optimized)
+    def _slow_optimize(self, sample, max_iter=10):
 
-            # one step of categorical perturbation
-            if np.any(self.pos_categories):
-                optimized = self._optimize_categorical(optimized)
+        # copy sample
+        sample_copy = sample.copy()
+        optimized = sample.copy()
 
-            # one step of discrete optimization
-            if np.any(self.pos_discrete):
-                optimized = self._optimize_discrete(optimized)
+        # --------
+        # optimize
+        # --------
+        for num_iter in range(max_iter):
+            # one step of optimization
+            optimized = self._single_opt_iteration(optimized)
+
+            # evaluate whether the optimized sample violates the known constraints
+            param = sample_arrays_to_dicts(samples=optimized, param_names=self.config.param_names,
+                                           param_options=self.config.param_options, param_types=self.config.param_types)
+            feasible = self.known_constraints(param)
+            if feasible is False:
+                # stop optimization and return last feasible point
+                optimized = sample_copy.copy()
+                break
 
             # check for convergence
             if np.any(self.pos_continuous) and np.linalg.norm(sample_copy - optimized) < 1e-7:
