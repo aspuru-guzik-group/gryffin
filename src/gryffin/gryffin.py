@@ -8,7 +8,8 @@ from .descriptor_generator import DescriptorGenerator
 from .observation_processor import ObservationProcessor
 from .random_sampler import RandomSampler
 from .sample_selector import SampleSelector
-from .utilities import ConfigParser, Logger, parse_time, GryffinNotFoundError, memory_usage
+from .utilities import ConfigParser, Logger, GryffinNotFoundError
+from .utilities import parse_time, memory_usage, sample_arrays_to_dicts
 
 import os
 import numpy as np
@@ -28,17 +29,14 @@ class Gryffin(Logger):
         self.config.set_home(os.path.dirname(os.path.abspath(__file__)))
 
         # parse constraints function
-        if known_constraints is not None:
-            self.known_constraints = known_constraints
-        else:
-            self.known_constraints = lambda params: True  # i.e. always feasible
+        self.known_constraints = known_constraints
 
         np.random.seed(self.config.get('random_seed'))
         self.update_verbosity(self.config.get('verbosity'))
         self._create_folders()
 
         # Instantiate all objects needed
-        self.random_sampler = RandomSampler(self.config.general, self.config.parameters, self.known_constraints)
+        self.random_sampler = RandomSampler(self.config, self.known_constraints)
         self.obs_processor = ObservationProcessor(self.config)
         self.descriptor_generator = DescriptorGenerator(self.config)
         self.descriptor_generator_feas = DescriptorGenerator(self.config)
@@ -190,7 +188,9 @@ class Gryffin(Logger):
             return_samples = samples
         else:
             # return as dictionary
-            return_samples = self._sample_arrays_to_dicts(samples)
+            return_samples = sample_arrays_to_dicts(samples=samples, param_names=self.config.param_names,
+                                                    param_options=self.config.param_options,
+                                                    param_types=self.config.param_types)
 
         if self.config.get('save_database') is True:
             db_entry = {'start_time': start_time, 'end_time': end_time,
@@ -206,36 +206,6 @@ class Gryffin(Logger):
 
     def read_db(self, outfile='database.csv', verbose=True):
         self.db_handler.read_db(outfile, verbose)
-
-    def _sample_arrays_to_dicts(self, samples):
-        # convert to list of dictionaries
-        param_names = self.config.param_names
-        param_options = self.config.param_options
-        param_types = self.config.param_types
-
-        sample_dicts = []
-        for sample in samples:
-            sample_dict = {}
-            for param_index, param_name in enumerate(param_names):
-                param_type = param_types[param_index]
-
-                if param_type == 'continuous':
-                    sample_dict[param_name] = sample[param_index]
-
-                elif param_type == 'categorical':
-                    options = param_options[param_index]
-                    selected_option_idx = int(sample[param_index])
-                    selected_option = options[selected_option_idx]
-                    sample_dict[param_name] = selected_option
-
-                elif param_type == 'discrete':
-                    options = param_options[param_index]
-                    selected_option_idx = int(sample[param_index])
-                    selected_option = options[selected_option_idx]
-                    sample_dict[param_name] = selected_option
-
-            sample_dicts.append(sample_dict)
-        return sample_dicts
 
     @staticmethod
     def _df_to_list_of_dicts(df):

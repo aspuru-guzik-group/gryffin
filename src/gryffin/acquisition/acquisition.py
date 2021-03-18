@@ -14,11 +14,11 @@ from gryffin.utilities import Logger, parse_time, GryffinUnknownSettingsError
 
 class Acquisition(Logger):
 
-    def __init__(self, config):
+    def __init__(self, config, known_constraints=None):
 
         self.config = config
         Logger.__init__(self, 'Acquisition', self.config.get('verbosity'))
-        self.random_sampler = RandomSampler(self.config.general, self.config.parameters)
+        self.random_sampler = RandomSampler(self.config, known_constraints)
         self.total_num_vars = len(self.config.feature_names)
         self.optimizer_type = self.config.get('acquisition_optimizer')
 
