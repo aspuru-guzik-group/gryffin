@@ -17,7 +17,6 @@ default_general_configurations = {
     'softness':               0.001,  # softness of Chimera for multiobj optimizations
     'feas_sensitivity':       1,  # sensitivity to feasibility constraints
     'random_seed':            100691,
-    'sampler':               'uniform',  # random sampler, choices are uniform or sobol
     'save_database':          False,
     'acquisition_optimizer':  'adam',  # options are "adam" or "genetic"
     'verbosity': {

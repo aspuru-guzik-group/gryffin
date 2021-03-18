@@ -2,20 +2,18 @@
 
 __author__ = 'Florian Hase'
 
+from .acquisition import Acquisition
+from .bayesian_network import BayesianNetwork
+from .descriptor_generator import DescriptorGenerator
+from .observation_processor import ObservationProcessor
+from .random_sampler import RandomSampler
+from .sample_selector import SampleSelector
+from .utilities import ConfigParser, Logger, parse_time, GryffinNotFoundError, memory_usage
+
 import os
-import sys
 import numpy as np
 import pandas as pd
 import time
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-
-from .acquisition           import Acquisition
-from .bayesian_network      import BayesianNetwork
-from .descriptor_generator  import DescriptorGenerator
-from .observation_processor import ObservationProcessor
-from .random_sampler        import RandomSampler
-from .sample_selector       import SampleSelector
-from .utilities             import ConfigParser, Logger, parse_time, GryffinNotFoundError, memory_usage
 
 
 class Gryffin(Logger):
