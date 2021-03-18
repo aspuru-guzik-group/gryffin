@@ -75,9 +75,9 @@ class ObservationProcessor(Logger):
 
     def process_observations(self, obs_dicts):
 
-        param_names   = self.config.param_names
+        param_names = self.config.param_names
         param_options = self.config.param_options
-        param_types   = self.config.param_types
+        param_types = self.config.param_types
         mirror_mask_kwn = []
         mirror_mask_ukwn = []
 
@@ -97,10 +97,10 @@ class ObservationProcessor(Logger):
                 if param_type == 'continuous':
                     obs_param = obs_dict[param_name]
                 elif param_type == 'categorical':
-                    obs_param = np.array([param_options[param_index].index(element) for element in obs_dict[param_name]])
+                    obs_param = param_options[param_index]
                 elif param_type == 'discrete':
-                    obs_param = np.array([list(param_options[param_index]).index(element) for element in obs_dict[param_name]])
-                param_vector.extend(obs_param)
+                    obs_param = param_options[param_index]
+                param_vector.append(obs_param)
 
             mirrored_params = self.mirror_parameters(param_vector)
 
