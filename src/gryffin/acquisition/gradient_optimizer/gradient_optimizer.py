@@ -40,7 +40,7 @@ class GradientOptimizer(Logger):
 
     def _optimize_continuous(self, sample):
         proposal = self.opt_con.get_update(sample)
-        if self.within_bounds(proposal):
+        if self._within_bounds(proposal):
             return proposal
         else:
             return sample
