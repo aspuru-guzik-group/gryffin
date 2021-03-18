@@ -6,7 +6,6 @@ import numpy as np
 
 from chimera import Chimera
 from gryffin.utilities import Logger
-from gryffin.utilities import GryffinUnknownSettingsError
 
 
 class ObservationProcessor(Logger):
@@ -30,15 +29,17 @@ class ObservationProcessor(Logger):
         lower_indices_prelim = np.where(param_vector < self.soft_lower)[0]
         upper_indices_prelim = np.where(param_vector > self.soft_upper)[0]
 
-        lower_indices, upper_indices = [], []
+        lower_indices = []
+        upper_indices = []
         for feature_index, feature_type in enumerate(self.config.feature_types):
-            if feature_type != 'continuous': continue
+            if feature_type != 'continuous':
+                continue
             if feature_index in lower_indices_prelim:
                 lower_indices.append(feature_index)
             if feature_index in upper_indices_prelim:
                 upper_indices.append(feature_index)
 
-        index_dict    = {index: 'lower' for index in lower_indices}
+        index_dict = {index: 'lower' for index in lower_indices}
         for index in upper_indices:
             index_dict[index] = 'upper'
 
@@ -75,9 +76,6 @@ class ObservationProcessor(Logger):
 
     def process_observations(self, obs_dicts):
 
-        param_names = self.config.param_names
-        param_options = self.config.param_options
-        param_types = self.config.param_types
         mirror_mask_kwn = []
         mirror_mask_ukwn = []
 
@@ -87,21 +85,12 @@ class ObservationProcessor(Logger):
         raw_params_ukwn = []  # unknown result = unfeasible
         raw_objs_ukwn = []
 
+        # -------------------------------
+        # parse parameters and objectives
+        # -------------------------------
         for obs_dict in obs_dicts:
-
-            # get param-vector
-            param_vector = []
-            for param_index, param_name in enumerate(param_names):
-
-                param_type = param_types[param_index]
-                if param_type == 'continuous':
-                    obs_param = obs_dict[param_name]
-                elif param_type == 'categorical':
-                    obs_param = param_options[param_index]
-                elif param_type == 'discrete':
-                    obs_param = param_options[param_index]
-                param_vector.append(obs_param)
-
+            # get param vector
+            param_vector = self._parse_param_dict(obs_dict)
             mirrored_params = self.mirror_parameters(param_vector)
 
             # get obj-vector
@@ -181,29 +170,27 @@ class ObservationProcessor(Logger):
         param_vectors : array
             array with the parameter vectors.
         """
-
-        param_names   = self.config.param_names
-        param_options = self.config.param_options
-        param_types   = self.config.param_types
-
         param_vectors = []
-
         for param_dict in param_dicts:
-
             # get param vector
-            param_vector = []
-            for param_index, param_name in enumerate(param_names):
-
-                param_type = param_types[param_index]
-                if param_type == 'continuous':
-                    param = param_dict[param_name]
-                elif param_type == 'categorical':
-                    param = np.array([param_options[param_index].index(element) for element in param_dict[param_name]])
-                elif param_type == 'discrete':
-                    param = np.array([list(param_options[param_index]).index(element) for element in param_dict[param_name]])
-                param_vector.extend(param)
+            param_vector = self._parse_param_dict(param_dict)
             param_vectors.append(param_vector)
-
         return np.array(param_vectors)
 
+    def _parse_param_dict(self, param_dict):
+        """Parse param dict and put into vector format"""
+        param_vector = []
+        for param_index, param_name in enumerate(self.config.param_names):
+            param_type = self.config.param_types[param_index]
+            if param_type == 'continuous':
+                param = param_dict[param_name]
+            elif param_type == 'categorical':
+                element = param_dict[param_name]
+                param = self.config.param_options[param_index].index(element)
+            elif param_type == 'discrete':
+                element = param_dict[param_name]
+                param = list(self.config.param_options[param_index]).index(element)
 
+            param_vector.append(param)
+
+        return param_vector
