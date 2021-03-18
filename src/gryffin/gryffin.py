@@ -20,7 +20,7 @@ from .utilities             import ConfigParser, Logger, parse_time, GryffinNotF
 
 class Gryffin(Logger):
 
-    def __init__(self, config_file=None, config_dict=None):
+    def __init__(self, config_file=None, config_dict=None, known_constraints=None):
 
         Logger.__init__(self, 'Gryffin', verbosity=0)
 
@@ -29,25 +29,31 @@ class Gryffin(Logger):
         self.config.parse()
         self.config.set_home(os.path.dirname(os.path.abspath(__file__)))
 
+        # parse constraints function
+        if known_constraints is not None:
+            self.known_constraints = known_constraints
+        else:
+            self.known_constraints = lambda params: True  # i.e. always feasible
+
         np.random.seed(self.config.get('random_seed'))
         self.update_verbosity(self.config.get('verbosity'))
-        self.create_folders()
+        self._create_folders()
 
-        self.random_sampler            = RandomSampler(self.config.general, self.config.parameters)
-        self.obs_processor             = ObservationProcessor(self.config)
-        self.descriptor_generator      = DescriptorGenerator(self.config)
+        # Instantiate all objects needed
+        self.random_sampler = RandomSampler(self.config.general, self.config.parameters, self.known_constraints)
+        self.obs_processor = ObservationProcessor(self.config)
+        self.descriptor_generator = DescriptorGenerator(self.config)
         self.descriptor_generator_feas = DescriptorGenerator(self.config)
-        self.bayesian_network          = BayesianNetwork(self.config)
-        self.bayesian_network_feas     = BayesianNetwork(config=self.config, classification=True)
-        self.acquisition               = Acquisition(self.config)
-        self.sample_selector           = SampleSelector(self.config)
+        self.bayesian_network = BayesianNetwork(config=self.config, classification=False)
+        self.bayesian_network_feas = BayesianNetwork(config=self.config, classification=True)
+        self.acquisition = Acquisition(self.config, self.known_constraints)
+        self.sample_selector = SampleSelector(self.config)
 
         self.iter_counter = 0
         self.sampling_param_values = None
         self.sampling_strategies = None
 
-    def create_folders(self):
-
+    def _create_folders(self):
         if self.config.get('save_database') is True and not os.path.isdir(self.config.get_db('path')):
             try:
                 os.mkdir(self.config.get_db('path'))
@@ -83,20 +89,15 @@ class Gryffin(Logger):
         # register last sampling strategies
         self.sampling_strategies = sampling_strategies
 
-        if observations is None:
-            # no observations, need to fall back to random sampling
-            samples = self.random_sampler.draw(num=self.config.get('batches') * num_sampling_strategies)
-            if self.config.process_constrained:
-                dominant_features = self.config.feature_process_constrained
-                samples[:, dominant_features] = samples[0, dominant_features]
-
-        elif len(observations) == 0:
+        # no observations, need to fall back to random sampling
+        if observations is None or len(observations) == 0:
             self.log('Could not find any observations, falling back to random sampling', 'WARNING')
             samples = self.random_sampler.draw(num=self.config.get('batches') * num_sampling_strategies)
             if self.config.process_constrained:
                 dominant_features = self.config.feature_process_constrained
                 samples[:, dominant_features] = samples[0, dominant_features]
 
+        # we have observations
         else:
             obs_params_kwn, obs_objs_kwn, mirror_mask_kwn, \
             obs_params_ukwn, obs_objs_ukwn, mirror_mask_ukwn = self.obs_processor.process_observations(observations)
@@ -190,36 +191,8 @@ class Gryffin(Logger):
             # return as is
             return_samples = samples
         else:
-            # convert to list of dictionaries
-            param_names   = self.config.param_names
-            param_options = self.config.param_options
-            param_types   = self.config.param_types
-            sample_dicts  = []
-            for sample in samples:
-                sample_dict  = {}
-                lower, upper = 0, self.config.param_sizes[0]
-                for param_index, param_name in enumerate(param_names):
-                    param_type = param_types[param_index]
-
-                    if param_type == 'continuous':
-                        sample_dict[param_name] = sample[lower:upper]
-
-                    elif param_type == 'categorical':
-                        options = param_options[param_index]
-                        parsed_options = [options[int(element)] for element in sample[lower:upper]]
-                        sample_dict[param_name] = parsed_options
-
-                    elif param_type == 'discrete':
-                        options = param_options[param_index]
-                        parsed_options = [options[int(element)] for element in sample[lower:upper]]
-                        sample_dict[param_name] = parsed_options
-
-                    if param_index == len(self.config.param_names) - 1:
-                        break
-                    lower  = upper
-                    upper += self.config.param_sizes[param_index + 1]
-                sample_dicts.append(sample_dict)
-            return_samples = sample_dicts
+            # return as dictionary
+            return_samples = self._sample_arrays_to_dicts(samples)
 
         if self.config.get('save_database') is True:
             db_entry = {'start_time': start_time, 'end_time': end_time,
@@ -235,6 +208,36 @@ class Gryffin(Logger):
 
     def read_db(self, outfile='database.csv', verbose=True):
         self.db_handler.read_db(outfile, verbose)
+
+    def _sample_arrays_to_dicts(self, samples):
+        # convert to list of dictionaries
+        param_names = self.config.param_names
+        param_options = self.config.param_options
+        param_types = self.config.param_types
+
+        sample_dicts = []
+        for sample in samples:
+            sample_dict = {}
+            for param_index, param_name in enumerate(param_names):
+                param_type = param_types[param_index]
+
+                if param_type == 'continuous':
+                    sample_dict[param_name] = sample[param_index]
+
+                elif param_type == 'categorical':
+                    options = param_options[param_index]
+                    selected_option_idx = int(sample[param_index])
+                    selected_option = options[selected_option_idx]
+                    sample_dict[param_name] = selected_option
+
+                elif param_type == 'discrete':
+                    options = param_options[param_index]
+                    selected_option_idx = int(sample[param_index])
+                    selected_option = options[selected_option_idx]
+                    sample_dict[param_name] = selected_option
+
+            sample_dicts.append(sample_dict)
+        return sample_dicts
 
     @staticmethod
     def _df_to_list_of_dicts(df):

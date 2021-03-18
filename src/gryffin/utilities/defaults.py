@@ -17,11 +17,9 @@ default_general_configurations = {
     'softness':               0.001,  # softness of Chimera for multiobj optimizations
     'feas_sensitivity':       1,  # sensitivity to feasibility constraints
     'random_seed':            100691,
-    'sampler':               'uniform',
+    'sampler':               'uniform',  # random sampler, choices are uniform or sobol
     'save_database':          False,
-    'continuous_optimizer':  'adam',
-    'categorical_optimizer': 'naive',
-    'discrete_optimizer':    'naive',
+    'acquisition_optimizer':  'adam',  # options are "adam" or "genetic"
     'verbosity': {
         'default':          2,
         'bayesian_network': 3,
@@ -69,8 +67,8 @@ default_configuration = {
         key: default_model_configurations[key] for key in default_model_configurations.keys()
     },
     'parameters': [
-        {'name': 'param_0', 'type': 'continuous', 'low': 0, 'high': 1, 'size': 1},
-        {'name': 'param_1', 'type': 'continuous', 'low': 0, 'high': 1, 'size': 1}
+        {'name': 'param_0', 'type': 'continuous', 'low': 0, 'high': 1},
+        {'name': 'param_1', 'type': 'continuous', 'low': 0, 'high': 1}
         # {'name': 'param_1', 'type': 'categorical', 'category_details': {'A':[1,2], 'B'[2,1], ..., 'Z':[4,5]},
     ],
     'objectives': [

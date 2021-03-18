@@ -100,23 +100,20 @@ class ConfigParser(Logger):
             self.model_details.add_attr(general_key, general_value)
 
     def _parse_parameters(self, provided_settings):
-        self.parameters   = Configuration('parameters')
-        self.features     = Configuration('features')
-        self.kernels      = Configuration('kernels')
-        param_configs     = {'name': [], 'type': [], 'size': [], 'specifics': [], 'process_constrained': []}
-        feature_configs   = {'name': [], 'type': [], 'size': [], 'specifics': [], 'process_constrained': []}
-        kernel_configs    = {'name': [], 'type': [], 'size': [], 'specifics': [], 'process_constrained': []}
+        self.parameters = Configuration('parameters')
+        self.features = Configuration('features')
+        self.kernels = Configuration('kernels')
+        param_configs = {'name': [], 'type': [], 'specifics': [], 'process_constrained': []}
+        feature_configs = {'name': [], 'type': [], 'specifics': [], 'process_constrained': []}
+        kernel_configs = {'name': [], 'type': [], 'specifics': [], 'process_constrained': []}
 
         if len(provided_settings) == 0:
             self.log('need to define at least one parameter', 'FATAL')
 
+        # -----------------------------
         # parse parameter configuration
+        # -----------------------------
         for setting in provided_settings:
-
-            # we assume size=1 is not specified
-            if 'size' not in setting:
-                setting['size'] = 1
-            size = setting['size']
 
             num_cats = 1
 
@@ -158,6 +155,9 @@ class ConfigParser(Logger):
             else:
                 self.log('Did not understand parameter type "%s" for parameter "%s". Please choose from "continuous", "discrete" or "categorical".' % (setting['type'], setting['name']), 'FATAL')
 
+            # ---------------------
+            # populate config dicts
+            # ---------------------
             for key in param_configs.keys():
                 if key == 'specifics':
                     element = {spec_key: setting[spec_key] for spec_key in self.TYPE_ATTRIBUTES[setting['type']]}
@@ -165,8 +165,8 @@ class ConfigParser(Logger):
                     element = setting[key]
 
                 param_configs[key].append(element)
-                feature_configs[key].extend([element for _ in range(size)])
-                kernel_configs[key].extend([element for _ in range(size * num_cats)])
+                feature_configs[key].append(element)
+                kernel_configs[key].extend([element for _ in range(num_cats)])
 
         # write configuration
         for key in param_configs.keys():
@@ -224,10 +224,6 @@ class ConfigParser(Logger):
     @property
     def param_types(self):
         return self.parameters.type
-
-    @property
-    def param_sizes(self):
-        return self.parameters.size
 
     @property
     def param_options(self):
