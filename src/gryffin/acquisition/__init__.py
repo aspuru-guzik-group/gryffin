@@ -1,5 +1,5 @@
+#!/usr/bin/env python
 
-
-from .parameter_optimizer import ParameterOptimizer
-from .acquisition         import Acquisition
+from .gradient_optimizer import GradientOptimizer
+from .acquisition import Acquisition
 

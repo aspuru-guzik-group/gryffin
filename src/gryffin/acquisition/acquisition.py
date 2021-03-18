@@ -7,9 +7,9 @@ import time
 import multiprocessing
 from multiprocessing import Process, Manager
 
-from . import ParameterOptimizer
+from gryffin.acquisition import GradientOptimizer
 from gryffin.random_sampler import RandomSampler
-from gryffin.utilities import Logger, parse_time
+from gryffin.utilities import Logger, parse_time, GryffinUnknownSettingsError
 
 
 class Acquisition(Logger):
@@ -20,6 +20,7 @@ class Acquisition(Logger):
         Logger.__init__(self, 'Acquisition', self.config.get('verbosity'))
         self.random_sampler = RandomSampler(self.config.general, self.config.parameters)
         self.total_num_vars = len(self.config.feature_names)
+        self.optimizer_type = self.config.get('acquisition_optimizer')
 
         self.kernel_contribution = None
         self.probability_infeasible = None
@@ -80,7 +81,7 @@ class Acquisition(Logger):
         # run acquisition optimization
         optimized = []
         for sample_index, sample in enumerate(proposals):
-            opt = local_optimizer.optimize(acquisition, sample, max_iter=10)
+            opt = local_optimizer.optimize(sample, max_iter=10)
             optimized.append(opt)
         optimized = np.array(optimized)
 
@@ -129,11 +130,11 @@ class Acquisition(Logger):
         # ----------------------
         # minimise lowest values
         # ----------------------
-        optimizer_bottom = ParameterOptimizer(self.config)
+        optimizer_bottom = GradientOptimizer(self.config)
         optimizer_bottom.set_func(acquisition, ignores=ignore)
         optimized = []
         for sample_index, sample in enumerate(bottom_params):
-            opt = optimizer_bottom.optimize(acquisition, sample, max_iter=10)
+            opt = optimizer_bottom.optimize(sample, max_iter=10)
             optimized.append(opt)
 
         bottom_acq_values = np.array([acquisition(x) for x in optimized])
@@ -147,11 +148,11 @@ class Acquisition(Logger):
             """Invert acquisition for its maximisation"""
             return -acquisition(x)
 
-        optimizer_top = ParameterOptimizer(self.config)
+        optimizer_top = GradientOptimizer(self.config)
         optimizer_top.set_func(inv_acquisition, ignores=ignore)
         optimized = []
         for sample_index, sample in enumerate(top_params):
-            opt = optimizer_top.optimize(acquisition, sample, max_iter=10)
+            opt = optimizer_top.optimize(sample, max_iter=10)
             optimized.append(opt)
 
         top_acq_values = np.array([acquisition(x) for x in optimized])
@@ -236,6 +237,17 @@ class Acquisition(Logger):
 
         return np.array(optimized_samples)
 
+    def _load_optimizers(self, num):
+        if self.optimizer_type == 'adam':
+            local_optimizers = [GradientOptimizer(self.config) for _ in range(num)]
+        elif self.optimizer_type == 'genetic':
+            local_optimizers = None
+        else:
+            local_optimizers = None
+            GryffinUnknownSettingsError(f'Did not understand optimizer choice {self.optimizer_type}.'
+                                        f'\n\tPlease choose "adam" or "genetic"')
+        return local_optimizers
+
     def propose(self, best_params, kernel_contribution, probability_infeasible, frac_infeasible, sampling_param_values,
                 num_samples=200, dominant_samples=None):
         """Highest-level method of this class that takes the BNN results, builds the acquisition function, optimises
@@ -243,8 +255,7 @@ class Acquisition(Logger):
         the parameters to suggest."""
 
         # define optimizers
-        self.local_optimizers = [ParameterOptimizer(self.config) for _ in range(len(sampling_param_values))]
-        assert len(self.local_optimizers) == len(sampling_param_values)
+        self.local_optimizers = self._load_optimizers(num=len(sampling_param_values))
 
         # -------------------------------------------------------------
         # register attributes we'll be using to compute the acquisition
