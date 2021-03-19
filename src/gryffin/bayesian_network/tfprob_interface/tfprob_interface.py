@@ -183,10 +183,10 @@ class TfprobNetwork(object):
                     lowers, uppers = self.config.kernel_lowers[kernel_begin : kernel_end], self.config.kernel_uppers[kernel_begin : kernel_end]
 
                     prior_support = (uppers - lowers) * (1.2 * tf.nn.sigmoid(prior_relevant) - 0.1) + lowers
-                    post_support  = (uppers - lowers) * (1.2 * tf.nn.sigmoid(post_relevant) - 0.1)  + lowers
+                    post_support = (uppers - lowers) * (1.2 * tf.nn.sigmoid(post_relevant) - 0.1)  + lowers
 
                     prior_predict = tfd.Normal(prior_support, self.prior_scale[:, kernel_begin : kernel_end].sample())
-                    post_predict  = tfd.Normal(post_support,  self.post_scale[:,  kernel_begin : kernel_end].sample())
+                    post_predict = tfd.Normal(post_support,  self.post_scale[:,  kernel_begin : kernel_end].sample())
 
                     targets_dict[prior_predict] = target
                     post_kernels['param_%d' % target_element_index] = {
@@ -197,20 +197,20 @@ class TfprobNetwork(object):
                     inference = {'pred': post_predict, 'target': target}
                     inferences.append(inference)
 
-                elif kernel_type == 'categorical':
-                    target = tf.cast(self.y[:, kernel_begin : kernel_end], tf.int32)
+                elif kernel_type in ['categorical', 'discrete']:
+                    target = tf.cast(self.y[:, kernel_begin: kernel_end], tf.int32)
 
                     prior_temperature = 0.5 + 10.0 / self.num_obs
-                    post_temperature  = prior_temperature
+                    post_temperature = prior_temperature
 
                     prior_support = prior_relevant
-                    post_support  = post_relevant
+                    post_support = post_relevant
 
                     prior_predict_relaxed = tfd.RelaxedOneHotCategorical(prior_temperature, prior_support)
-                    prior_predict         = tfd.OneHotCategorical(probs = prior_predict_relaxed.sample())
+                    prior_predict = tfd.OneHotCategorical(probs=prior_predict_relaxed.sample())
 
-                    post_predict_relaxed  = tfd.RelaxedOneHotCategorical(post_temperature, post_support)
-                    post_predict          = tfd.OneHotCategorical(probs = post_predict_relaxed.sample())
+                    post_predict_relaxed = tfd.RelaxedOneHotCategorical(post_temperature, post_support)
+                    post_predict = tfd.OneHotCategorical(probs=post_predict_relaxed.sample())
 
                     targets_dict[prior_predict] = target
                     post_kernels['param_%d' % target_element_index] = {'probs': post_predict_relaxed}
