@@ -131,8 +131,8 @@ class ConfigParser(Logger):
                 # check order
                 if setting['high'] <= setting['low']:
                     GryffinValueError('upper limit (%f) needs to be larger than the lower limit (%f) for parameter "%s"' % (setting['high'], setting['low'], setting['name']))
-                setting['options']     = np.arange(setting['low'], setting['high'], dtype=np.int32)
-                setting['descriptors'] = np.arange(setting['low'], setting['high'], dtype=np.float64)
+                setting['options']     = np.arange(setting['low'], setting['high'] + 1, dtype=np.int32)  # +1 to use closed interval
+                setting['descriptors'] = np.arange(setting['low'], setting['high'] + 1, dtype=np.float64)  # +1 to use closed interval
                 setting['descriptors'] = np.reshape(setting['descriptors'], (len(setting['descriptors']), 1))
                 num_cats = len(setting['options'])
 
