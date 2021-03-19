@@ -49,7 +49,7 @@ class DescriptorGenerator(Logger):
         obs_objs = self.obs_objs
 
         # if continuous ==> no descriptors, return None
-        if feature_types[feature_index] == 'continuous':
+        if feature_types[feature_index] in ['continuous', 'discrete']:
             self.weights[feature_index] = None
             self.reduced_gen_descs[feature_index] = None
             return None, feature_index
