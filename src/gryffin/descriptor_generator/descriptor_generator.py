@@ -122,6 +122,27 @@ class DescriptorGenerator(Logger):
         for feature_index in feature_indices:
             _ = self._generate_single_descriptors(feature_index=feature_index, result_dict=result_dict)
 
+    @staticmethod
+    def _custom_array_split(feature_types, feature_indices, num_splits):
+        """Split feature indices into N splits such that the categorical variables are distributed evenly across
+        splits. This matters because we run the generation only for categorical variables, so we do not want to have
+        a process without any and other with multiple ones."""
+
+        # sort the feature indices according to the alphabetical order of the feature types, so that we get, e.g.:
+        # ['categorical', 'continuous', 'discrete', 'categorical', 'categorical']
+        # ==> ['categorical', 'categorical', 'categorical', 'continuous', 'discrete', ]
+        feature_types_sorted, feature_indices_sorted = zip(*sorted(zip(feature_types, feature_indices)))
+
+        # create a 2D list
+        feature_indices_splits = [[] for n in range(num_splits)]
+
+        # distribute indices across splits
+        for i, feature_index in enumerate(feature_indices_sorted):
+            split_idx = i % num_splits
+            feature_indices_splits[split_idx].append(feature_index)
+
+        return feature_indices_splits
+
     def generate_descriptors(self, obs_params, obs_objs):
         """Generates descriptors for each categorical parameters"""
 
@@ -131,17 +152,18 @@ class DescriptorGenerator(Logger):
         self.obs_objs = obs_objs
 
         feature_indices = range(len(self.config.feature_options))
+        feature_types = self.config.feature_types
+        assert len(feature_types) == len(feature_indices)
 
         # ------------------------------
         # Parallel descriptor generation
         # ------------------------------
         if self.num_cpus > 1:
 
-            # split indices into the number of processes we want to run
-            if self.num_cpus > len(feature_indices):  # do not create empty chunks
-                feature_indices_splits = np.array_split(feature_indices, len(feature_indices))
-            else:
-                feature_indices_splits = np.array_split(feature_indices, self.num_cpus)
+            # do not use more splits than number of features available, otherwise we would get some empty splits
+            num_splits = min(self.num_cpus, len(feature_indices))
+            # splits indices in such a way to evenly distribute categorical vars across processes
+            feature_indices_splits = self._custom_array_split(feature_types, feature_indices, num_splits)
 
             result_dict = Manager().dict()  # store results in share memory dict
             processes = []  # store parallel processes here
