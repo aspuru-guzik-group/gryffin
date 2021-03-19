@@ -178,4 +178,4 @@ class RandomSampler(Logger):
 
     @staticmethod
     def _draw_discrete(low, high, size):
-        return np.random.randint(low=0, high=high - low, size=size).astype(np.float32)
+        return np.random.randint(low=0, high=high - low + 1, size=size).astype(np.float32)
