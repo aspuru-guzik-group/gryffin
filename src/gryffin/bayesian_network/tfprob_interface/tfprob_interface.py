@@ -19,21 +19,22 @@ sys.path.append(os.getcwd())
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from .numpy_graph import NumpyGraph
 from gryffin.utilities.decorators import processify
+from gryffin.utilities import GryffinUnknownSettingsError
 
 
 class TfprobNetwork(object):
 
     def __init__(self, config, model_details):
-        self.config        = config
-        self.numpy_graph   = NumpyGraph(self.config, model_details)
+        self.config = config
+        self.numpy_graph = NumpyGraph(self.config, model_details)
 
         self.model_details = model_details
         for key, value in self.model_details.items():
             setattr(self, '_%s' % str(key), value)
 
-        self.feature_size    = len(self.config.kernel_names)
+        self.feature_size = len(self.config.kernel_names)
         self.bnn_output_size = len(self.config.kernel_names)
-        self.target_size     = len(self.config.kernel_names)
+        self.target_size = len(self.config.kernel_names)
 
         self.graph = tf.Graph()
         with self.graph.as_default():
@@ -48,7 +49,7 @@ class TfprobNetwork(object):
 
         # initialize training features and targets
         self.features = np.zeros((self.num_obs, self.feature_size))
-        self.targets  = np.zeros((self.num_obs, self.target_size))
+        self.targets = np.zeros((self.num_obs, self.target_size))
 
         # construct training features
         feature_begin = 0
@@ -82,7 +83,7 @@ class TfprobNetwork(object):
         self.upper_rescalings = upper_rescalings
 
         self.rescaled_features = (self.features - self.lower_rescalings) / (self.upper_rescalings - self.lower_rescalings)
-        self.rescaled_targets  = (self.targets  - self.lower_rescalings) / (self.upper_rescalings - self.lower_rescalings)
+        self.rescaled_targets = (self.targets - self.lower_rescalings) / (self.upper_rescalings - self.lower_rescalings)
 
         self.numpy_graph.declare_training_data(self.rescaled_features)
 
@@ -226,7 +227,7 @@ class TfprobNetwork(object):
                     '''
 
                 else:
-                    GryffinUnknownSettingsError('did not understand parameter type: "%s".\n\tPlease choose from "continuous" or "categorical' % param_type)
+                    GryffinUnknownSettingsError(f'did not understand kernel type: {kernel_type}')
 
                 target_element_index += 1
                 kernel_element_index += kernel_size
