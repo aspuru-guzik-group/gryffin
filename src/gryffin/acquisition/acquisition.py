@@ -7,7 +7,7 @@ import time
 import multiprocessing
 from multiprocessing import Process, Manager
 
-from gryffin.acquisition import GradientOptimizer
+from gryffin.acquisition import GradientOptimizer, GeneticOptimizer
 from gryffin.random_sampler import RandomSampler
 from gryffin.utilities import Logger, parse_time, GryffinUnknownSettingsError
 
@@ -65,9 +65,9 @@ class Acquisition(Logger):
     def _proposal_optimization_thread(self, proposals, acquisition, batch_index,
                                       return_dict=None, return_index=0, dominant_samples=None):
         if return_dict is not None:
-            self.log('running parallel process for lambda strategy number %d' % batch_index, 'INFO')
+            self.log('running parallel optimization for lambda strategy number %d' % batch_index, 'INFO')
         else:
-            self.log('running serial process for lambda strategy number %d' % batch_index, 'INFO')
+            self.log('running serial optimization for lambda strategy number %d' % batch_index, 'INFO')
 
         # get params to be constrained
         if dominant_samples is not None:
@@ -232,7 +232,7 @@ class Acquisition(Logger):
         if self.optimizer_type == 'adam':
             local_optimizers = [GradientOptimizer(self.config, self.known_constraints) for _ in range(num)]
         elif self.optimizer_type == 'genetic':
-            local_optimizers = None
+            local_optimizers = [GeneticOptimizer(self.config, self.known_constraints) for _ in range(num)]
         else:
             GryffinUnknownSettingsError(f'Did not understand optimizer choice {self.optimizer_type}.'
                                         f'\n\tPlease choose "adam" or "genetic"')
@@ -302,6 +302,18 @@ class AcquisitionFunction:
             self.feasibility_weight = self.frac_infeasible ** feas_sensitivity
 
     def __call__(self, x):
+        """Evaluate acquisition.
+
+        Parameters
+        ----------
+        x : array
+            these are samples in the param vector format.
+
+        Returns
+        -------
+        y : float
+            acquisition function value.
+        """
         return self.acquisition_function(x)
 
     def _acquisition_standard(self, x):
