@@ -65,9 +65,9 @@ class Acquisition(Logger):
     def _proposal_optimization_thread(self, proposals, acquisition, batch_index,
                                       return_dict=None, return_index=0, dominant_samples=None):
         if return_dict is not None:
-            self.log('starting parallel process for lambda strategy number %d' % batch_index, 'INFO')
+            self.log('running parallel process for lambda strategy number %d' % batch_index, 'INFO')
         else:
-            self.log('starting serial process for lambda strategy number %d' % batch_index, 'INFO')
+            self.log('running serial process for lambda strategy number %d' % batch_index, 'INFO')
 
         # get params to be constrained
         if dominant_samples is not None:

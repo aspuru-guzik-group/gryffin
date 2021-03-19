@@ -23,9 +23,9 @@ class SampleSelector(Logger):
     def compute_exp_objs(self, proposals, eval_acquisition, batch_index, return_index=0, return_dict=None):
         # print info
         if return_dict is not None:
-            self.log('starting parallel process for lambda strategy number %d' % batch_index, 'INFO')
+            self.log('running parallel process for lambda strategy number %d' % batch_index, 'INFO')
         else:
-            self.log('starting serial process for lambda strategy number %d' % batch_index, 'INFO')
+            self.log('running serial process for lambda strategy number %d' % batch_index, 'INFO')
 
         # batch_index is the index of the sampling_param_values used
         samples = proposals[batch_index]

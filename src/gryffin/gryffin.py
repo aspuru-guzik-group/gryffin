@@ -98,9 +98,6 @@ class Gryffin(Logger):
             obs_params_kwn, obs_objs_kwn, mirror_mask_kwn, \
             obs_params_ukwn, obs_objs_ukwn, mirror_mask_ukwn = self.obs_processor.process_observations(observations)
 
-            print(obs_params_kwn, obs_objs_kwn)
-            print(obs_params_ukwn, obs_objs_ukwn)
-
             # run descriptor generation
             if self.config.get('auto_desc_gen'):
                 if len(obs_params_kwn) > 2:

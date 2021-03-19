@@ -8,6 +8,8 @@ import numpy as np
 import multiprocessing
 from gryffin.utilities import Logger, parse_time
 from .generation_process import run_generator_network
+from multiprocessing import Process, Manager
+from copy import deepcopy
 
 
 class DescriptorGenerator(Logger):
@@ -40,7 +42,7 @@ class DescriptorGenerator(Logger):
         else:
             self.num_cpus = int(self.config.get('num_cpus'))
 
-    def generate_single_descriptors(self, feature_index):
+    def _generate_single_descriptors(self, feature_index, result_dict=None):
         """Parse description generation for a specific parameter, ad indicated by the feature_index"""
 
         feature_types = self.config.feature_types
@@ -52,19 +54,25 @@ class DescriptorGenerator(Logger):
         if feature_types[feature_index] in ['continuous', 'discrete']:
             self.weights[feature_index] = None
             self.reduced_gen_descs[feature_index] = None
-            return None, feature_index
+            if result_dict is not None:
+                result_dict[feature_index] = None
+            return None
 
         # if None, i.e. naive Gryffin ==> no descriptors, return None
         if feature_descriptors[feature_index] is None:
             self.weights[feature_index] = None
             self.reduced_gen_descs[feature_index] = None
-            return None, feature_index
+            if result_dict is not None:
+                result_dict[feature_index] = None
+            return None
 
         # if single descriptor ==> cannot get new descriptors, return the same static descriptor
         if feature_descriptors[feature_index].shape[1] == 1:
             self.weights[feature_index] = np.array([[1.]])
             self.reduced_gen_descs[feature_index] = feature_descriptors[feature_index]
-            return feature_descriptors[feature_index], feature_index
+            if result_dict is not None:
+                result_dict[feature_index] = feature_descriptors[feature_index]
+            return feature_descriptors[feature_index]
 
         # ------------------------------------------------------------------------------------------
         # Else, we have multiple descriptors for a categorical variable and we perform the reshaping
@@ -87,17 +95,32 @@ class DescriptorGenerator(Logger):
         sim_dict['grid_descs']  = self.config.feature_descriptors[feature_index]
 
         # run the generation process
-        results = run_generator_network(sim_dict)
+        network_results = run_generator_network(sim_dict)
 
-        self.min_corrs[feature_index]          = results['min_corrs']
-        self.auto_gen_descs[feature_index]     = results['auto_gen_descs']
-        self.comp_corr_coeffs[feature_index]   = results['comp_corr_coeffs']
-        self.gen_descs_cov[feature_index]      = results['gen_descs_cov']
-        self.reduced_gen_descs[feature_index]  = results['reduced_gen_descs']
-        self.weights[feature_index]            = results['weights']
-        self.sufficient_indices[feature_index] = results['sufficient_indices']
+        self.min_corrs[feature_index]          = network_results['min_corrs']
+        self.auto_gen_descs[feature_index]     = network_results['auto_gen_descs']
+        self.comp_corr_coeffs[feature_index]   = network_results['comp_corr_coeffs']
+        self.gen_descs_cov[feature_index]      = network_results['gen_descs_cov']
+        self.reduced_gen_descs[feature_index]  = network_results['reduced_gen_descs']
+        self.weights[feature_index]            = network_results['weights']
+        self.sufficient_indices[feature_index] = network_results['sufficient_indices']
 
-        return results['reduced_gen_descs'], feature_index
+        if result_dict is not None:
+            result_dict[feature_index] = deepcopy(network_results['reduced_gen_descs'])
+
+        return network_results['reduced_gen_descs']
+
+    def _generate_some_descriptors(self, feature_indices, result_dict):
+        """Used by generate_descriptors when running in parallel"""
+
+        # print some info
+        feature_names = [self.config.feature_names[i] for i in feature_indices]
+        features_strings = ", ".join(feature_names)
+        self.log(f'running parallel descriptor generation for {features_strings}', 'INFO')
+
+        # run
+        for feature_index in feature_indices:
+            _ = self._generate_single_descriptors(feature_index=feature_index, result_dict=result_dict)
 
     def generate_descriptors(self, obs_params, obs_objs):
         """Generates descriptors for each categorical parameters"""
@@ -106,30 +129,47 @@ class DescriptorGenerator(Logger):
 
         self.obs_params = obs_params
         self.obs_objs = obs_objs
-        result_dict = {}
 
         feature_indices = range(len(self.config.feature_options))
 
-        # TODO: implement multiprocessing with the code below. The problem is CPU bound and multiprocessing could
-        #  speed things up. However, this currently does not work probably because the tf graph is not pickable due
-        #  to a lock. We could use multi-threading but not sure this would help much since we do not have I/O issues
-        #  here and all threads would run on the same core that is CPU bound anyway.
-        #if self.num_cpus >= 2:
-            # asynchronous execution across processes
-        #    with ProcessPoolExecutor(max_workers=self.num_cpus) as executor:
-        #        for gen_descriptor, feature_index in executor.map(self.generate_single_descriptors, feature_indices):
-        #            result_dict[feature_index] = gen_descriptor
-        #else:
-        #    for feature_index in feature_indices:
-        #        gen_descriptor, _ = self.generate_single_descriptors(feature_index)
-        #        result_dict[feature_index] = gen_descriptor
+        # ------------------------------
+        # Parallel descriptor generation
+        # ------------------------------
+        if self.num_cpus > 1:
 
-        for feature_index in feature_indices:
-            gen_descriptor, _ = self.generate_single_descriptors(feature_index)
-            result_dict[feature_index] = gen_descriptor
+            # split indices into the number of processes we want to run
+            if self.num_cpus > len(feature_indices):  # do not create empty chunks
+                feature_indices_splits = np.array_split(feature_indices, len(feature_indices))
+            else:
+                feature_indices_splits = np.array_split(feature_indices, self.num_cpus)
 
-        # we use this to reorder correctly the descriptors following asynchronous execution
-        gen_feature_descriptors = [result_dict[feature_index] for feature_index in range(len(result_dict.keys()))]
+            result_dict = Manager().dict()  # store results in share memory dict
+            processes = []  # store parallel processes here
+
+            for feature_indices_split in feature_indices_splits:
+                # run optimization
+                process = Process(target=self._generate_some_descriptors, args=(feature_indices_split, result_dict))
+                processes.append(process)
+                process.start()
+
+            # wait until all processes finished
+            for process in processes:
+                process.join()
+
+        # ----------------------------
+        # Serial descriptor generation
+        # ----------------------------
+        else:
+            self.log('running serial descriptor generation', 'INFO')
+            result_dict = {}
+            for feature_index in feature_indices:
+                gen_descriptor = self._generate_single_descriptors(feature_index=feature_index, result_dict=None)
+                result_dict[feature_index] = gen_descriptor
+
+        # reorder correctly the descriptors following asynchronous execution
+        gen_feature_descriptors = []
+        for feature_index in range(len(result_dict.keys())):
+            gen_feature_descriptors.append(result_dict[feature_index])
         self.gen_feature_descriptors = gen_feature_descriptors
 
         end = time.time()
