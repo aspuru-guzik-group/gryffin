@@ -80,11 +80,7 @@ class Acquisition(Logger):
         local_optimizer.set_func(acquisition, ignores=ignore)
 
         # run acquisition optimization
-        optimized = []
-        for sample_index, sample in enumerate(proposals):
-            opt = local_optimizer.optimize(sample, max_iter=10)
-            optimized.append(opt)
-        optimized = np.array(optimized)
+        optimized = local_optimizer.optimize(proposals, max_iter=10)
 
         if return_dict.__class__.__name__ == 'DictProxy':
             return_dict[return_index] = optimized
@@ -133,10 +129,7 @@ class Acquisition(Logger):
         # ----------------------
         optimizer_bottom = GradientOptimizer(self.config, self.known_constraints)
         optimizer_bottom.set_func(acquisition, ignores=ignore)
-        optimized = []
-        for sample_index, sample in enumerate(bottom_params):
-            opt = optimizer_bottom.optimize(sample, max_iter=10)
-            optimized.append(opt)
+        optimized = optimizer_bottom.optimize(bottom_params, max_iter=10)
 
         bottom_acq_values = np.array([acquisition(x) for x in optimized])
         # concatenate with randomly collected acq values
@@ -151,10 +144,7 @@ class Acquisition(Logger):
 
         optimizer_top = GradientOptimizer(self.config, self.known_constraints)
         optimizer_top.set_func(inv_acquisition, ignores=ignore)
-        optimized = []
-        for sample_index, sample in enumerate(top_params):
-            opt = optimizer_top.optimize(sample, max_iter=10)
-            optimized.append(opt)
+        optimized = optimizer_top.optimize(top_params, max_iter=10)
 
         top_acq_values = np.array([acquisition(x) for x in optimized])
         # concatenate with randomly collected acq values

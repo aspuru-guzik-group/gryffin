@@ -69,7 +69,18 @@ class GradientOptimizer(Logger):
         self.opt_dis.set_func(kernel, pos=np.arange(self.config.num_features)[pos_discrete],   highest=self.config.feature_sizes[self.pos_discrete])
         self.opt_cat.set_func(kernel, pos=np.arange(self.config.num_features)[pos_categories], highest=self.config.feature_sizes[self.pos_categories])
 
-    def optimize(self, sample, max_iter=10):
+    def optimize(self, samples, max_iter=10):
+        """Optimise a list of samples"""
+        optimized = []
+        for sample_index, sample in enumerate(samples):
+            opt = self._optimize_one_sample(sample, max_iter=max_iter)
+            optimized.append(opt)
+        optimized = np.array(optimized)
+        return optimized
+
+    def _optimize_one_sample(self, sample, max_iter=10):
+        """Optimise a single sample"""
+
         # project sample onto opt boundaries if needed
         # ...though it should not be needed, as RandomSampler should do this already?
         if not self._within_bounds(sample):
