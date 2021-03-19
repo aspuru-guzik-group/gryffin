@@ -5,7 +5,7 @@ __author__ = 'Florian Hase'
 
 import numpy as np
 from gryffin.utilities import Logger, GryffinUnknownSettingsError
-from gryffin.utilities import sample_arrays_to_dicts
+from gryffin.observation_processor import param_vector_to_dict
 from . import AdamOptimizer, NaiveDiscreteOptimizer, NaiveCategoricalOptimizer
 
 
@@ -129,8 +129,8 @@ class GradientOptimizer(Logger):
             optimized = self._single_opt_iteration(optimized)
 
             # evaluate whether the optimized sample violates the known constraints
-            param = sample_arrays_to_dicts(samples=optimized, param_names=self.config.param_names,
-                                           param_options=self.config.param_options, param_types=self.config.param_types)
+            param = param_vector_to_dict(param_vector=optimized, param_names=self.config.param_names,
+                                         param_options=self.config.param_options, param_types=self.config.param_types)
             feasible = self.known_constraints(param)
             if feasible is False:
                 # stop optimization and return last feasible point

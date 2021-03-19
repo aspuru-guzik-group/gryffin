@@ -5,7 +5,8 @@ __author__ = 'Florian Hase'
 
 import numpy as np
 from gryffin.utilities import Logger
-from gryffin.utilities import GryffinUnknownSettingsError, sample_arrays_to_dicts
+from gryffin.utilities import GryffinUnknownSettingsError
+from gryffin.observation_processor import param_vector_to_dict
 
 
 class RandomSampler(Logger):
@@ -70,8 +71,8 @@ class RandomSampler(Logger):
                 sample.append(param_sample[0])
 
             # evaluate whether the sample violates the known constraints
-            param = sample_arrays_to_dicts(samples=sample, param_names=self.config.param_names,
-                                           param_options=self.config.param_options, param_types=self.config.param_types)
+            param = param_vector_to_dict(param_vector=sample, param_names=self.config.param_names,
+                                         param_options=self.config.param_options, param_types=self.config.param_types)
             feasible = self.known_constraints(param)
             if feasible is True:
                 samples.append(sample)
@@ -122,8 +123,8 @@ class RandomSampler(Logger):
                 perturbed_sample.append(perturbed_param[0])
 
             # evaluate whether the sample violates the known constraints
-            param = sample_arrays_to_dicts(samples=perturbed_sample, param_names=self.config.param_names,
-                                           param_options=self.config.param_options, param_types=self.config.param_types)
+            param = param_vector_to_dict(param_vector=perturbed_sample, param_names=self.config.param_names,
+                                         param_options=self.config.param_options, param_types=self.config.param_types)
             feasible = self.known_constraints(param)
             if feasible is True:
                 perturbed_samples.append(perturbed_sample)

@@ -5,11 +5,11 @@ __author__ = 'Florian Hase'
 from .acquisition import Acquisition
 from .bayesian_network import BayesianNetwork
 from .descriptor_generator import DescriptorGenerator
-from .observation_processor import ObservationProcessor
+from .observation_processor import ObservationProcessor, param_vectors_to_dicts
 from .random_sampler import RandomSampler
 from .sample_selector import SampleSelector
 from .utilities import ConfigParser, Logger, GryffinNotFoundError
-from .utilities import parse_time, memory_usage, sample_arrays_to_dicts
+from .utilities import parse_time, memory_usage
 
 import os
 import numpy as np
@@ -97,6 +97,9 @@ class Gryffin(Logger):
         else:
             obs_params_kwn, obs_objs_kwn, mirror_mask_kwn, \
             obs_params_ukwn, obs_objs_ukwn, mirror_mask_ukwn = self.obs_processor.process_observations(observations)
+
+            print(obs_params_kwn, obs_objs_kwn)
+            print(obs_params_ukwn, obs_objs_ukwn)
 
             # run descriptor generation
             if self.config.get('auto_desc_gen'):
@@ -188,7 +191,7 @@ class Gryffin(Logger):
             return_samples = samples
         else:
             # return as dictionary
-            return_samples = sample_arrays_to_dicts(samples=samples, param_names=self.config.param_names,
+            return_samples = param_vectors_to_dicts(param_vectors=samples, param_names=self.config.param_names,
                                                     param_options=self.config.param_options,
                                                     param_types=self.config.param_types)
 

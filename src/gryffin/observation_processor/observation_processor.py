@@ -90,7 +90,9 @@ class ObservationProcessor(Logger):
         # -------------------------------
         for obs_dict in obs_dicts:
             # get param vector
-            param_vector = self._parse_param_dict(obs_dict)
+            param_vector = param_dict_to_vector(param_dict=obs_dict, param_names=self.config.param_names,
+                                                param_options=self.config.param_options,
+                                                param_types=self.config.param_types)
             mirrored_params = self.mirror_parameters(param_vector)
 
             # get obj-vector
@@ -155,10 +157,12 @@ class ObservationProcessor(Logger):
 
         return params_kwn, objs_kwn, mirror_mask_kwn, params_ukwn, objs_ukwn, mirror_mask_ukwn
 
-    def process_params(self, param_dicts):
-        """
-        Processed a list of parameters. This is used by the Gryffin methods to retrieve the surrogate model and the
-        acquisition function. For instance, categorical options are mapped to numerical values.
+
+# ================
+# Helper functions
+# ================
+def param_dicts_to_vectors(param_dicts, param_names, param_options, param_types):
+    """Converts a list of param dictionaries to a two-dimensional array of parameters
 
         Parameters
         ----------
@@ -169,28 +173,62 @@ class ObservationProcessor(Logger):
         -------
         param_vectors : array
             array with the parameter vectors.
-        """
-        param_vectors = []
-        for param_dict in param_dicts:
-            # get param vector
-            param_vector = self._parse_param_dict(param_dict)
-            param_vectors.append(param_vector)
-        return np.array(param_vectors)
+    """
 
-    def _parse_param_dict(self, param_dict):
-        """Parse param dict and put into vector format"""
-        param_vector = []
-        for param_index, param_name in enumerate(self.config.param_names):
-            param_type = self.config.param_types[param_index]
-            if param_type == 'continuous':
-                param = param_dict[param_name]
-            elif param_type == 'categorical':
-                element = param_dict[param_name]
-                param = self.config.param_options[param_index].index(element)
-            elif param_type == 'discrete':
-                element = param_dict[param_name]
-                param = list(self.config.param_options[param_index]).index(element)
+    param_vectors = []
+    for param_dict in param_dicts:
+        param_vector = param_dict_to_vector(param_dict, param_names, param_options, param_types)
+        param_vectors.append(param_vector)
+    return param_vectors
 
-            param_vector.append(param)
 
-        return param_vector
+def param_vectors_to_dicts(param_vectors, param_names, param_options, param_types):
+    """Converts list of sample arrays to to list of dictionaries
+    """
+    param_dicts = []
+    for param_vector in param_vectors:
+        param_dict = param_vector_to_dict(param_vector, param_names, param_options, param_types)
+        param_dicts.append(param_dict)
+    return param_dicts
+
+
+def param_dict_to_vector(param_dict, param_names, param_options, param_types):
+    """Parse param dict and put into vector format"""
+    param_vector = []
+    for param_index, param_name in enumerate(param_names):
+        param_type = param_types[param_index]
+        if param_type == 'continuous':
+            param = param_dict[param_name]
+        elif param_type == 'categorical':
+            element = param_dict[param_name]
+            param = param_options[param_index].index(element)
+        elif param_type == 'discrete':
+            element = param_dict[param_name]
+            param = list(param_options[param_index]).index(element)
+
+        param_vector.append(param)
+
+    return param_vector
+
+
+def param_vector_to_dict(param_vector, param_names, param_options, param_types):
+    """parse single sample and return a dict"""
+    param_dict = {}
+    for param_index, param_name in enumerate(param_names):
+        param_type = param_types[param_index]
+
+        if param_type == 'continuous':
+            param_dict[param_name] = param_vector[param_index]
+
+        elif param_type == 'categorical':
+            options = param_options[param_index]
+            selected_option_idx = int(param_vector[param_index])
+            selected_option = options[selected_option_idx]
+            param_dict[param_name] = selected_option
+
+        elif param_type == 'discrete':
+            options = param_options[param_index]
+            selected_option_idx = int(param_vector[param_index])
+            selected_option = options[selected_option_idx]
+            param_dict[param_name] = selected_option
+    return param_dict

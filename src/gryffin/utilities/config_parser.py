@@ -446,40 +446,4 @@ class ConfigParser(Logger):
             self.log('Cannot parse configuration due to missing configuration file or configuration dictionary', 'ERROR')
 
 
-def sample_arrays_to_dicts(samples, param_names, param_options, param_types):
-    """convert list of sample arrays to to list of dictionaries"""
 
-    def _parse_sample(sample, param_names):
-        """parse single sample and return a dict"""
-        sample_dict = {}
-        for param_index, param_name in enumerate(param_names):
-            param_type = param_types[param_index]
-
-            if param_type == 'continuous':
-                sample_dict[param_name] = sample[param_index]
-
-            elif param_type == 'categorical':
-                options = param_options[param_index]
-                selected_option_idx = int(sample[param_index])
-                selected_option = options[selected_option_idx]
-                sample_dict[param_name] = selected_option
-
-            elif param_type == 'discrete':
-                options = param_options[param_index]
-                selected_option_idx = int(sample[param_index])
-                selected_option = options[selected_option_idx]
-                sample_dict[param_name] = selected_option
-        return sample_dict
-
-    # if samples is a list of lists (i.e. many samples)
-    #  return list of dicts
-    if np.array(samples).ndim > 1:
-        sample_dicts = []
-        for sample in samples:
-            sample_dict = _parse_sample(sample, param_names)
-            sample_dicts.append(sample_dict)
-    # if samples is actually a single sample, return single dict
-    else:
-        sample_dicts = _parse_sample(samples, param_names)
-
-    return sample_dicts

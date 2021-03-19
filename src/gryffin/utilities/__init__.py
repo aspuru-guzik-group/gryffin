@@ -20,4 +20,3 @@ from .category_parser import CategoryParser
 from .config_parser   import ConfigParser
 
 from .infos import parse_time, memory_usage
-from .config_parser import sample_arrays_to_dicts
