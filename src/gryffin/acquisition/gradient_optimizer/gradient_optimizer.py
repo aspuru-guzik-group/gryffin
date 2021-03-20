@@ -14,6 +14,13 @@ class GradientOptimizer(Logger):
     def __init__(self, config, known_constraints=None):
         self.config = config
         self.known_constraints = known_constraints
+
+        # define which single-step optimization function to use
+        if known_constraints is None:
+            self._optimize_one_sample = self._optimize_sample
+        else:
+            self._optimize_one_sample = self._constrained_optimize_sample
+
         Logger.__init__(self, 'GradientOptimizer', verbosity=self.config.get('verbosity'))
 
         # parse positions
@@ -38,6 +45,15 @@ class GradientOptimizer(Logger):
 
     def _within_bounds(self, sample):
         return not (np.any(sample < self.config.feature_lowers) or np.any(sample > self.config.feature_uppers))
+
+    def _project_sample_onto_bounds(self, sample):
+        # project sample onto opt boundaries if needed
+        # ...though it should not be needed, as RandomSampler should do this already?
+        if not self._within_bounds(sample):
+            sample = np.where(sample < self.config.feature_lowers, self.config.feature_lowers, sample)
+            sample = np.where(sample > self.config.feature_uppers, self.config.feature_uppers, sample)
+            sample = sample.astype(np.float32)
+        return sample
 
     def _optimize_continuous(self, sample):
         proposal = self.opt_con.get_update(sample)
@@ -78,23 +94,6 @@ class GradientOptimizer(Logger):
         optimized = np.array(optimized)
         return optimized
 
-    def _optimize_one_sample(self, sample, max_iter=10):
-        """Optimise a single sample"""
-
-        # project sample onto opt boundaries if needed
-        # ...though it should not be needed, as RandomSampler should do this already?
-        if not self._within_bounds(sample):
-            sample = np.where(sample < self.config.feature_lowers, self.config.feature_lowers, sample)
-            sample = np.where(sample > self.config.feature_uppers, self.config.feature_uppers, sample)
-            sample = sample.astype(np.float32)
-
-        # if no constraints, we do not need to do any checks on feasibility
-        if self.known_constraints is None:
-            optimized = self._fast_optimize(sample=sample, max_iter=max_iter)
-        else:
-            optimized = self._slow_optimize(sample=sample, max_iter=max_iter)
-        return optimized
-
     def _single_opt_iteration(self, optimized):
         # one step of continuous
         if np.any(self.pos_continuous):
@@ -110,7 +109,9 @@ class GradientOptimizer(Logger):
 
         return optimized
 
-    def _fast_optimize(self, sample, max_iter=10):
+    def _optimize_sample(self, sample, max_iter=10):
+
+        sample = self._project_sample_onto_bounds(sample)
 
         # copy sample
         sample_copy = sample.copy()
@@ -126,7 +127,9 @@ class GradientOptimizer(Logger):
                 sample_copy = optimized.copy()
         return optimized
 
-    def _slow_optimize(self, sample, max_iter=10):
+    def _constrained_optimize_sample(self, sample, max_iter=10):
+
+        sample = self._project_sample_onto_bounds(sample)
 
         # copy sample
         sample_copy = sample.copy()
