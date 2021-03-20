@@ -135,7 +135,7 @@ class GeneticOptimizer(Logger):
                 self.log(logbook.stream, 'INFO')
 
             # convergence criterion, if the population has very similar fitness, stop
-            if record['std'] < 0.005:
+            if record['std'] < 0.01:  # i.e. ~1% of acquisition codomain
                 break
 
         # DEAP cleanup
@@ -144,51 +144,11 @@ class GeneticOptimizer(Logger):
 
         return np.array(population)
 
-    def _fast_optimize(self, sample, max_iter=10):
+    def _unconstrained_evolution(self):
+        pass
 
-        # copy sample
-        sample_copy = sample.copy()
-        optimized = sample.copy()
-        # optimize
-        for num_iter in range(max_iter):
-            # one step of optimization
-            optimized = self._single_opt_iteration(optimized)
-            # check for convergence
-            if np.any(self.pos_continuous) and np.linalg.norm(sample_copy - optimized) < 1e-7:
-                break
-            else:
-                sample_copy = optimized.copy()
-        return optimized
-
-    def _slow_optimize(self, sample, max_iter=10):
-
-        # copy sample
-        sample_copy = sample.copy()
-        optimized = sample.copy()
-
-        # --------
-        # optimize
-        # --------
-        for num_iter in range(max_iter):
-            # one step of optimization
-            optimized = self._single_opt_iteration(optimized)
-
-            # evaluate whether the optimized sample violates the known constraints
-            param = param_vector_to_dict(param_vector=optimized, param_names=self.config.param_names,
-                                         param_options=self.config.param_options, param_types=self.config.param_types)
-            feasible = self.known_constraints(param)
-            if feasible is False:
-                # stop optimization and return last feasible point
-                optimized = sample_copy.copy()
-                break
-
-            # check for convergence
-            if np.any(self.pos_continuous) and np.linalg.norm(sample_copy - optimized) < 1e-7:
-                break
-            else:
-                sample_copy = optimized.copy()
-
-        return optimized
+    def _constrained_evolution(self):
+        pass
 
     def _custom_mutation(self, individual, indpb=0.2, continuous_scale=0.1, discrete_scale=0.1):
         """Custom mutation that can handled continuous, discrete, and categorical variables.

@@ -92,8 +92,11 @@ class Acquisition(Logger):
 
         # If we only have feasible or infeasible points, no need to compute max/min as there is no need to rescale the
         # sample acquisition, because the acquisition will only be for feasible samples or for feasibility search
-        if self.frac_infeasible == 0 or self.frac_infeasible == 1:
-            return 0.0, 1.0
+        # We still normalize approximately the acquisition if we are using the Genetic optimizer, because we use
+        # the variance of the population as a stopping criterion
+        if self.optimizer_type == 'adam':
+            if self.frac_infeasible == 0 or self.frac_infeasible == 1:
+                return 0.0, 1.0
 
         acq_values = []
         for proposal in random_proposals:
