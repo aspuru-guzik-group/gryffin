@@ -4,9 +4,9 @@ __author__ = 'Florian Hase'
 
 
 import numpy as np
-from gryffin.utilities import Logger, GryffinUnknownSettingsError
+from gryffin.utilities import Logger
 from gryffin.observation_processor import param_vector_to_dict
-from deap import base, creator, tools, algorithms
+from deap import base, creator, tools
 
 
 class GeneticOptimizer(Logger):
@@ -15,6 +15,12 @@ class GeneticOptimizer(Logger):
         self.config = config
         self.known_constraints = known_constraints
         Logger.__init__(self, 'GeneticOptimizer', verbosity=self.config.get('verbosity'))
+
+        # define which single-step optimization function to use
+        if self.known_constraints is None:
+            self._one_step_evolution = self._evolution
+        else:
+            self._one_step_evolution = self._constrained_evolution
 
     def acquisition(self, x):
         return self._acquisition(x),
@@ -26,7 +32,7 @@ class GeneticOptimizer(Logger):
             raise NotImplementedError('GeneticOptimizer with process constraints has not been implemented yet. '
                                       'Please choose "adam" as the "acquisition_optimizer".')
 
-    def optimize(self, samples, max_iter=10, verbose=True):
+    def optimize(self, samples, max_iter=10, verbose=False):
 
         # crossover and mutation probabilites
         CXPB = 0.5
@@ -72,7 +78,6 @@ class GeneticOptimizer(Logger):
         num_elites = int(round(0.05 * len(population), 0))  # 5% of elite individuals
         halloffame = tools.HallOfFame(num_elites)  # hall of fame with top individuals
         halloffame.update(population)
-        hof_size = len(halloffame.items) if halloffame.items else 0
 
         # register some statistics and create logbook
         stats = tools.Statistics(lambda ind: ind.fitness.values)
@@ -94,24 +99,8 @@ class GeneticOptimizer(Logger):
         # Begin the generational process
         # ------------------------------
         for gen in range(1, max_iter + 1):
-
-            # Select the next generation individuals (allow for elitism)
-            offspring = toolbox.select(population, len(population) - hof_size)
-
-            # Clone the selected individuals
-            offspring = list(map(toolbox.clone, offspring))
-
-            # Apply crossover and mutation on the offspring
-            for child1, child2 in zip(offspring[::2], offspring[1::2]):
-                if np.random.random() < CXPB:
-                    toolbox.mate(child1, child2)
-                    del child1.fitness.values
-                    del child2.fitness.values
-
-            for mutant in offspring:
-                if np.random.random() < MUTPB:
-                    toolbox.mutate(mutant)
-                    del mutant.fitness.values
+            offspring = self._one_step_evolution(population=population, toolbox=toolbox, halloffame=halloffame,
+                                                 cxpb=CXPB, mutpb=MUTPB)
 
             # Evaluate the individuals with an invalid fitness
             invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
@@ -135,7 +124,7 @@ class GeneticOptimizer(Logger):
                 self.log(logbook.stream, 'INFO')
 
             # convergence criterion, if the population has very similar fitness, stop
-            if record['std'] < 0.01:  # i.e. ~1% of acquisition codomain
+            if record['std'] < 0.02:  # i.e. ~2% of acquisition codomain
                 break
 
         # DEAP cleanup
@@ -144,11 +133,185 @@ class GeneticOptimizer(Logger):
 
         return np.array(population)
 
-    def _unconstrained_evolution(self):
-        pass
+    @staticmethod
+    def _evolution(population, toolbox, halloffame, cxpb=0.5, mutpb=0.3):
 
-    def _constrained_evolution(self):
-        pass
+        # size of hall of fame
+        hof_size = len(halloffame.items) if halloffame.items else 0
+
+        # Select the next generation individuals (allow for elitism)
+        offspring = toolbox.select(population, len(population) - hof_size)
+
+        # Clone the selected individuals
+        offspring = list(map(toolbox.clone, offspring))
+
+        # Apply crossover and mutation on the offspring
+        for child1, child2 in zip(offspring[::2], offspring[1::2]):
+            if np.random.random() < cxpb:
+                toolbox.mate(child1, child2)
+                del child1.fitness.values
+                del child2.fitness.values
+
+        for mutant in offspring:
+            if np.random.random() < mutpb:
+                toolbox.mutate(mutant)
+                del mutant.fitness.values
+
+        return offspring
+
+    def _constrained_evolution(self, population, toolbox, halloffame, cxpb=0.5, mutpb=0.3):
+
+        # size of hall of fame
+        hof_size = len(halloffame.items) if halloffame.items else 0
+
+        # Select the next generation individuals (allow for elitism)
+        offspring = toolbox.select(population, len(population) - hof_size)
+
+        # Clone the selected individuals
+        offspring = list(map(toolbox.clone, offspring))
+
+        # Apply crossover and mutation on the offspring
+        for child1, child2 in zip(offspring[::2], offspring[1::2]):
+            if np.random.random() < cxpb:
+                parent1 = list(map(toolbox.clone, child1))  # both are parents to both children, but we select one here
+                parent2 = list(map(toolbox.clone, child2))
+                # mate
+                toolbox.mate(child1, child2)
+                # apply constraints
+                self._apply_feasibility_constraint(child1, parent1)
+                self._apply_feasibility_constraint(child2, parent2)
+                # clear fitness values
+                del child1.fitness.values
+                del child2.fitness.values
+
+        for mutant in offspring:
+            if np.random.random() < mutpb:
+                parent = list(map(toolbox.clone, mutant))
+                # mutate
+                toolbox.mutate(mutant)
+                # apply constraints
+                self._apply_feasibility_constraint(mutant, parent)
+                # clear fitness values
+                del mutant.fitness.values
+
+        return offspring
+
+    def _evaluate_feasibility(self, param_vector):
+        # evaluate whether the optimized sample violates the known constraints
+        param = param_vector_to_dict(param_vector=param_vector, param_names=self.config.param_names,
+                                     param_options=self.config.param_options, param_types=self.config.param_types)
+        feasible = self.known_constraints(param)
+        return feasible
+
+    @staticmethod
+    def _update_individual(ind, value_vector):
+        for i, v in enumerate(value_vector):
+            ind[i] = v
+
+    def _apply_feasibility_constraint(self, child, parent):
+
+        child_vector = np.array(child)
+        feasible = self._evaluate_feasibility(child_vector)
+        # if feasible, stop, no need to project the mutant
+        if feasible is True:
+            return
+
+        # If not feasible, we try project parent or child onto feasibility boundary following these rules:
+        # - for continuous parameters, we do stick breaking that is like a continuous version of a binary tree search
+        #   until the norm of the vector connecting parent and child is less than a chosen threshold.
+        # - for discrete parameters, we do the same until the "stick" is as short as possible, i.e. the next step
+        #   makes it infeasible
+        # - for categorical variables, we first reset them to the parent, then after having changed continuous
+        #   and discrete, we reset the child. If feasible, we keep the child's categories, if still infeasible,
+        #   we keep the parent's categories.
+
+        parent_vector = np.array(parent)
+        new_vector = child_vector
+
+        child_continuous = child_vector[self.config.continuous_mask]
+        child_discrete = child_vector[self.config.discrete_mask]
+        child_categorical = child_vector[self.config.categorical_mask]
+
+        parent_continuous = parent_vector[self.config.continuous_mask]
+        parent_discrete = parent_vector[self.config.discrete_mask]
+        parent_categorical = parent_vector[self.config.categorical_mask]
+
+        # ---------------------------------------
+        # (1) assign parent's categories to child
+        # ---------------------------------------
+        if any(self.config.categorical_mask) is True:
+            new_vector[self.config.categorical_mask] = parent_categorical
+            # If this fixes is, update child and return
+            # This is equivalent to assigning the category to the child, and then going to step 2. Because child
+            # and parent are both feasible, the procedure will converge to parent == child and will return parent
+            if self._evaluate_feasibility(new_vector) is True:
+                self._update_individual(child, new_vector)
+                return
+
+        # -----------------------------------------------------------------------
+        # (2) follow stick breaking/tree search procedure for continuous/discrete
+        # -----------------------------------------------------------------------
+        if any(self.config.categorical_mask) or any(self.config.discrete_mask) is True:
+            # data needed to normalize continuous values
+            lowers = self.config.feature_lowers[self.config.continuous_mask]
+            uppers = self.config.feature_uppers[self.config.continuous_mask]
+            inv_range = 1. / (uppers - lowers)
+            counter = 0
+            while True:
+                # update continuous
+                new_continuous = np.mean(np.array([parent_continuous, child_continuous]), axis=0)
+                # update discrete, note that it can happen that child_discrete reverts to parent_discrete
+                # add noise so that we can converge to the parent if needed
+                noisy_mean = (np.mean([parent_discrete, child_discrete], axis=0)
+                              + np.random.uniform(low=-0.1, high=0.1, size=len(parent_discrete)))
+                new_discrete = np.round(noisy_mean, 0)
+
+                new_vector[self.config.continuous_mask] = new_continuous
+                new_vector[self.config.discrete_mask] = new_discrete
+
+                # if child is now feasible, parent becomes new_vector (we expect parent to always be feasible)
+                if self._evaluate_feasibility(new_vector) is True:
+                    parent_continuous = new_vector[self.config.continuous_mask]
+                    parent_discrete = new_vector[self.config.discrete_mask]
+                # if child still infeasible, child becomes new_vector (we expect parent to be the feasible one
+                else:
+                    child_continuous = new_vector[self.config.continuous_mask]
+                    child_discrete = new_vector[self.config.discrete_mask]
+
+                # convergence criterion is that length of stick is less than 1% in all continuous dimensions
+                # for discrete variables, parent and child should be same
+                if np.sum(parent_discrete - child_discrete) < 0.1:  # check all differences are zero
+                    parent_continuous_norm = (parent_continuous - lowers) * inv_range
+                    child_continuous_norm = (child_continuous - lowers) * inv_range
+                    # check all differences are within 1% of range
+                    if all(np.abs(parent_continuous_norm - child_continuous_norm) < 0.01):
+                        break
+
+                counter += 1
+                if counter > 150:  # convergence above should be reached in 128 iterations max
+                    self.log("constrained evolution procedure ran into trouble - using more iterations than "
+                             "theoretically expected", "ERROR")
+
+        # last parent values are the feasible ones
+        new_vector[self.config.continuous_mask] = parent_continuous
+        new_vector[self.config.discrete_mask] = parent_discrete
+
+        # ---------------------------------------------------------
+        # (3) Try reset child's categories, otherwise keep parent's
+        # ---------------------------------------------------------
+        if any(self.config.categorical_mask) is True:
+            new_vector[self.config.categorical_mask] = child_categorical
+            if self._evaluate_feasibility(new_vector) is True:
+                self._update_individual(child, new_vector)
+                return
+            else:
+                # This HAS to be feasible, otherwise there is a bug
+                new_vector[self.config.categorical_mask] = parent_categorical
+                self._update_individual(child, new_vector)
+                return
+        else:
+            self._update_individual(child, new_vector)
+            return
 
     def _custom_mutation(self, individual, indpb=0.2, continuous_scale=0.1, discrete_scale=0.1):
         """Custom mutation that can handled continuous, discrete, and categorical variables.

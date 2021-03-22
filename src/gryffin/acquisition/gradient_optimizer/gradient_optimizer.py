@@ -85,8 +85,11 @@ class GradientOptimizer(Logger):
         self.opt_dis.set_func(kernel, pos=np.arange(self.config.num_features)[pos_discrete],   highest=self.config.feature_sizes[self.pos_discrete])
         self.opt_cat.set_func(kernel, pos=np.arange(self.config.num_features)[pos_categories], highest=self.config.feature_sizes[self.pos_categories])
 
-    def optimize(self, samples, max_iter=10):
+    def optimize(self, samples, max_iter=10, verbose=False):
         """Optimise a list of samples"""
+        if verbose is True:
+            self.log(f'optimizing {len(samples)} samples', 'INFO')
+
         optimized = []
         for sample_index, sample in enumerate(samples):
             opt = self._optimize_one_sample(sample, max_iter=max_iter)

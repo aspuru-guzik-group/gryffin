@@ -150,24 +150,6 @@ class RandomSampler(Logger):
             GryffinUnknownSettingsError('did not understand settings')
         return perturbed_sample
 
-    def normal_samples(self, loc=0., scale=1., num=1):
-        samples = []
-        for param_index, param_settings in enumerate(self.config.parameters):
-            param_type = param_settings['type']
-            specs = param_settings['specifics']
-            if param_type == 'continuous':
-                param_range = specs['high'] - specs['low']
-                sampled_values = np.random.normal(0., scale * param_range, (num, 1)) + loc[param_index]
-            elif param_type == 'categorical':
-                sampled_values = self.categorical_sampler.draw(len(specs['options']), (num, 1))
-            elif param_type == 'discrete':
-                sampled_values = self.discrete_sampler.draw(specs['low'], specs['high'], (num, 1))
-            else:
-                GryffinUnknownSettingsError(f'cannot understand parameter type "{param_type}"')
-            samples.append(sampled_values)
-        samples = np.concatenate(samples, axis=1)
-        return samples
-
     @staticmethod
     def _draw_categorical(num_options, size):
         return np.random.choice(num_options, size=size).astype(np.float32)

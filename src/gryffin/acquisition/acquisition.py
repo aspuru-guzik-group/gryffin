@@ -80,7 +80,7 @@ class Acquisition(Logger):
         local_optimizer.set_func(acquisition, ignores=ignore)
 
         # run acquisition optimization
-        optimized = local_optimizer.optimize(proposals, max_iter=10)
+        optimized = local_optimizer.optimize(proposals, max_iter=10, verbose=False)
 
         if return_dict.__class__.__name__ == 'DictProxy':
             return_dict[return_index] = optimized
