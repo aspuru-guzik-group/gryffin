@@ -291,6 +291,7 @@ class AcquisitionFunction:
         self.frac_infeasible = frac_infeasible
         self.acq_min = acq_min
         self.acq_max = acq_max
+        self.inv_range = 1. / (acq_max - acq_min)
 
         # NOTE: splitting the acquisition function into multiple funcs for efficiency when priors == 0/1
         # select the relevant acquisition
@@ -324,13 +325,15 @@ class AcquisitionFunction:
         prob_infeas = self.probability_infeasible(x)  # feasibility acquisition
         acq_samp = (num + self.sampling_param) * inv_den
         # approximately normalize sample acquisition so it has same scale of prob_infeas
-        acq_samp = (acq_samp - self.acq_min) / (self.acq_max - self.acq_min)
+        acq_samp = (acq_samp - self.acq_min) * self.inv_range
         return self.feasibility_weight * prob_infeas + (1. - self.feasibility_weight) * acq_samp
 
     # if all feasible, prob_infeas always zero, so no need to estimate feasibility
     def _acquisition_all_feasible(self, x):
         num, inv_den = self.kernel_contribution(x)  # standard acquisition for samples
         acq_samp = (num + self.sampling_param) * inv_den
+        # approximately normalize sample acquisition
+        acq_samp = (acq_samp - self.acq_min) * self.inv_range
         return acq_samp
 
     # if all infeasible, acquisition is flat, so no need to compute it
