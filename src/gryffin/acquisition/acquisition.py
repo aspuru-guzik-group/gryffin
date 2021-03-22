@@ -242,10 +242,12 @@ class Acquisition(Logger):
         return local_optimizers
 
     def propose(self, best_params, kernel_contribution, probability_infeasible, frac_infeasible, sampling_param_values,
-                num_samples=200, dominant_samples=None):
+                num_samples=200, dominant_samples=None, timings_dict=None):
         """Highest-level method of this class that takes the BNN results, builds the acquisition function, optimises
         it, and returns a number of possible parameter points. These will then be used by the SampleSelector to pick
         the parameters to suggest."""
+
+        start_overall = time.time()
 
         # define optimizers
         self.local_optimizers = self._load_optimizers(num=len(sampling_param_values))
@@ -261,16 +263,28 @@ class Acquisition(Logger):
         # -------------------------------------------------------------
 
         # get random samples
+        start_random = time.time()
         random_proposals = self._propose_randomly(best_params, num_samples, dominant_samples=dominant_samples)
+        end_random = time.time()
+        self.log('[TIME]:  ' + parse_time(start_random, end_random) + '  (random proposals)', 'INFO')
 
         # run acquisition optimization starting from random samples
-        start = time.time()
+        start_opt = time.time()
         optimized_proposals = self._optimize_proposals(random_proposals, dominant_samples=dominant_samples)
-        end = time.time()
-        self.log('[TIME]:  ' + parse_time(start, end) + '  (optimizing proposals)', 'INFO')
+        end_opt = time.time()
+        self.log('[TIME]:  ' + parse_time(start_opt, end_opt) + '  (optimizing proposals)', 'INFO')
 
         extended_proposals = np.array([random_proposals for _ in range(len(sampling_param_values))])
         combined_proposals = np.concatenate((extended_proposals, optimized_proposals), axis=1)
+
+        end_overall = time.time()
+        self.log('[TIME]:  ' + parse_time(start_overall, end_overall) + '  (overall)', 'INFO')
+
+        if timings_dict is not None:
+            timings_dict['Acquisition'] = {}
+            timings_dict['Acquisition']['random_proposals'] = end_random - start_random
+            timings_dict['Acquisition']['proposals_opt'] = end_opt - start_opt
+            timings_dict['Acquisition']['overall'] = end_overall - start_overall
 
         return combined_proposals
 

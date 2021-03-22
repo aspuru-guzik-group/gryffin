@@ -31,6 +31,9 @@ class Gryffin(Logger):
         # parse constraints function
         self.known_constraints = known_constraints
 
+        # store timings for possible analysis
+        self.timings = {}
+
         np.random.seed(self.config.get('random_seed'))
         self.update_verbosity(self.config.get('verbosity'))
         self._create_folders()
@@ -160,7 +163,7 @@ class Gryffin(Logger):
             # note num_samples get multiplied by the number of input variables
             proposed_samples = self.acquisition.propose(best_params, kernel_contribution, probability_infeasible,
                                                         frac_infeasible, self.sampling_param_values, num_samples=200,
-                                                        dominant_samples=constraining_samples)
+                                                        dominant_samples=constraining_samples, timings_dict=self.timings)
 
             # note: provide `obs_params_ukwn` as it contains the params for _all_ samples, including the unfeasible ones
             samples = self.sample_selector.select(self.config.get('batches'), proposed_samples,
