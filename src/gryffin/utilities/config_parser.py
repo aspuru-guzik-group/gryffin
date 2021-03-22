@@ -132,7 +132,7 @@ class ConfigParser(Logger):
                 if setting['high'] <= setting['low']:
                     GryffinValueError('upper limit (%f) needs to be larger than the lower limit (%f) for parameter "%s"' % (setting['high'], setting['low'], setting['name']))
                 setting['options']     = np.arange(setting['low'], setting['high'] + 1, dtype=np.int32)  # +1 to use closed interval
-                setting['descriptors'] = np.arange(setting['low'], setting['high'] + 1, dtype=np.float64)  # +1 to use closed interval
+                setting['descriptors'] = np.arange(0, setting['high'] - setting['low'] + 1, dtype=np.float64)  # +1 to use closed interval
                 setting['descriptors'] = np.reshape(setting['descriptors'], (len(setting['descriptors']), 1))
                 num_cats = len(setting['options'])
 
@@ -226,6 +226,18 @@ class ConfigParser(Logger):
         return self.parameters.type
 
     @property
+    def continuous_mask(self):
+        return np.array([True if p == 'continuous' else False for p in self.param_types])
+
+    @property
+    def discrete_mask(self):
+        return np.array([True if p == 'discrete' else False for p in self.param_types])
+
+    @property
+    def categorical_mask(self):
+        return np.array([True if p == 'categorical' else False for p in self.param_types])
+
+    @property
     def param_options(self):
         options = []
         for spec in self.parameters.specifics:
@@ -234,6 +246,26 @@ class ConfigParser(Logger):
             else:
                 options.append(None)
         return options
+
+    @property
+    def param_lowers(self):
+        lowers = []
+        for spec in self.features.specifics:
+            if 'low' in spec:
+                lowers.append(spec['low'])
+            else:
+                lowers.append(0)
+        return np.array(lowers)
+
+    @property
+    def param_uppers(self):
+        uppers = []
+        for spec in self.features.specifics:
+            if 'high' in spec:
+                uppers.append(spec['high'])
+            else:
+                uppers.append(1.)
+        return np.array(uppers)
 
     @property
     def feature_descriptors(self):
@@ -262,12 +294,29 @@ class ConfigParser(Logger):
     @property
     def feature_lowers(self):
         lowers = []
-        for spec in self.features.specifics:
+        for spec, ftype in zip(self.features.specifics, self.feature_types):
             if 'low' in spec:
-                lowers.append(spec['low'])
+                if ftype == 'discrete':
+                    lowers.append(0.)  # discrete features are shifted to zero
+                else:
+                    lowers.append(spec['low'])
             else:
                 lowers.append(0)
         return np.array(lowers)
+
+    @property
+    def feature_uppers(self):
+        uppers = []
+        for spec, ftype in zip(self.features.specifics, self.feature_types):
+            if 'high' in spec:
+                if ftype == 'discrete':
+                    upper = spec['high'] - spec['low']
+                    uppers.append(upper)  # discrete features are shifted to zero
+                else:
+                    uppers.append(spec['high'])
+            else:
+                uppers.append(1.)
+        return np.array(uppers)
 
     @property
     def feature_names(self):
@@ -303,16 +352,6 @@ class ConfigParser(Logger):
     @property
     def feature_types(self):
         return self.features.type
-
-    @property
-    def feature_uppers(self):
-        uppers = []
-        for spec in self.features.specifics:
-            if 'high' in spec:
-                uppers.append(spec['high'])
-            else:
-                uppers.append(1.)
-        return np.array(uppers)
 
     @property
     def num_features(self):
