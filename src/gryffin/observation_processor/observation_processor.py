@@ -179,7 +179,7 @@ def param_dicts_to_vectors(param_dicts, param_names, param_options, param_types)
     for param_dict in param_dicts:
         param_vector = param_dict_to_vector(param_dict, param_names, param_options, param_types)
         param_vectors.append(param_vector)
-    return param_vectors
+    return np.array(param_vectors)
 
 
 def param_vectors_to_dicts(param_vectors, param_names, param_options, param_types):
@@ -208,7 +208,7 @@ def param_dict_to_vector(param_dict, param_names, param_options, param_types):
 
         param_vector.append(param)
 
-    return param_vector
+    return np.array(param_vector)
 
 
 def param_vector_to_dict(param_vector, param_names, param_options, param_types):

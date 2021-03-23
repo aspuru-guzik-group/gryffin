@@ -5,7 +5,7 @@ __author__ = 'Florian Hase'
 from .acquisition import Acquisition
 from .bayesian_network import BayesianNetwork
 from .descriptor_generator import DescriptorGenerator
-from .observation_processor import ObservationProcessor, param_vectors_to_dicts
+from .observation_processor import ObservationProcessor, param_vectors_to_dicts, param_dicts_to_vectors
 from .random_sampler import RandomSampler
 from .sample_selector import SampleSelector
 from .utilities import ConfigParser, Logger, GryffinNotFoundError
@@ -216,7 +216,7 @@ class Gryffin(Logger):
         for index, row in df.iterrows():
             d = {}
             for col in df.columns:
-                d[col] = [row[col]]
+                d[col] = row[col]
             list_of_dicts.append(d)
         return list_of_dicts
 
@@ -245,12 +245,13 @@ class Gryffin(Logger):
         else:
             surrogate = self.bayesian_network.surrogate
 
-        X = self.obs_processor.process_params(params)
+        X = param_dicts_to_vectors(params, param_names=self.config.param_names,
+                                   param_options=self.config.param_options, param_types=self.config.param_types)
         y_preds = []
         for x in X:
             y_pred = surrogate(x)
             y_preds.append(y_pred)
-        return y_preds
+        return np.array(y_preds)
 
     def get_acquisition(self, X):
         """
@@ -258,7 +259,9 @@ class Gryffin(Logger):
         """
         if isinstance(X, pd.DataFrame):
             X = self._df_to_list_of_dicts(X)
-        X_parsed = self.obs_processor.process_params(X)
+        X_parsed = param_dicts_to_vectors(X, param_names=self.config.param_names,
+                                          param_options=self.config.param_options,
+                                          param_types=self.config.param_types)
 
         # collect acquisition values
         acquisition_values = {}
@@ -269,7 +272,7 @@ class Gryffin(Logger):
                 acquisition_values_at_l.append(acq_value)
 
             lambda_value = self.sampling_strategies[batch_index]
-            acquisition_values[lambda_value] = acquisition_values_at_l
+            acquisition_values[lambda_value] = np.array(acquisition_values_at_l)
 
         return acquisition_values
 

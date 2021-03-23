@@ -335,6 +335,16 @@ class AcquisitionFunction:
         """
         return self.acquisition_function(x)
 
+    def _acquisition_times_pof(self, x):
+        num, inv_den = self.kernel_contribution(x)  # standard acquisition for samples
+        prob_infeas = self.probability_infeasible(x)  # feasibility acquisition
+        acq_samp = (num + self.sampling_param) * inv_den
+
+
+        # approximately normalize sample acquisition so it has same scale of prob_infeas
+        acq_samp = (acq_samp - self.acq_min) * self.inv_range
+        return self.feasibility_weight * prob_infeas + (1. - self.feasibility_weight) * acq_samp
+
     def _acquisition_standard(self, x):
         num, inv_den = self.kernel_contribution(x)  # standard acquisition for samples
         prob_infeas = self.probability_infeasible(x)  # feasibility acquisition
