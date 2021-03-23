@@ -7,7 +7,7 @@ import time
 import multiprocessing
 from multiprocessing import Process, Manager
 
-from gryffin.acquisition import GradientOptimizer
+from .gradient_optimizer import GradientOptimizer
 from gryffin.random_sampler import RandomSampler
 from gryffin.utilities import Logger, parse_time, GryffinUnknownSettingsError
 
@@ -243,7 +243,7 @@ class Acquisition(Logger):
         if self.optimizer_type == 'adam':
             local_optimizers = [GradientOptimizer(self.config, self.known_constraints) for _ in range(num)]
         elif self.optimizer_type == 'genetic':
-            from gryffin.acquisition import GeneticOptimizer
+            from .genetic_optimizer import GeneticOptimizer
             local_optimizers = [GeneticOptimizer(self.config, self.known_constraints) for _ in range(num)]
         else:
             GryffinUnknownSettingsError(f'Did not understand optimizer choice {self.optimizer_type}.'
