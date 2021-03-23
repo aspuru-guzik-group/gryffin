@@ -15,6 +15,7 @@ default_general_configurations = {
     'batches':                1,
     'sampling_strategies':    2,
     'softness':               0.001,  # softness of Chimera for multiobj optimizations
+    'feas_approach':          'fwa',  # "fwa"="feasibility-weighted acquisition" OR "fai"="feasibility-acquisition interpolation"
     'feas_sensitivity':       1,  # sensitivity to feasibility constraints
     'random_seed':            100691,
     'save_database':          False,

@@ -37,8 +37,15 @@ class Acquisition(Logger):
         else:
             self.num_cpus = int(self.config.get('num_cpus'))
 
-        # get sensitivity parameter and do some checks
+        # get feasibility approach and sensitivity parameter and do some checks
+        self.feas_approach = self.config.get('feas_approach')
         self.feas_sensitivity = self.config.get('feas_sensitivity')
+
+        if self.feas_approach not in ['fwa', 'fai']:
+            self.log(f'Cannot understand "feas_approach" option "{self.feas_approach}". '
+                     f'Defaulting to "fwa".', 'WARNING')
+            self.feas_approach = 'fwa'
+
         if self.feas_sensitivity < 0.0:
             self.log('Config parameter `feas_sensitivity` should be positive, applying np.abs()', 'WARNING')
             self.feas_sensitivity = np.abs(self.feas_sensitivity)
@@ -119,7 +126,8 @@ class Acquisition(Logger):
         acquisition = AcquisitionFunction(kernel_contribution=self.kernel_contribution,
                                           probability_infeasible=self.probability_infeasible,
                                           sampling_param=sampling_param, frac_infeasible=0,
-                                          acq_min=0, acq_max=1, feas_sensitivity=1.0)
+                                          acq_min=0, acq_max=1, feas_approach=self.feas_approach,
+                                          feas_sensitivity=1.0)
 
         # get params to be constrained
         if dominant_samples is not None:
@@ -174,7 +182,7 @@ class Acquisition(Logger):
                                               probability_infeasible=self.probability_infeasible,
                                               sampling_param=sampling_param, frac_infeasible=self.frac_infeasible,
                                               acq_min=acq_min, acq_max=acq_max,
-                                              feas_sensitivity=self.feas_sensitivity)
+                                              feas_approach=self.feas_approach, feas_sensitivity=self.feas_sensitivity)
 
             # save acquisition instance for future use
             if batch_index not in self.acquisition_functions.keys():
@@ -298,7 +306,7 @@ class AcquisitionFunction:
     """Acquisition function class that is used to support the class Acquisition. It selects the function to
     be optimized given the situation. It avoids re-defining the same functions multiple times in Acquisition methods"""
     def __init__(self, kernel_contribution, probability_infeasible, sampling_param, frac_infeasible,
-                 acq_min=0, acq_max=1, feas_sensitivity=1.0):
+                 acq_min=0, acq_max=1, feas_approach='fia', feas_sensitivity=1.0):
 
         self.kernel_contribution = kernel_contribution
         self.probability_infeasible = probability_infeasible
@@ -317,8 +325,13 @@ class AcquisitionFunction:
             self.acquisition_function = self._acquisition_all_infeasible
             self.feasibility_weight = None  # i.e. not used
         else:
-            self.acquisition_function = self._acquisition_standard
-            self.feasibility_weight = self.frac_infeasible ** feas_sensitivity
+            if feas_approach == 'fwa':
+                # select Acq * POF
+                self.acquisition_function = self._acquisition_times_pof
+            elif feas_approach == 'fai':
+                # select k * Acq + (1-k) * POF
+                self.acquisition_function = self._acquisition_standard
+                self.feasibility_weight = self.frac_infeasible ** feas_sensitivity
 
     def __call__(self, x):
         """Evaluate acquisition.
@@ -339,11 +352,11 @@ class AcquisitionFunction:
         num, inv_den = self.kernel_contribution(x)  # standard acquisition for samples
         prob_infeas = self.probability_infeasible(x)  # feasibility acquisition
         acq_samp = (num + self.sampling_param) * inv_den
-
-
-        # approximately normalize sample acquisition so it has same scale of prob_infeas
+        # approximately normalize sample acquisition
         acq_samp = (acq_samp - self.acq_min) * self.inv_range
-        return self.feasibility_weight * prob_infeas + (1. - self.feasibility_weight) * acq_samp
+        prob_feas = 1. - prob_infeas
+        acq_samp_maximize = 1. - acq_samp
+        return -(acq_samp_maximize * prob_feas)
 
     def _acquisition_standard(self, x):
         num, inv_den = self.kernel_contribution(x)  # standard acquisition for samples
