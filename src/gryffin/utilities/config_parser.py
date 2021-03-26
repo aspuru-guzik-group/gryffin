@@ -8,9 +8,10 @@ from . import GryffinParseError, GryffinValueError
 from . import Logger
 
 from . import ParserJSON, CategoryParser
-from . import default_general_configurations
-from . import default_database_configurations
-from . import default_model_configurations
+from . import default_general_configuration
+from . import default_database_configuration
+from . import default_regression_model_configuration
+from . import default_classification_model_configuration
 from . import safe_execute
 
 
@@ -74,7 +75,7 @@ class ConfigParser(Logger):
 
     def _parse_general(self, provided_settings):
         self.general = Configuration('general')
-        for general_key, general_value in default_general_configurations.items():
+        for general_key, general_value in default_general_configuration.items():
             if general_key in provided_settings:
                 general_value = provided_settings[general_key]
             if general_value in ['True', 'False']:
@@ -83,21 +84,37 @@ class ConfigParser(Logger):
 
     def _parse_database(self, provided_settings):
         self.database = Configuration('database')
-        for general_key, general_value in default_database_configurations.items():
+        for general_key, general_value in default_database_configuration.items():
             if general_key in provided_settings:
                 general_value = provided_settings[general_key]
             if general_value in ['True', 'False']:
                 general_value = general_value == 'True'
             self.database.add_attr(general_key, general_value)
 
-    def _parse_model(self, provided_settings):
-        self.model_details = Configuration('model')
-        for general_key, general_value in default_model_configurations.items():
+    # Note: we do not really have a regression and classification BNN. They both do the same job of building the
+    # kernels. However, the classification BNN will have more kernels/samples because it considers both feasible
+    # and infeasible points.
+    # TODO: In the future, we could run a single BNN with all samples, and extract the kernels for
+    # the feasible points to build the regression model (while using all of them for classification).
+    # Duplicating the BNN was the simplest first implementation. Plus, training the BNN is not the computational
+    # bottleneck at the moment, the optimization of the acquisition is.
+    def _parse_regression_model(self, provided_settings):
+        self.regression_bnn_details = Configuration('model')
+        for general_key, general_value in default_regression_model_configuration.items():
             if general_key in provided_settings:
                 general_value = provided_settings[general_key]
             if general_value in ['True', 'False']:
                 general_value = general_value == 'True'
-            self.model_details.add_attr(general_key, general_value)
+            self.regression_bnn_details.add_attr(general_key, general_value)
+
+    def _parse_classification_model(self, provided_settings):
+        self.classification_bnn_details = Configuration('model')
+        for general_key, general_value in default_classification_model_configuration.items():
+            if general_key in provided_settings:
+                general_value = provided_settings[general_key]
+            if general_value in ['True', 'False']:
+                general_value = general_value == 'True'
+            self.classification_bnn_details.add_attr(general_key, general_value)
 
     def _parse_parameters(self, provided_settings):
         self.parameters = Configuration('parameters')
@@ -446,10 +463,15 @@ class ConfigParser(Logger):
         else:
             self._parse_database({})
 
-        if 'model' in self.config:
-            self._parse_model(self.config['model'])
+        if 'regression_model' in self.config:
+            self._parse_regression_model(self.config['regression_model'])
         else:
-            self._parse_model({})
+            self._parse_regression_model({})
+
+        if 'classification_model' in self.config:
+            self._parse_classification_model(self.config['classification_model'])
+        else:
+            self._parse_classification_model({})
 
         self._parse_parameters(self.config['parameters'])
         self._parse_objectives(self.config['objectives'])

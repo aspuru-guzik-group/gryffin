@@ -44,7 +44,10 @@ class BayesianNetwork(Logger):
 
         # get bnn model details
         if model_details is None:
-            self.model_details = self.config.model_details.to_dict()
+            if self.classification is True:
+                self.model_details = self.config.classification_bnn_details.to_dict()
+            else:
+                self.model_details = self.config.regression_bnn_details.to_dict()
         else:
             self.model_details = model_details
 
@@ -71,6 +74,11 @@ class BayesianNetwork(Logger):
         self.inverse_volume = 1 / self.volume
 
     def sample(self, obs_params, obs_objs):
+        start = time.time()
+        if self.classification is True:
+            self.log("training a BNN for the classification surrogate", "INFO")
+        else:
+            self.log("training a BNN for the regression surrogate", "INFO")
 
         trace_kernels, obs_objs = run_tf_network(obs_params, obs_objs, self.config, self.model_details)
         self.trace_kernels = trace_kernels
@@ -85,6 +93,9 @@ class BayesianNetwork(Logger):
 
         # set sampling to true
         self.has_sampled = True
+
+        end = time.time()
+        self.log('[TIME]:  ' + parse_time(start, end) + '  (overall)', 'INFO')
 
     def build_kernels(self, descriptors):
         assert self.has_sampled
