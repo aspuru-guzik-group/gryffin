@@ -43,7 +43,7 @@ default_database_configurations = {
 # =========================
 default_model_configurations = {
     'num_epochs':  2 * 10**3,
-    'learning_rate': 0.01,
+    'learning_rate': 0.05,
     'num_draws': 10**3,
     'num_layers': 3,
     'hidden_shape': 6,
