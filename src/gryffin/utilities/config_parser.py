@@ -10,8 +10,7 @@ from . import Logger
 from . import ParserJSON, CategoryParser
 from . import default_general_configuration
 from . import default_database_configuration
-from . import default_regression_model_configuration
-from . import default_classification_model_configuration
+from . import default_model_configuration
 from . import safe_execute
 
 
@@ -91,30 +90,14 @@ class ConfigParser(Logger):
                 general_value = general_value == 'True'
             self.database.add_attr(general_key, general_value)
 
-    # Note: we do not really have a regression and classification BNN. They both do the same job of building the
-    # kernels. However, the classification BNN will have more kernels/samples because it considers both feasible
-    # and infeasible points.
-    # TODO: In the future, we could run a single BNN with all samples, and extract the kernels for
-    # the feasible points to build the regression model (while using all of them for classification).
-    # Duplicating the BNN was the simplest first implementation. Plus, training the BNN is not the computational
-    # bottleneck at the moment, the optimization of the acquisition is.
-    def _parse_regression_model(self, provided_settings):
-        self.regression_bnn_details = Configuration('model')
-        for general_key, general_value in default_regression_model_configuration.items():
+    def _parse_model(self, provided_settings):
+        self.model_details = Configuration('model')
+        for general_key, general_value in default_model_configuration.items():
             if general_key in provided_settings:
                 general_value = provided_settings[general_key]
             if general_value in ['True', 'False']:
                 general_value = general_value == 'True'
-            self.regression_bnn_details.add_attr(general_key, general_value)
-
-    def _parse_classification_model(self, provided_settings):
-        self.classification_bnn_details = Configuration('model')
-        for general_key, general_value in default_classification_model_configuration.items():
-            if general_key in provided_settings:
-                general_value = provided_settings[general_key]
-            if general_value in ['True', 'False']:
-                general_value = general_value == 'True'
-            self.classification_bnn_details.add_attr(general_key, general_value)
+            self.model_details.add_attr(general_key, general_value)
 
     def _parse_parameters(self, provided_settings):
         self.parameters = Configuration('parameters')
@@ -375,22 +358,8 @@ class ConfigParser(Logger):
         return len(self.feature_names)
 
     @property
-    def kernel_lowers(self):
-        lowers = []
-        for spec in self.kernels.specifics:
-            if 'options' in spec:
-                lowers.append(0.)
-            else:
-                lowers.append(spec['low'])
-        return np.array(lowers)
-
-    @property
     def kernel_names(self):
         return self.kernels.name
-
-    @property
-    def kernel_ranges(self):
-        return self.kernel_uppers - self.kernel_lowers
 
     @property
     def kernel_sizes(self):
@@ -412,6 +381,16 @@ class ConfigParser(Logger):
         return self.kernels.type
 
     @property
+    def kernel_lowers(self):
+        lowers = []
+        for spec in self.kernels.specifics:
+            if 'options' in spec:
+                lowers.append(0.)
+            else:
+                lowers.append(spec['low'])
+        return np.array(lowers)
+
+    @property
     def kernel_uppers(self):
         uppers = []
         for spec in self.kernels.specifics:
@@ -420,6 +399,10 @@ class ConfigParser(Logger):
             else:
                 uppers.append(spec['high'])
         return np.array(uppers)
+
+    @property
+    def kernel_ranges(self):
+        return self.kernel_uppers - self.kernel_lowers
 
     # ------------------------------------
     # Properties related to the objectives
@@ -463,15 +446,10 @@ class ConfigParser(Logger):
         else:
             self._parse_database({})
 
-        if 'regression_model' in self.config:
-            self._parse_regression_model(self.config['regression_model'])
+        if 'model' in self.config:
+            self._parse_model(self.config['model'])
         else:
-            self._parse_regression_model({})
-
-        if 'classification_model' in self.config:
-            self._parse_classification_model(self.config['classification_model'])
-        else:
-            self._parse_classification_model({})
+            self._parse_model({})
 
         self._parse_parameters(self.config['parameters'])
         self._parse_objectives(self.config['objectives'])

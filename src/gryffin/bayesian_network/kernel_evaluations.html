@@ -391,7 +391,7 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
   if (<span class='py_c_api'>PyDict_SetItem</span>(__pyx_d, __pyx_n_s_np, __pyx_t_1) &lt; 0) <span class='error_goto'>__PYX_ERR(0, 12, __pyx_L1_error)</span>
   <span class='pyx_macro_api'>__Pyx_DECREF</span>(__pyx_t_1); __pyx_t_1 = 0;
 </pre><pre class="cython line score-0">&#xA0;<span class="">013</span>: <span class="k">cimport</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span></pre>
-<pre class="cython line score-0">&#xA0;<span class="">014</span>: <span class="k">from</span> <span class="nn">libc.math</span> <span class="k">cimport</span> <span class="n">exp</span><span class="p">,</span> <span class="nb">abs</span><span class="p">,</span> <span class="nb">round</span></pre>
+<pre class="cython line score-0">&#xA0;<span class="">014</span>: <span class="k">from</span> <span class="nn">libc.math</span> <span class="k">cimport</span> <span class="n">exp</span><span class="p">,</span> <span class="nb">round</span></pre>
 <pre class="cython line score-0">&#xA0;<span class="">015</span>: </pre>
 <pre class="cython line score-0">&#xA0;<span class="">016</span>: <span class="c">#========================================================================</span></pre>
 <pre class="cython line score-0">&#xA0;<span class="">017</span>: </pre>
@@ -458,10 +458,11 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 /* … */
 struct __pyx_vtabstruct_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator {
   __Pyx_memviewslice (*_probs)(struct __pyx_obj_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator *, __Pyx_memviewslice);
-  PyObject *(*get_kernel)(struct __pyx_obj_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator *, PyArrayObject *, int __pyx_skip_dispatch);
+  PyObject *(*get_kernel_contrib)(struct __pyx_obj_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator *, PyArrayObject *, int __pyx_skip_dispatch);
   PyObject *(*get_regression_surrogate)(struct __pyx_obj_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator *, PyArrayObject *, int __pyx_skip_dispatch);
   PyObject *(*get_binary_kernel_densities)(struct __pyx_obj_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator *, PyArrayObject *, int __pyx_skip_dispatch);
   PyObject *(*get_probability_of_infeasibility)(struct __pyx_obj_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator *, PyArrayObject *, double, double, int __pyx_skip_dispatch);
+  PyObject *(*get_probability_of_feasibility)(struct __pyx_obj_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator *, PyArrayObject *, double, double, int __pyx_skip_dispatch);
 };
 static struct __pyx_vtabstruct_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator *__pyx_vtabptr_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator;
 
@@ -1013,9 +1014,9 @@ static int __pyx_pf_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEva
   __pyx_r = __pyx_v_probs;
   goto __pyx_L0;
 </pre><pre class="cython line score-0">&#xA0;<span class="">127</span>: </pre>
-<pre class="cython line score-33" onclick="(function(s){s.display=s.display==='block'?'none':'block'})(this.nextElementSibling.style)">+<span class="">128</span>:     <span class="k">cpdef</span> <span class="nf">get_kernel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="n">sample</span><span class="p">):</span></pre>
-<pre class='cython code score-33 '>static PyObject *__pyx_pw_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_3get_kernel(PyObject *__pyx_v_self, PyObject *__pyx_v_sample); /*proto*/
-static PyObject *__pyx_f_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_get_kernel(struct __pyx_obj_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator *__pyx_v_self, PyArrayObject *__pyx_v_sample, int __pyx_skip_dispatch) {
+<pre class="cython line score-33" onclick="(function(s){s.display=s.display==='block'?'none':'block'})(this.nextElementSibling.style)">+<span class="">128</span>:     <span class="k">cpdef</span> <span class="nf">get_kernel_contrib</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="n">sample</span><span class="p">):</span></pre>
+<pre class='cython code score-33 '>static PyObject *__pyx_pw_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_3get_kernel_contrib(PyObject *__pyx_v_self, PyObject *__pyx_v_sample); /*proto*/
+static PyObject *__pyx_f_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_get_kernel_contrib(struct __pyx_obj_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator *__pyx_v_self, PyArrayObject *__pyx_v_sample, int __pyx_skip_dispatch) {
   int __pyx_v_obs_index;
   double __pyx_v_temp_0;
   double __pyx_v_temp_1;
@@ -1028,8 +1029,8 @@ static PyObject *__pyx_f_7gryffin_16bayesian_network_18kernel_evaluations_15Kern
   PyObject *__pyx_r = NULL;
   <span class='trace'>__Pyx_TraceDeclarations</span>
   <span class='refnanny'>__Pyx_RefNannyDeclarations</span>
-  <span class='refnanny'>__Pyx_RefNannySetupContext</span>("get_kernel", 0);
-  <span class='trace'>__Pyx_TraceCall</span>("get_kernel", __pyx_f[0], 128, 0, <span class='error_goto'>__PYX_ERR(0, 128, __pyx_L1_error)</span>);
+  <span class='refnanny'>__Pyx_RefNannySetupContext</span>("get_kernel_contrib", 0);
+  <span class='trace'>__Pyx_TraceCall</span>("get_kernel_contrib", __pyx_f[0], 128, 0, <span class='error_goto'>__PYX_ERR(0, 128, __pyx_L1_error)</span>);
   /* Check if called by wrapper */
   if (unlikely(__pyx_skip_dispatch)) ;
   /* Check if overridden in Python */
@@ -1039,9 +1040,9 @@ static PyObject *__pyx_f_7gryffin_16bayesian_network_18kernel_evaluations_15Kern
     if (unlikely(!__Pyx_object_dict_version_matches(((PyObject *)__pyx_v_self), __pyx_tp_dict_version, __pyx_obj_dict_version))) {
       PY_UINT64_T __pyx_type_dict_guard = __Pyx_get_tp_dict_version(((PyObject *)__pyx_v_self));
       #endif
-      __pyx_t_1 = <span class='pyx_c_api'>__Pyx_PyObject_GetAttrStr</span>(((PyObject *)__pyx_v_self), __pyx_n_s_get_kernel);<span class='error_goto'> if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 128, __pyx_L1_error)</span>
+      __pyx_t_1 = <span class='pyx_c_api'>__Pyx_PyObject_GetAttrStr</span>(((PyObject *)__pyx_v_self), __pyx_n_s_get_kernel_contrib);<span class='error_goto'> if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 128, __pyx_L1_error)</span>
       <span class='refnanny'>__Pyx_GOTREF</span>(__pyx_t_1);
-      if (!PyCFunction_Check(__pyx_t_1) || (PyCFunction_GET_FUNCTION(__pyx_t_1) != (PyCFunction)(void*)__pyx_pw_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_3get_kernel)) {
+      if (!PyCFunction_Check(__pyx_t_1) || (PyCFunction_GET_FUNCTION(__pyx_t_1) != (PyCFunction)(void*)__pyx_pw_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_3get_kernel_contrib)) {
         <span class='pyx_macro_api'>__Pyx_XDECREF</span>(__pyx_r);
         <span class='pyx_macro_api'>__Pyx_INCREF</span>(__pyx_t_1);
         __pyx_t_3 = __pyx_t_1; __pyx_t_4 = NULL;
@@ -1084,7 +1085,7 @@ static PyObject *__pyx_f_7gryffin_16bayesian_network_18kernel_evaluations_15Kern
   <span class='pyx_macro_api'>__Pyx_XDECREF</span>(__pyx_t_3);
   <span class='pyx_macro_api'>__Pyx_XDECREF</span>(__pyx_t_4);
   __PYX_XDEC_MEMVIEW(&amp;__pyx_t_5, 1);
-  <span class='pyx_c_api'>__Pyx_AddTraceback</span>("gryffin.bayesian_network.kernel_evaluations.KernelEvaluator.get_kernel", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  <span class='pyx_c_api'>__Pyx_AddTraceback</span>("gryffin.bayesian_network.kernel_evaluations.KernelEvaluator.get_kernel_contrib", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = 0;
   __pyx_L0:;
   __PYX_XDEC_MEMVIEW(&amp;__pyx_v_sample_memview, 1);
@@ -1097,13 +1098,13 @@ static PyObject *__pyx_f_7gryffin_16bayesian_network_18kernel_evaluations_15Kern
 }
 
 /* Python wrapper */
-static PyObject *__pyx_pw_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_3get_kernel(PyObject *__pyx_v_self, PyObject *__pyx_v_sample); /*proto*/
-static PyObject *__pyx_pw_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_3get_kernel(PyObject *__pyx_v_self, PyObject *__pyx_v_sample) {
+static PyObject *__pyx_pw_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_3get_kernel_contrib(PyObject *__pyx_v_self, PyObject *__pyx_v_sample); /*proto*/
+static PyObject *__pyx_pw_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_3get_kernel_contrib(PyObject *__pyx_v_self, PyObject *__pyx_v_sample) {
   PyObject *__pyx_r = 0;
   <span class='refnanny'>__Pyx_RefNannyDeclarations</span>
-  <span class='refnanny'>__Pyx_RefNannySetupContext</span>("get_kernel (wrapper)", 0);
+  <span class='refnanny'>__Pyx_RefNannySetupContext</span>("get_kernel_contrib (wrapper)", 0);
   if (unlikely(!<span class='pyx_c_api'>__Pyx_ArgTypeTest</span>(((PyObject *)__pyx_v_sample), __pyx_ptype_5numpy_ndarray, 1, "sample", 0))) <span class='error_goto'>__PYX_ERR(0, 128, __pyx_L1_error)</span>
-  __pyx_r = __pyx_pf_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_2get_kernel(((struct __pyx_obj_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator *)__pyx_v_self), ((PyArrayObject *)__pyx_v_sample));
+  __pyx_r = __pyx_pf_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_2get_kernel_contrib(((struct __pyx_obj_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator *)__pyx_v_self), ((PyArrayObject *)__pyx_v_sample));
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
   int __pyx_clineno = 0;
@@ -1117,14 +1118,14 @@ static PyObject *__pyx_pw_7gryffin_16bayesian_network_18kernel_evaluations_15Ker
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_2get_kernel(struct __pyx_obj_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator *__pyx_v_self, PyArrayObject *__pyx_v_sample) {
+static PyObject *__pyx_pf_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_2get_kernel_contrib(struct __pyx_obj_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator *__pyx_v_self, PyArrayObject *__pyx_v_sample) {
   PyObject *__pyx_r = NULL;
   <span class='trace'>__Pyx_TraceDeclarations</span>
   <span class='refnanny'>__Pyx_RefNannyDeclarations</span>
-  <span class='refnanny'>__Pyx_RefNannySetupContext</span>("get_kernel", 0);
-  <span class='trace'>__Pyx_TraceCall</span>("get_kernel (wrapper)", __pyx_f[0], 128, 0, <span class='error_goto'>__PYX_ERR(0, 128, __pyx_L1_error)</span>);
+  <span class='refnanny'>__Pyx_RefNannySetupContext</span>("get_kernel_contrib", 0);
+  <span class='trace'>__Pyx_TraceCall</span>("get_kernel_contrib (wrapper)", __pyx_f[0], 128, 0, <span class='error_goto'>__PYX_ERR(0, 128, __pyx_L1_error)</span>);
   <span class='pyx_macro_api'>__Pyx_XDECREF</span>(__pyx_r);
-  __pyx_t_1 = __pyx_f_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_get_kernel(__pyx_v_self, __pyx_v_sample, 1);<span class='error_goto'> if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 128, __pyx_L1_error)</span>
+  __pyx_t_1 = __pyx_f_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_get_kernel_contrib(__pyx_v_self, __pyx_v_sample, 1);<span class='error_goto'> if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 128, __pyx_L1_error)</span>
   <span class='refnanny'>__Pyx_GOTREF</span>(__pyx_t_1);
   __pyx_r = __pyx_t_1;
   __pyx_t_1 = 0;
@@ -1133,7 +1134,7 @@ static PyObject *__pyx_pf_7gryffin_16bayesian_network_18kernel_evaluations_15Ker
   /* function exit code */
   __pyx_L1_error:;
   <span class='pyx_macro_api'>__Pyx_XDECREF</span>(__pyx_t_1);
-  <span class='pyx_c_api'>__Pyx_AddTraceback</span>("gryffin.bayesian_network.kernel_evaluations.KernelEvaluator.get_kernel", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  <span class='pyx_c_api'>__Pyx_AddTraceback</span>("gryffin.bayesian_network.kernel_evaluations.KernelEvaluator.get_kernel_contrib", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = NULL;
   __pyx_L0:;
   <span class='refnanny'>__Pyx_XGIVEREF</span>(__pyx_r);
@@ -2159,6 +2160,363 @@ static PyObject *__pyx_pf_7gryffin_16bayesian_network_18kernel_evaluations_15Ker
 <pre class="cython line score-6" onclick="(function(s){s.display=s.display==='block'?'none':'block'})(this.nextElementSibling.style)">+<span class="">225</span>:         <span class="k">return</span> <span class="n">prob_infeas</span></pre>
 <pre class='cython code score-6 '>  <span class='pyx_macro_api'>__Pyx_XDECREF</span>(__pyx_r);
   __pyx_t_2 = <span class='py_c_api'>PyFloat_FromDouble</span>(__pyx_v_prob_infeas);<span class='error_goto'> if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 225, __pyx_L1_error)</span>
+  <span class='refnanny'>__Pyx_GOTREF</span>(__pyx_t_2);
+  __pyx_r = __pyx_t_2;
+  __pyx_t_2 = 0;
+  goto __pyx_L0;
+</pre><pre class="cython line score-0">&#xA0;<span class="">226</span>: </pre>
+<pre class="cython line score-122" onclick="(function(s){s.display=s.display==='block'?'none':'block'})(this.nextElementSibling.style)">+<span class="">227</span>:     <span class="k">cpdef</span> <span class="nf">get_probability_of_feasibility</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="n">sample</span><span class="p">,</span> <span class="n">double</span> <span class="n">log_prior_0</span><span class="p">,</span> <span class="n">double</span> <span class="n">log_prior_1</span><span class="p">):</span></pre>
+<pre class='cython code score-122 '>static PyObject *__pyx_pw_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_11get_probability_of_feasibility(PyObject *__pyx_v_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
+static PyObject *__pyx_f_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_get_probability_of_feasibility(struct __pyx_obj_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator *__pyx_v_self, PyArrayObject *__pyx_v_sample, double __pyx_v_log_prior_0, double __pyx_v_log_prior_1, int __pyx_skip_dispatch) {
+  double __pyx_v_prob_feas;
+  double __pyx_v_log_density_0;
+  double __pyx_v_log_density_1;
+  double __pyx_v_posterior_0;
+  double __pyx_v_posterior_1;
+  PyObject *__pyx_r = NULL;
+  <span class='trace'>__Pyx_TraceDeclarations</span>
+  <span class='refnanny'>__Pyx_RefNannyDeclarations</span>
+  <span class='refnanny'>__Pyx_RefNannySetupContext</span>("get_probability_of_feasibility", 0);
+  <span class='trace'>__Pyx_TraceCall</span>("get_probability_of_feasibility", __pyx_f[0], 227, 0, <span class='error_goto'>__PYX_ERR(0, 227, __pyx_L1_error)</span>);
+  /* Check if called by wrapper */
+  if (unlikely(__pyx_skip_dispatch)) ;
+  /* Check if overridden in Python */
+  else if (unlikely((Py_TYPE(((PyObject *)__pyx_v_self))-&gt;tp_dictoffset != 0) || (Py_TYPE(((PyObject *)__pyx_v_self))-&gt;tp_flags &amp; (Py_TPFLAGS_IS_ABSTRACT | Py_TPFLAGS_HEAPTYPE)))) {
+    #if CYTHON_USE_DICT_VERSIONS &amp;&amp; CYTHON_USE_PYTYPE_LOOKUP &amp;&amp; CYTHON_USE_TYPE_SLOTS
+    static PY_UINT64_T __pyx_tp_dict_version = __PYX_DICT_VERSION_INIT, __pyx_obj_dict_version = __PYX_DICT_VERSION_INIT;
+    if (unlikely(!__Pyx_object_dict_version_matches(((PyObject *)__pyx_v_self), __pyx_tp_dict_version, __pyx_obj_dict_version))) {
+      PY_UINT64_T __pyx_type_dict_guard = __Pyx_get_tp_dict_version(((PyObject *)__pyx_v_self));
+      #endif
+      __pyx_t_1 = <span class='pyx_c_api'>__Pyx_PyObject_GetAttrStr</span>(((PyObject *)__pyx_v_self), __pyx_n_s_get_probability_of_feasibility);<span class='error_goto'> if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 227, __pyx_L1_error)</span>
+      <span class='refnanny'>__Pyx_GOTREF</span>(__pyx_t_1);
+      if (!PyCFunction_Check(__pyx_t_1) || (PyCFunction_GET_FUNCTION(__pyx_t_1) != (PyCFunction)(void*)__pyx_pw_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_11get_probability_of_feasibility)) {
+        <span class='pyx_macro_api'>__Pyx_XDECREF</span>(__pyx_r);
+        __pyx_t_3 = <span class='py_c_api'>PyFloat_FromDouble</span>(__pyx_v_log_prior_0);<span class='error_goto'> if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 227, __pyx_L1_error)</span>
+        <span class='refnanny'>__Pyx_GOTREF</span>(__pyx_t_3);
+        __pyx_t_4 = <span class='py_c_api'>PyFloat_FromDouble</span>(__pyx_v_log_prior_1);<span class='error_goto'> if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 227, __pyx_L1_error)</span>
+        <span class='refnanny'>__Pyx_GOTREF</span>(__pyx_t_4);
+        <span class='pyx_macro_api'>__Pyx_INCREF</span>(__pyx_t_1);
+        __pyx_t_5 = __pyx_t_1; __pyx_t_6 = NULL;
+        __pyx_t_7 = 0;
+        if (CYTHON_UNPACK_METHODS &amp;&amp; unlikely(<span class='py_c_api'>PyMethod_Check</span>(__pyx_t_5))) {
+          __pyx_t_6 = <span class='py_macro_api'>PyMethod_GET_SELF</span>(__pyx_t_5);
+          if (likely(__pyx_t_6)) {
+            PyObject* function = <span class='py_macro_api'>PyMethod_GET_FUNCTION</span>(__pyx_t_5);
+            <span class='pyx_macro_api'>__Pyx_INCREF</span>(__pyx_t_6);
+            <span class='pyx_macro_api'>__Pyx_INCREF</span>(function);
+            <span class='pyx_macro_api'>__Pyx_DECREF_SET</span>(__pyx_t_5, function);
+            __pyx_t_7 = 1;
+          }
+        }
+        #if CYTHON_FAST_PYCALL
+        if (<span class='py_c_api'>PyFunction_Check</span>(__pyx_t_5)) {
+          PyObject *__pyx_temp[4] = {__pyx_t_6, ((PyObject *)__pyx_v_sample), __pyx_t_3, __pyx_t_4};
+          __pyx_t_2 = <span class='pyx_c_api'>__Pyx_PyFunction_FastCall</span>(__pyx_t_5, __pyx_temp+1-__pyx_t_7, 3+__pyx_t_7);<span class='error_goto'> if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 227, __pyx_L1_error)</span>
+          <span class='pyx_macro_api'>__Pyx_XDECREF</span>(__pyx_t_6); __pyx_t_6 = 0;
+          <span class='refnanny'>__Pyx_GOTREF</span>(__pyx_t_2);
+          <span class='pyx_macro_api'>__Pyx_DECREF</span>(__pyx_t_3); __pyx_t_3 = 0;
+          <span class='pyx_macro_api'>__Pyx_DECREF</span>(__pyx_t_4); __pyx_t_4 = 0;
+        } else
+        #endif
+        #if CYTHON_FAST_PYCCALL
+        if (<span class='pyx_c_api'>__Pyx_PyFastCFunction_Check</span>(__pyx_t_5)) {
+          PyObject *__pyx_temp[4] = {__pyx_t_6, ((PyObject *)__pyx_v_sample), __pyx_t_3, __pyx_t_4};
+          __pyx_t_2 = <span class='pyx_c_api'>__Pyx_PyCFunction_FastCall</span>(__pyx_t_5, __pyx_temp+1-__pyx_t_7, 3+__pyx_t_7);<span class='error_goto'> if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 227, __pyx_L1_error)</span>
+          <span class='pyx_macro_api'>__Pyx_XDECREF</span>(__pyx_t_6); __pyx_t_6 = 0;
+          <span class='refnanny'>__Pyx_GOTREF</span>(__pyx_t_2);
+          <span class='pyx_macro_api'>__Pyx_DECREF</span>(__pyx_t_3); __pyx_t_3 = 0;
+          <span class='pyx_macro_api'>__Pyx_DECREF</span>(__pyx_t_4); __pyx_t_4 = 0;
+        } else
+        #endif
+        {
+          __pyx_t_8 = <span class='py_c_api'>PyTuple_New</span>(3+__pyx_t_7);<span class='error_goto'> if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 227, __pyx_L1_error)</span>
+          <span class='refnanny'>__Pyx_GOTREF</span>(__pyx_t_8);
+          if (__pyx_t_6) {
+            <span class='refnanny'>__Pyx_GIVEREF</span>(__pyx_t_6); <span class='py_macro_api'>PyTuple_SET_ITEM</span>(__pyx_t_8, 0, __pyx_t_6); __pyx_t_6 = NULL;
+          }
+          <span class='pyx_macro_api'>__Pyx_INCREF</span>(((PyObject *)__pyx_v_sample));
+          <span class='refnanny'>__Pyx_GIVEREF</span>(((PyObject *)__pyx_v_sample));
+          <span class='py_macro_api'>PyTuple_SET_ITEM</span>(__pyx_t_8, 0+__pyx_t_7, ((PyObject *)__pyx_v_sample));
+          <span class='refnanny'>__Pyx_GIVEREF</span>(__pyx_t_3);
+          <span class='py_macro_api'>PyTuple_SET_ITEM</span>(__pyx_t_8, 1+__pyx_t_7, __pyx_t_3);
+          <span class='refnanny'>__Pyx_GIVEREF</span>(__pyx_t_4);
+          <span class='py_macro_api'>PyTuple_SET_ITEM</span>(__pyx_t_8, 2+__pyx_t_7, __pyx_t_4);
+          __pyx_t_3 = 0;
+          __pyx_t_4 = 0;
+          __pyx_t_2 = <span class='pyx_c_api'>__Pyx_PyObject_Call</span>(__pyx_t_5, __pyx_t_8, NULL);<span class='error_goto'> if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 227, __pyx_L1_error)</span>
+          <span class='refnanny'>__Pyx_GOTREF</span>(__pyx_t_2);
+          <span class='pyx_macro_api'>__Pyx_DECREF</span>(__pyx_t_8); __pyx_t_8 = 0;
+        }
+        <span class='pyx_macro_api'>__Pyx_DECREF</span>(__pyx_t_5); __pyx_t_5 = 0;
+        __pyx_r = __pyx_t_2;
+        __pyx_t_2 = 0;
+        <span class='pyx_macro_api'>__Pyx_DECREF</span>(__pyx_t_1); __pyx_t_1 = 0;
+        goto __pyx_L0;
+      }
+      #if CYTHON_USE_DICT_VERSIONS &amp;&amp; CYTHON_USE_PYTYPE_LOOKUP &amp;&amp; CYTHON_USE_TYPE_SLOTS
+      __pyx_tp_dict_version = __Pyx_get_tp_dict_version(((PyObject *)__pyx_v_self));
+      __pyx_obj_dict_version = __Pyx_get_object_dict_version(((PyObject *)__pyx_v_self));
+      if (unlikely(__pyx_type_dict_guard != __pyx_tp_dict_version)) {
+        __pyx_tp_dict_version = __pyx_obj_dict_version = __PYX_DICT_VERSION_INIT;
+      }
+      #endif
+      <span class='pyx_macro_api'>__Pyx_DECREF</span>(__pyx_t_1); __pyx_t_1 = 0;
+      #if CYTHON_USE_DICT_VERSIONS &amp;&amp; CYTHON_USE_PYTYPE_LOOKUP &amp;&amp; CYTHON_USE_TYPE_SLOTS
+    }
+    #endif
+  }
+/* … */
+  /* function exit code */
+  __pyx_L1_error:;
+  <span class='pyx_macro_api'>__Pyx_XDECREF</span>(__pyx_t_1);
+  <span class='pyx_macro_api'>__Pyx_XDECREF</span>(__pyx_t_2);
+  <span class='pyx_macro_api'>__Pyx_XDECREF</span>(__pyx_t_3);
+  <span class='pyx_macro_api'>__Pyx_XDECREF</span>(__pyx_t_4);
+  <span class='pyx_macro_api'>__Pyx_XDECREF</span>(__pyx_t_5);
+  <span class='pyx_macro_api'>__Pyx_XDECREF</span>(__pyx_t_6);
+  <span class='pyx_macro_api'>__Pyx_XDECREF</span>(__pyx_t_8);
+  <span class='pyx_c_api'>__Pyx_AddTraceback</span>("gryffin.bayesian_network.kernel_evaluations.KernelEvaluator.get_probability_of_feasibility", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __pyx_r = 0;
+  __pyx_L0:;
+  <span class='refnanny'>__Pyx_XGIVEREF</span>(__pyx_r);
+  <span class='trace'>__Pyx_TraceReturn</span>(__pyx_r, 0);
+  <span class='refnanny'>__Pyx_RefNannyFinishContext</span>();
+  return __pyx_r;
+}
+
+/* Python wrapper */
+static PyObject *__pyx_pw_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_11get_probability_of_feasibility(PyObject *__pyx_v_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
+static PyObject *__pyx_pw_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_11get_probability_of_feasibility(PyObject *__pyx_v_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
+  PyArrayObject *__pyx_v_sample = 0;
+  double __pyx_v_log_prior_0;
+  double __pyx_v_log_prior_1;
+  PyObject *__pyx_r = 0;
+  <span class='refnanny'>__Pyx_RefNannyDeclarations</span>
+  <span class='refnanny'>__Pyx_RefNannySetupContext</span>("get_probability_of_feasibility (wrapper)", 0);
+  {
+    static PyObject **__pyx_pyargnames[] = {&amp;__pyx_n_s_sample,&amp;__pyx_n_s_log_prior_0,&amp;__pyx_n_s_log_prior_1,0};
+    PyObject* values[3] = {0,0,0};
+    if (unlikely(__pyx_kwds)) {
+      Py_ssize_t kw_args;
+      const Py_ssize_t pos_args = <span class='py_macro_api'>PyTuple_GET_SIZE</span>(__pyx_args);
+      switch (pos_args) {
+        case  3: values[2] = <span class='py_macro_api'>PyTuple_GET_ITEM</span>(__pyx_args, 2);
+        CYTHON_FALLTHROUGH;
+        case  2: values[1] = <span class='py_macro_api'>PyTuple_GET_ITEM</span>(__pyx_args, 1);
+        CYTHON_FALLTHROUGH;
+        case  1: values[0] = <span class='py_macro_api'>PyTuple_GET_ITEM</span>(__pyx_args, 0);
+        CYTHON_FALLTHROUGH;
+        case  0: break;
+        default: goto __pyx_L5_argtuple_error;
+      }
+      kw_args = <span class='py_c_api'>PyDict_Size</span>(__pyx_kwds);
+      switch (pos_args) {
+        case  0:
+        if (likely((values[0] = <span class='pyx_c_api'>__Pyx_PyDict_GetItemStr</span>(__pyx_kwds, __pyx_n_s_sample)) != 0)) kw_args--;
+        else goto __pyx_L5_argtuple_error;
+        CYTHON_FALLTHROUGH;
+        case  1:
+        if (likely((values[1] = <span class='pyx_c_api'>__Pyx_PyDict_GetItemStr</span>(__pyx_kwds, __pyx_n_s_log_prior_0)) != 0)) kw_args--;
+        else {
+          <span class='pyx_c_api'>__Pyx_RaiseArgtupleInvalid</span>("get_probability_of_feasibility", 1, 3, 3, 1); <span class='error_goto'>__PYX_ERR(0, 227, __pyx_L3_error)</span>
+        }
+        CYTHON_FALLTHROUGH;
+        case  2:
+        if (likely((values[2] = <span class='pyx_c_api'>__Pyx_PyDict_GetItemStr</span>(__pyx_kwds, __pyx_n_s_log_prior_1)) != 0)) kw_args--;
+        else {
+          <span class='pyx_c_api'>__Pyx_RaiseArgtupleInvalid</span>("get_probability_of_feasibility", 1, 3, 3, 2); <span class='error_goto'>__PYX_ERR(0, 227, __pyx_L3_error)</span>
+        }
+      }
+      if (unlikely(kw_args &gt; 0)) {
+        if (unlikely(<span class='pyx_c_api'>__Pyx_ParseOptionalKeywords</span>(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "get_probability_of_feasibility") &lt; 0)) <span class='error_goto'>__PYX_ERR(0, 227, __pyx_L3_error)</span>
+      }
+    } else if (<span class='py_macro_api'>PyTuple_GET_SIZE</span>(__pyx_args) != 3) {
+      goto __pyx_L5_argtuple_error;
+    } else {
+      values[0] = <span class='py_macro_api'>PyTuple_GET_ITEM</span>(__pyx_args, 0);
+      values[1] = <span class='py_macro_api'>PyTuple_GET_ITEM</span>(__pyx_args, 1);
+      values[2] = <span class='py_macro_api'>PyTuple_GET_ITEM</span>(__pyx_args, 2);
+    }
+    __pyx_v_sample = ((PyArrayObject *)values[0]);
+    __pyx_v_log_prior_0 = __pyx_<span class='py_c_api'>PyFloat_AsDouble</span>(values[1]); if (unlikely((__pyx_v_log_prior_0 == (double)-1) &amp;&amp; <span class='py_c_api'>PyErr_Occurred</span>())) <span class='error_goto'>__PYX_ERR(0, 227, __pyx_L3_error)</span>
+    __pyx_v_log_prior_1 = __pyx_<span class='py_c_api'>PyFloat_AsDouble</span>(values[2]); if (unlikely((__pyx_v_log_prior_1 == (double)-1) &amp;&amp; <span class='py_c_api'>PyErr_Occurred</span>())) <span class='error_goto'>__PYX_ERR(0, 227, __pyx_L3_error)</span>
+  }
+  goto __pyx_L4_argument_unpacking_done;
+  __pyx_L5_argtuple_error:;
+  <span class='pyx_c_api'>__Pyx_RaiseArgtupleInvalid</span>("get_probability_of_feasibility", 1, 3, 3, <span class='py_macro_api'>PyTuple_GET_SIZE</span>(__pyx_args)); <span class='error_goto'>__PYX_ERR(0, 227, __pyx_L3_error)</span>
+  __pyx_L3_error:;
+  <span class='pyx_c_api'>__Pyx_AddTraceback</span>("gryffin.bayesian_network.kernel_evaluations.KernelEvaluator.get_probability_of_feasibility", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  <span class='refnanny'>__Pyx_RefNannyFinishContext</span>();
+  return NULL;
+  __pyx_L4_argument_unpacking_done:;
+  if (unlikely(!<span class='pyx_c_api'>__Pyx_ArgTypeTest</span>(((PyObject *)__pyx_v_sample), __pyx_ptype_5numpy_ndarray, 1, "sample", 0))) <span class='error_goto'>__PYX_ERR(0, 227, __pyx_L1_error)</span>
+  __pyx_r = __pyx_pf_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_10get_probability_of_feasibility(((struct __pyx_obj_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator *)__pyx_v_self), __pyx_v_sample, __pyx_v_log_prior_0, __pyx_v_log_prior_1);
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
+
+  /* function exit code */
+  goto __pyx_L0;
+  __pyx_L1_error:;
+  __pyx_r = NULL;
+  __pyx_L0:;
+  <span class='refnanny'>__Pyx_RefNannyFinishContext</span>();
+  return __pyx_r;
+}
+
+static PyObject *__pyx_pf_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_10get_probability_of_feasibility(struct __pyx_obj_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator *__pyx_v_self, PyArrayObject *__pyx_v_sample, double __pyx_v_log_prior_0, double __pyx_v_log_prior_1) {
+  PyObject *__pyx_r = NULL;
+  <span class='trace'>__Pyx_TraceDeclarations</span>
+  <span class='refnanny'>__Pyx_RefNannyDeclarations</span>
+  <span class='refnanny'>__Pyx_RefNannySetupContext</span>("get_probability_of_feasibility", 0);
+  <span class='trace'>__Pyx_TraceCall</span>("get_probability_of_feasibility (wrapper)", __pyx_f[0], 227, 0, <span class='error_goto'>__PYX_ERR(0, 227, __pyx_L1_error)</span>);
+  <span class='pyx_macro_api'>__Pyx_XDECREF</span>(__pyx_r);
+  __pyx_t_1 = __pyx_f_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_get_probability_of_feasibility(__pyx_v_self, __pyx_v_sample, __pyx_v_log_prior_0, __pyx_v_log_prior_1, 1);<span class='error_goto'> if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 227, __pyx_L1_error)</span>
+  <span class='refnanny'>__Pyx_GOTREF</span>(__pyx_t_1);
+  __pyx_r = __pyx_t_1;
+  __pyx_t_1 = 0;
+  goto __pyx_L0;
+
+  /* function exit code */
+  __pyx_L1_error:;
+  <span class='pyx_macro_api'>__Pyx_XDECREF</span>(__pyx_t_1);
+  <span class='pyx_c_api'>__Pyx_AddTraceback</span>("gryffin.bayesian_network.kernel_evaluations.KernelEvaluator.get_probability_of_feasibility", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __pyx_r = NULL;
+  __pyx_L0:;
+  <span class='refnanny'>__Pyx_XGIVEREF</span>(__pyx_r);
+  <span class='trace'>__Pyx_TraceReturn</span>(__pyx_r, 0);
+  <span class='refnanny'>__Pyx_RefNannyFinishContext</span>();
+  return __pyx_r;
+}
+</pre><pre class="cython line score-0">&#xA0;<span class="">228</span>: </pre>
+<pre class="cython line score-0">&#xA0;<span class="">229</span>:         <span class="c"># 0 = feasible, 1 = infeasible</span></pre>
+<pre class="cython line score-0">&#xA0;<span class="">230</span>:         <span class="k">cdef</span> <span class="kt">double</span> <span class="nf">prob_feas</span></pre>
+<pre class="cython line score-0">&#xA0;<span class="">231</span>:         <span class="k">cdef</span> <span class="kt">double</span> <span class="nf">log_density_0</span></pre>
+<pre class="cython line score-0">&#xA0;<span class="">232</span>:         <span class="k">cdef</span> <span class="kt">double</span> <span class="nf">log_density_1</span></pre>
+<pre class="cython line score-0">&#xA0;<span class="">233</span>:         <span class="k">cdef</span> <span class="kt">double</span> <span class="nf">posterior_0</span></pre>
+<pre class="cython line score-0">&#xA0;<span class="">234</span>:         <span class="k">cdef</span> <span class="kt">double</span> <span class="nf">posterior_1</span></pre>
+<pre class="cython line score-0">&#xA0;<span class="">235</span>: </pre>
+<pre class="cython line score-0">&#xA0;<span class="">236</span>:         <span class="c"># get log probabilities</span></pre>
+<pre class="cython line score-66" onclick="(function(s){s.display=s.display==='block'?'none':'block'})(this.nextElementSibling.style)">+<span class="">237</span>:         <span class="n">log_density_0</span><span class="p">,</span> <span class="n">log_density_1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_binary_kernel_densities</span><span class="p">(</span><span class="n">sample</span><span class="p">)</span></pre>
+<pre class='cython code score-66 '>  __pyx_t_1 = ((struct __pyx_vtabstruct_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator *)__pyx_v_self-&gt;__pyx_vtab)-&gt;get_binary_kernel_densities(__pyx_v_self, __pyx_v_sample, 0);<span class='error_goto'> if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 237, __pyx_L1_error)</span>
+  <span class='refnanny'>__Pyx_GOTREF</span>(__pyx_t_1);
+  if ((likely(<span class='py_c_api'>PyTuple_CheckExact</span>(__pyx_t_1))) || (<span class='py_c_api'>PyList_CheckExact</span>(__pyx_t_1))) {
+    PyObject* sequence = __pyx_t_1;
+    Py_ssize_t size = <span class='pyx_c_api'>__Pyx_PySequence_SIZE</span>(sequence);
+    if (unlikely(size != 2)) {
+      if (size &gt; 2) <span class='pyx_c_api'>__Pyx_RaiseTooManyValuesError</span>(2);
+      else if (size &gt;= 0) <span class='pyx_c_api'>__Pyx_RaiseNeedMoreValuesError</span>(size);
+      <span class='error_goto'>__PYX_ERR(0, 237, __pyx_L1_error)</span>
+    }
+    #if CYTHON_ASSUME_SAFE_MACROS &amp;&amp; !CYTHON_AVOID_BORROWED_REFS
+    if (likely(<span class='py_c_api'>PyTuple_CheckExact</span>(sequence))) {
+      __pyx_t_2 = <span class='py_macro_api'>PyTuple_GET_ITEM</span>(sequence, 0); 
+      __pyx_t_5 = <span class='py_macro_api'>PyTuple_GET_ITEM</span>(sequence, 1); 
+    } else {
+      __pyx_t_2 = <span class='py_macro_api'>PyList_GET_ITEM</span>(sequence, 0); 
+      __pyx_t_5 = <span class='py_macro_api'>PyList_GET_ITEM</span>(sequence, 1); 
+    }
+    <span class='pyx_macro_api'>__Pyx_INCREF</span>(__pyx_t_2);
+    <span class='pyx_macro_api'>__Pyx_INCREF</span>(__pyx_t_5);
+    #else
+    __pyx_t_2 = <span class='py_macro_api'>PySequence_ITEM</span>(sequence, 0);<span class='error_goto'> if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 237, __pyx_L1_error)</span>
+    <span class='refnanny'>__Pyx_GOTREF</span>(__pyx_t_2);
+    __pyx_t_5 = <span class='py_macro_api'>PySequence_ITEM</span>(sequence, 1);<span class='error_goto'> if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 237, __pyx_L1_error)</span>
+    <span class='refnanny'>__Pyx_GOTREF</span>(__pyx_t_5);
+    #endif
+    <span class='pyx_macro_api'>__Pyx_DECREF</span>(__pyx_t_1); __pyx_t_1 = 0;
+  } else {
+    Py_ssize_t index = -1;
+    __pyx_t_8 = <span class='py_c_api'>PyObject_GetIter</span>(__pyx_t_1);<span class='error_goto'> if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 237, __pyx_L1_error)</span>
+    <span class='refnanny'>__Pyx_GOTREF</span>(__pyx_t_8);
+    <span class='pyx_macro_api'>__Pyx_DECREF</span>(__pyx_t_1); __pyx_t_1 = 0;
+    __pyx_t_9 = Py_TYPE(__pyx_t_8)-&gt;tp_iternext;
+    index = 0; __pyx_t_2 = __pyx_t_9(__pyx_t_8); if (unlikely(!__pyx_t_2)) goto __pyx_L3_unpacking_failed;
+    <span class='refnanny'>__Pyx_GOTREF</span>(__pyx_t_2);
+    index = 1; __pyx_t_5 = __pyx_t_9(__pyx_t_8); if (unlikely(!__pyx_t_5)) goto __pyx_L3_unpacking_failed;
+    <span class='refnanny'>__Pyx_GOTREF</span>(__pyx_t_5);
+    if (<span class='pyx_c_api'>__Pyx_IternextUnpackEndCheck</span>(__pyx_t_9(__pyx_t_8), 2) &lt; 0) <span class='error_goto'>__PYX_ERR(0, 237, __pyx_L1_error)</span>
+    __pyx_t_9 = NULL;
+    <span class='pyx_macro_api'>__Pyx_DECREF</span>(__pyx_t_8); __pyx_t_8 = 0;
+    goto __pyx_L4_unpacking_done;
+    __pyx_L3_unpacking_failed:;
+    <span class='pyx_macro_api'>__Pyx_DECREF</span>(__pyx_t_8); __pyx_t_8 = 0;
+    __pyx_t_9 = NULL;
+    if (<span class='pyx_c_api'>__Pyx_IterFinish</span>() == 0) <span class='pyx_c_api'>__Pyx_RaiseNeedMoreValuesError</span>(index);
+    <span class='error_goto'>__PYX_ERR(0, 237, __pyx_L1_error)</span>
+    __pyx_L4_unpacking_done:;
+  }
+  __pyx_t_10 = __pyx_<span class='py_c_api'>PyFloat_AsDouble</span>(__pyx_t_2); if (unlikely((__pyx_t_10 == (double)-1) &amp;&amp; <span class='py_c_api'>PyErr_Occurred</span>())) <span class='error_goto'>__PYX_ERR(0, 237, __pyx_L1_error)</span>
+  <span class='pyx_macro_api'>__Pyx_DECREF</span>(__pyx_t_2); __pyx_t_2 = 0;
+  __pyx_t_11 = __pyx_<span class='py_c_api'>PyFloat_AsDouble</span>(__pyx_t_5); if (unlikely((__pyx_t_11 == (double)-1) &amp;&amp; <span class='py_c_api'>PyErr_Occurred</span>())) <span class='error_goto'>__PYX_ERR(0, 237, __pyx_L1_error)</span>
+  <span class='pyx_macro_api'>__Pyx_DECREF</span>(__pyx_t_5); __pyx_t_5 = 0;
+  __pyx_v_log_density_0 = __pyx_t_10;
+  __pyx_v_log_density_1 = __pyx_t_11;
+</pre><pre class="cython line score-0">&#xA0;<span class="">238</span>: </pre>
+<pre class="cython line score-0">&#xA0;<span class="">239</span>:         <span class="c"># compute unnormalized posteriors</span></pre>
+<pre class="cython line score-0" onclick="(function(s){s.display=s.display==='block'?'none':'block'})(this.nextElementSibling.style)">+<span class="">240</span>:         <span class="n">posterior_0</span> <span class="o">=</span> <span class="n">exp</span><span class="p">(</span><span class="n">log_density_0</span> <span class="o">+</span> <span class="n">log_prior_0</span><span class="p">)</span></pre>
+<pre class='cython code score-0 '>  __pyx_v_posterior_0 = exp((__pyx_v_log_density_0 + __pyx_v_log_prior_0));
+</pre><pre class="cython line score-0" onclick="(function(s){s.display=s.display==='block'?'none':'block'})(this.nextElementSibling.style)">+<span class="">241</span>:         <span class="n">posterior_1</span> <span class="o">=</span> <span class="n">exp</span><span class="p">(</span><span class="n">log_density_1</span> <span class="o">+</span> <span class="n">log_prior_1</span><span class="p">)</span></pre>
+<pre class='cython code score-0 '>  __pyx_v_posterior_1 = exp((__pyx_v_log_density_1 + __pyx_v_log_prior_1));
+</pre><pre class="cython line score-0">&#xA0;<span class="">242</span>: </pre>
+<pre class="cython line score-0">&#xA0;<span class="">243</span>:         <span class="c"># guard against zero division. This may happen if both densities are zero</span></pre>
+<pre class="cython line score-34" onclick="(function(s){s.display=s.display==='block'?'none':'block'})(this.nextElementSibling.style)">+<span class="">244</span>:         <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">posterior_0</span> <span class="o">+</span> <span class="n">posterior_1</span><span class="p">)</span> <span class="o">&lt;</span> <span class="o">-</span> <span class="mf">230</span><span class="p">:</span>  <span class="c"># i.e. less then 1e-100</span></pre>
+<pre class='cython code score-34 '>  <span class='pyx_c_api'>__Pyx_GetModuleGlobalName</span>(__pyx_t_5, __pyx_n_s_np);<span class='error_goto'> if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 244, __pyx_L1_error)</span>
+  <span class='refnanny'>__Pyx_GOTREF</span>(__pyx_t_5);
+  __pyx_t_2 = <span class='pyx_c_api'>__Pyx_PyObject_GetAttrStr</span>(__pyx_t_5, __pyx_n_s_log);<span class='error_goto'> if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 244, __pyx_L1_error)</span>
+  <span class='refnanny'>__Pyx_GOTREF</span>(__pyx_t_2);
+  <span class='pyx_macro_api'>__Pyx_DECREF</span>(__pyx_t_5); __pyx_t_5 = 0;
+  __pyx_t_5 = <span class='py_c_api'>PyFloat_FromDouble</span>((__pyx_v_posterior_0 + __pyx_v_posterior_1));<span class='error_goto'> if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 244, __pyx_L1_error)</span>
+  <span class='refnanny'>__Pyx_GOTREF</span>(__pyx_t_5);
+  __pyx_t_8 = NULL;
+  if (CYTHON_UNPACK_METHODS &amp;&amp; unlikely(<span class='py_c_api'>PyMethod_Check</span>(__pyx_t_2))) {
+    __pyx_t_8 = <span class='py_macro_api'>PyMethod_GET_SELF</span>(__pyx_t_2);
+    if (likely(__pyx_t_8)) {
+      PyObject* function = <span class='py_macro_api'>PyMethod_GET_FUNCTION</span>(__pyx_t_2);
+      <span class='pyx_macro_api'>__Pyx_INCREF</span>(__pyx_t_8);
+      <span class='pyx_macro_api'>__Pyx_INCREF</span>(function);
+      <span class='pyx_macro_api'>__Pyx_DECREF_SET</span>(__pyx_t_2, function);
+    }
+  }
+  __pyx_t_1 = (__pyx_t_8) ? __Pyx_PyObject_Call2Args(__pyx_t_2, __pyx_t_8, __pyx_t_5) : <span class='pyx_c_api'>__Pyx_PyObject_CallOneArg</span>(__pyx_t_2, __pyx_t_5);
+  <span class='pyx_macro_api'>__Pyx_XDECREF</span>(__pyx_t_8); __pyx_t_8 = 0;
+  <span class='pyx_macro_api'>__Pyx_DECREF</span>(__pyx_t_5); __pyx_t_5 = 0;
+  if (unlikely(!__pyx_t_1)) <span class='error_goto'>__PYX_ERR(0, 244, __pyx_L1_error)</span>
+  <span class='refnanny'>__Pyx_GOTREF</span>(__pyx_t_1);
+  <span class='pyx_macro_api'>__Pyx_DECREF</span>(__pyx_t_2); __pyx_t_2 = 0;
+  __pyx_t_2 = <span class='py_c_api'>PyObject_RichCompare</span>(__pyx_t_1, __pyx_int_neg_230, Py_LT); <span class='refnanny'>__Pyx_XGOTREF</span>(__pyx_t_2);<span class='error_goto'> if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 244, __pyx_L1_error)</span>
+  <span class='pyx_macro_api'>__Pyx_DECREF</span>(__pyx_t_1); __pyx_t_1 = 0;
+  __pyx_t_12 = <span class='pyx_c_api'>__Pyx_PyObject_IsTrue</span>(__pyx_t_2); if (unlikely(__pyx_t_12 &lt; 0)) <span class='error_goto'>__PYX_ERR(0, 244, __pyx_L1_error)</span>
+  <span class='pyx_macro_api'>__Pyx_DECREF</span>(__pyx_t_2); __pyx_t_2 = 0;
+  if (__pyx_t_12) {
+/* … */
+  }
+</pre><pre class="cython line score-11" onclick="(function(s){s.display=s.display==='block'?'none':'block'})(this.nextElementSibling.style)">+<span class="">245</span>:             <span class="k">return</span> <span class="n">exp</span><span class="p">(</span><span class="n">log_prior_1</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">exp</span><span class="p">(</span><span class="n">log_prior_0</span><span class="p">)</span> <span class="o">+</span> <span class="n">exp</span><span class="p">(</span><span class="n">log_prior_1</span><span class="p">))</span>  <span class="c"># return prior prob</span></pre>
+<pre class='cython code score-11 '>    <span class='pyx_macro_api'>__Pyx_XDECREF</span>(__pyx_r);
+    __pyx_t_11 = exp(__pyx_v_log_prior_1);
+    __pyx_t_10 = (exp(__pyx_v_log_prior_0) + exp(__pyx_v_log_prior_1));
+    if (unlikely(__pyx_t_10 == 0)) {
+      <span class='py_c_api'>PyErr_SetString</span>(PyExc_ZeroDivisionError, "float division");
+      <span class='error_goto'>__PYX_ERR(0, 245, __pyx_L1_error)</span>
+    }
+    __pyx_t_2 = <span class='py_c_api'>PyFloat_FromDouble</span>((__pyx_t_11 / __pyx_t_10));<span class='error_goto'> if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 245, __pyx_L1_error)</span>
+    <span class='refnanny'>__Pyx_GOTREF</span>(__pyx_t_2);
+    __pyx_r = __pyx_t_2;
+    __pyx_t_2 = 0;
+    goto __pyx_L0;
+</pre><pre class="cython line score-0">&#xA0;<span class="">246</span>: </pre>
+<pre class="cython line score-0">&#xA0;<span class="">247</span>:         <span class="c"># get normalized posterior for prob of infeasible</span></pre>
+<pre class="cython line score-5" onclick="(function(s){s.display=s.display==='block'?'none':'block'})(this.nextElementSibling.style)">+<span class="">248</span>:         <span class="n">prob_feas</span> <span class="o">=</span> <span class="n">posterior_0</span> <span class="o">/</span> <span class="p">(</span><span class="n">posterior_0</span> <span class="o">+</span> <span class="n">posterior_1</span><span class="p">)</span></pre>
+<pre class='cython code score-5 '>  __pyx_t_10 = (__pyx_v_posterior_0 + __pyx_v_posterior_1);
+  if (unlikely(__pyx_t_10 == 0)) {
+    <span class='py_c_api'>PyErr_SetString</span>(PyExc_ZeroDivisionError, "float division");
+    <span class='error_goto'>__PYX_ERR(0, 248, __pyx_L1_error)</span>
+  }
+  __pyx_v_prob_feas = (__pyx_v_posterior_0 / __pyx_t_10);
+</pre><pre class="cython line score-0">&#xA0;<span class="">249</span>: </pre>
+<pre class="cython line score-6" onclick="(function(s){s.display=s.display==='block'?'none':'block'})(this.nextElementSibling.style)">+<span class="">250</span>:         <span class="k">return</span> <span class="n">prob_feas</span></pre>
+<pre class='cython code score-6 '>  <span class='pyx_macro_api'>__Pyx_XDECREF</span>(__pyx_r);
+  __pyx_t_2 = <span class='py_c_api'>PyFloat_FromDouble</span>(__pyx_v_prob_feas);<span class='error_goto'> if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 250, __pyx_L1_error)</span>
   <span class='refnanny'>__Pyx_GOTREF</span>(__pyx_t_2);
   __pyx_r = __pyx_t_2;
   __pyx_t_2 = 0;

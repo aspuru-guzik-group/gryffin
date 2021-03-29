@@ -41,19 +41,7 @@ default_database_configuration = {
 # =========================
 # Default BNN configuration
 # =========================
-default_regression_model_configuration = {
-    'num_epochs':  2 * 10**3,
-    'learning_rate': 0.05,
-    'num_draws': 10**3,
-    'num_layers': 3,
-    'hidden_shape': 6,
-    'weight_loc': 0.,
-    'weight_scale': 1.,
-    'bias_loc': 0.,
-    'bias_scale': 1.
-}
-
-default_classification_model_configuration = {
+default_model_configuration = {
     'num_epochs':  2 * 10**3,
     'learning_rate': 0.05,
     'num_draws': 10**3,
@@ -75,11 +63,8 @@ default_configuration = {
     'database': {
         key: default_database_configuration[key] for key in default_database_configuration.keys()
     },
-    'regression_model': {
-        key: default_regression_model_configuration[key] for key in default_regression_model_configuration.keys()
-    },
-    'classification_model': {
-        key: default_classification_model_configuration[key] for key in default_classification_model_configuration.keys()
+    'model': {
+        key: default_model_configuration[key] for key in default_model_configuration.keys()
     },
     'parameters': [
         {'name': 'param_0', 'type': 'continuous', 'low': 0, 'high': 1},

@@ -3,8 +3,7 @@
 from .decorators      import safe_execute
 from .defaults        import default_general_configuration
 from .defaults        import default_database_configuration
-from .defaults        import default_regression_model_configuration
-from .defaults        import default_classification_model_configuration
+from .defaults        import default_model_configuration
 
 from .exceptions      import GryffinParseError
 from .exceptions      import GryffinModuleError

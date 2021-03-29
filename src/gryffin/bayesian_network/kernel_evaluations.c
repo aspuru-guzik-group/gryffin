@@ -1327,10 +1327,11 @@ struct __pyx_memoryviewslice_obj {
 
 struct __pyx_vtabstruct_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator {
   __Pyx_memviewslice (*_probs)(struct __pyx_obj_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator *, __Pyx_memviewslice);
-  PyObject *(*get_kernel)(struct __pyx_obj_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator *, PyArrayObject *, int __pyx_skip_dispatch);
+  PyObject *(*get_kernel_contrib)(struct __pyx_obj_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator *, PyArrayObject *, int __pyx_skip_dispatch);
   PyObject *(*get_regression_surrogate)(struct __pyx_obj_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator *, PyArrayObject *, int __pyx_skip_dispatch);
   PyObject *(*get_binary_kernel_densities)(struct __pyx_obj_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator *, PyArrayObject *, int __pyx_skip_dispatch);
   PyObject *(*get_probability_of_infeasibility)(struct __pyx_obj_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator *, PyArrayObject *, double, double, int __pyx_skip_dispatch);
+  PyObject *(*get_probability_of_feasibility)(struct __pyx_obj_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator *, PyArrayObject *, double, double, int __pyx_skip_dispatch);
 };
 static struct __pyx_vtabstruct_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator *__pyx_vtabptr_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator;
 
@@ -2337,10 +2338,11 @@ static int __Pyx_check_binary_version(void);
 static int __Pyx_InitStrings(__Pyx_StringTabEntry *t);
 
 static __Pyx_memviewslice __pyx_f_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator__probs(struct __pyx_obj_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator *__pyx_v_self, __Pyx_memviewslice __pyx_v_sample); /* proto*/
-static PyObject *__pyx_f_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_get_kernel(struct __pyx_obj_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator *__pyx_v_self, PyArrayObject *__pyx_v_sample, int __pyx_skip_dispatch); /* proto*/
+static PyObject *__pyx_f_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_get_kernel_contrib(struct __pyx_obj_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator *__pyx_v_self, PyArrayObject *__pyx_v_sample, int __pyx_skip_dispatch); /* proto*/
 static PyObject *__pyx_f_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_get_regression_surrogate(struct __pyx_obj_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator *__pyx_v_self, PyArrayObject *__pyx_v_sample, int __pyx_skip_dispatch); /* proto*/
 static PyObject *__pyx_f_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_get_binary_kernel_densities(struct __pyx_obj_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator *__pyx_v_self, PyArrayObject *__pyx_v_sample, int __pyx_skip_dispatch); /* proto*/
 static PyObject *__pyx_f_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_get_probability_of_infeasibility(struct __pyx_obj_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator *__pyx_v_self, PyArrayObject *__pyx_v_sample, double __pyx_v_log_prior_0, double __pyx_v_log_prior_1, int __pyx_skip_dispatch); /* proto*/
+static PyObject *__pyx_f_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_get_probability_of_feasibility(struct __pyx_obj_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator *__pyx_v_self, PyArrayObject *__pyx_v_sample, double __pyx_v_log_prior_0, double __pyx_v_log_prior_1, int __pyx_skip_dispatch); /* proto*/
 static PyObject *__pyx_array_get_memview(struct __pyx_array_obj *__pyx_v_self); /* proto*/
 static char *__pyx_memoryview_get_item_pointer(struct __pyx_memoryview_obj *__pyx_v_self, PyObject *__pyx_v_index); /* proto*/
 static PyObject *__pyx_memoryview_is_slice(struct __pyx_memoryview_obj *__pyx_v_self, PyObject *__pyx_v_obj); /* proto*/
@@ -2509,7 +2511,6 @@ static const char __pyx_k_pyx_state[] = "__pyx_state";
 static const char __pyx_k_reduce_ex[] = "__reduce_ex__";
 static const char __pyx_k_IndexError[] = "IndexError";
 static const char __pyx_k_ValueError[] = "ValueError";
-static const char __pyx_k_get_kernel[] = "get_kernel";
 static const char __pyx_k_pyx_result[] = "__pyx_result";
 static const char __pyx_k_pyx_vtable[] = "__pyx_vtable__";
 static const char __pyx_k_sqrt_precs[] = "sqrt_precs";
@@ -2535,6 +2536,7 @@ static const char __pyx_k_setstate_cython[] = "__setstate_cython__";
 static const char __pyx_k_lower_prob_bound[] = "lower_prob_bound";
 static const char __pyx_k_pyx_unpickle_Enum[] = "__pyx_unpickle_Enum";
 static const char __pyx_k_cline_in_traceback[] = "cline_in_traceback";
+static const char __pyx_k_get_kernel_contrib[] = "get_kernel_contrib";
 static const char __pyx_k_strided_and_direct[] = "<strided and direct>";
 static const char __pyx_k_strided_and_indirect[] = "<strided and indirect>";
 static const char __pyx_k_contiguous_and_direct[] = "<contiguous and direct>";
@@ -2549,6 +2551,7 @@ static const char __pyx_k_itemsize_0_for_cython_array[] = "itemsize <= 0 for cyt
 static const char __pyx_k_ndarray_is_not_C_contiguous[] = "ndarray is not C contiguous";
 static const char __pyx_k_pyx_unpickle_KernelEvaluator[] = "__pyx_unpickle_KernelEvaluator";
 static const char __pyx_k_unable_to_allocate_array_data[] = "unable to allocate array data.";
+static const char __pyx_k_get_probability_of_feasibility[] = "get_probability_of_feasibility";
 static const char __pyx_k_strided_and_direct_or_indirect[] = "<strided and direct or indirect>";
 static const char __pyx_k_gryffin_bayesian_network_kernel[] = "gryffin.bayesian_network.kernel_evaluations";
 static const char __pyx_k_numpy_core_multiarray_failed_to[] = "numpy.core.multiarray failed to import";
@@ -2626,7 +2629,8 @@ static PyObject *__pyx_n_s_format;
 static PyObject *__pyx_n_s_fortran;
 static PyObject *__pyx_n_u_fortran;
 static PyObject *__pyx_n_s_get_binary_kernel_densities;
-static PyObject *__pyx_n_s_get_kernel;
+static PyObject *__pyx_n_s_get_kernel_contrib;
+static PyObject *__pyx_n_s_get_probability_of_feasibility;
 static PyObject *__pyx_n_s_get_probability_of_infeasibility;
 static PyObject *__pyx_n_s_get_regression_surrogate;
 static PyObject *__pyx_n_s_getstate;
@@ -2698,12 +2702,13 @@ static PyObject *__pyx_n_s_update;
 static PyObject *__pyx_n_s_var_dict;
 static PyObject *__pyx_n_s_zeros;
 static int __pyx_pf_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator___init__(struct __pyx_obj_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator *__pyx_v_self, PyObject *__pyx_v_locs, PyObject *__pyx_v_sqrt_precs, PyObject *__pyx_v_cat_probs, PyObject *__pyx_v_kernel_types, PyObject *__pyx_v_kernel_sizes, PyObject *__pyx_v_lower_prob_bound, PyObject *__pyx_v_objs, PyObject *__pyx_v_inv_vol); /* proto */
-static PyObject *__pyx_pf_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_2get_kernel(struct __pyx_obj_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator *__pyx_v_self, PyArrayObject *__pyx_v_sample); /* proto */
+static PyObject *__pyx_pf_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_2get_kernel_contrib(struct __pyx_obj_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator *__pyx_v_self, PyArrayObject *__pyx_v_sample); /* proto */
 static PyObject *__pyx_pf_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_4get_regression_surrogate(struct __pyx_obj_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator *__pyx_v_self, PyArrayObject *__pyx_v_sample); /* proto */
 static PyObject *__pyx_pf_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_6get_binary_kernel_densities(struct __pyx_obj_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator *__pyx_v_self, PyArrayObject *__pyx_v_sample); /* proto */
 static PyObject *__pyx_pf_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_8get_probability_of_infeasibility(struct __pyx_obj_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator *__pyx_v_self, PyArrayObject *__pyx_v_sample, double __pyx_v_log_prior_0, double __pyx_v_log_prior_1); /* proto */
-static PyObject *__pyx_pf_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_10__reduce_cython__(struct __pyx_obj_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator *__pyx_v_self); /* proto */
-static PyObject *__pyx_pf_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_12__setstate_cython__(struct __pyx_obj_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator *__pyx_v_self, PyObject *__pyx_v___pyx_state); /* proto */
+static PyObject *__pyx_pf_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_10get_probability_of_feasibility(struct __pyx_obj_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator *__pyx_v_self, PyArrayObject *__pyx_v_sample, double __pyx_v_log_prior_0, double __pyx_v_log_prior_1); /* proto */
+static PyObject *__pyx_pf_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_12__reduce_cython__(struct __pyx_obj_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator *__pyx_v_self); /* proto */
+static PyObject *__pyx_pf_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_14__setstate_cython__(struct __pyx_obj_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator *__pyx_v_self, PyObject *__pyx_v___pyx_state); /* proto */
 static PyObject *__pyx_pf_7gryffin_16bayesian_network_18kernel_evaluations___pyx_unpickle_KernelEvaluator(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v___pyx_type, long __pyx_v___pyx_checksum, PyObject *__pyx_v___pyx_state); /* proto */
 static int __pyx_pf_5numpy_7ndarray___getbuffer__(PyArrayObject *__pyx_v_self, Py_buffer *__pyx_v_info, int __pyx_v_flags); /* proto */
 static void __pyx_pf_5numpy_7ndarray_2__releasebuffer__(PyArrayObject *__pyx_v_self, Py_buffer *__pyx_v_info); /* proto */
@@ -3772,7 +3777,7 @@ static __Pyx_memviewslice __pyx_f_7gryffin_16bayesian_network_18kernel_evaluatio
  *                     probs[obs_index] = (obs_probs * inv_sqrt_two_pi**num_continuous) / self.num_samples
  *         return probs             # <<<<<<<<<<<<<<
  * 
- *     cpdef get_kernel(self, np.ndarray sample):
+ *     cpdef get_kernel_contrib(self, np.ndarray sample):
  */
   __PYX_INC_MEMVIEW(&__pyx_v_probs, 0);
   __pyx_r = __pyx_v_probs;
@@ -3814,13 +3819,13 @@ static __Pyx_memviewslice __pyx_f_7gryffin_16bayesian_network_18kernel_evaluatio
 /* "gryffin/bayesian_network/kernel_evaluations.pyx":128
  *         return probs
  * 
- *     cpdef get_kernel(self, np.ndarray sample):             # <<<<<<<<<<<<<<
+ *     cpdef get_kernel_contrib(self, np.ndarray sample):             # <<<<<<<<<<<<<<
  * 
  *         cdef int obs_index
  */
 
-static PyObject *__pyx_pw_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_3get_kernel(PyObject *__pyx_v_self, PyObject *__pyx_v_sample); /*proto*/
-static PyObject *__pyx_f_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_get_kernel(struct __pyx_obj_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator *__pyx_v_self, PyArrayObject *__pyx_v_sample, int __pyx_skip_dispatch) {
+static PyObject *__pyx_pw_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_3get_kernel_contrib(PyObject *__pyx_v_self, PyObject *__pyx_v_sample); /*proto*/
+static PyObject *__pyx_f_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_get_kernel_contrib(struct __pyx_obj_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator *__pyx_v_self, PyArrayObject *__pyx_v_sample, int __pyx_skip_dispatch) {
   int __pyx_v_obs_index;
   double __pyx_v_temp_0;
   double __pyx_v_temp_1;
@@ -3847,8 +3852,8 @@ static PyObject *__pyx_f_7gryffin_16bayesian_network_18kernel_evaluations_15Kern
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
   int __pyx_clineno = 0;
-  __Pyx_RefNannySetupContext("get_kernel", 0);
-  __Pyx_TraceCall("get_kernel", __pyx_f[0], 128, 0, __PYX_ERR(0, 128, __pyx_L1_error));
+  __Pyx_RefNannySetupContext("get_kernel_contrib", 0);
+  __Pyx_TraceCall("get_kernel_contrib", __pyx_f[0], 128, 0, __PYX_ERR(0, 128, __pyx_L1_error));
   /* Check if called by wrapper */
   if (unlikely(__pyx_skip_dispatch)) ;
   /* Check if overridden in Python */
@@ -3858,9 +3863,9 @@ static PyObject *__pyx_f_7gryffin_16bayesian_network_18kernel_evaluations_15Kern
     if (unlikely(!__Pyx_object_dict_version_matches(((PyObject *)__pyx_v_self), __pyx_tp_dict_version, __pyx_obj_dict_version))) {
       PY_UINT64_T __pyx_type_dict_guard = __Pyx_get_tp_dict_version(((PyObject *)__pyx_v_self));
       #endif
-      __pyx_t_1 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_get_kernel); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 128, __pyx_L1_error)
+      __pyx_t_1 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_get_kernel_contrib); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 128, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_1);
-      if (!PyCFunction_Check(__pyx_t_1) || (PyCFunction_GET_FUNCTION(__pyx_t_1) != (PyCFunction)(void*)__pyx_pw_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_3get_kernel)) {
+      if (!PyCFunction_Check(__pyx_t_1) || (PyCFunction_GET_FUNCTION(__pyx_t_1) != (PyCFunction)(void*)__pyx_pw_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_3get_kernel_contrib)) {
         __Pyx_XDECREF(__pyx_r);
         __Pyx_INCREF(__pyx_t_1);
         __pyx_t_3 = __pyx_t_1; __pyx_t_4 = NULL;
@@ -4061,7 +4066,7 @@ static PyObject *__pyx_f_7gryffin_16bayesian_network_18kernel_evaluations_15Kern
   /* "gryffin/bayesian_network/kernel_evaluations.pyx":128
  *         return probs
  * 
- *     cpdef get_kernel(self, np.ndarray sample):             # <<<<<<<<<<<<<<
+ *     cpdef get_kernel_contrib(self, np.ndarray sample):             # <<<<<<<<<<<<<<
  * 
  *         cdef int obs_index
  */
@@ -4073,7 +4078,7 @@ static PyObject *__pyx_f_7gryffin_16bayesian_network_18kernel_evaluations_15Kern
   __Pyx_XDECREF(__pyx_t_3);
   __Pyx_XDECREF(__pyx_t_4);
   __PYX_XDEC_MEMVIEW(&__pyx_t_5, 1);
-  __Pyx_AddTraceback("gryffin.bayesian_network.kernel_evaluations.KernelEvaluator.get_kernel", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_AddTraceback("gryffin.bayesian_network.kernel_evaluations.KernelEvaluator.get_kernel_contrib", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = 0;
   __pyx_L0:;
   __PYX_XDEC_MEMVIEW(&__pyx_v_sample_memview, 1);
@@ -4086,16 +4091,16 @@ static PyObject *__pyx_f_7gryffin_16bayesian_network_18kernel_evaluations_15Kern
 }
 
 /* Python wrapper */
-static PyObject *__pyx_pw_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_3get_kernel(PyObject *__pyx_v_self, PyObject *__pyx_v_sample); /*proto*/
-static PyObject *__pyx_pw_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_3get_kernel(PyObject *__pyx_v_self, PyObject *__pyx_v_sample) {
+static PyObject *__pyx_pw_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_3get_kernel_contrib(PyObject *__pyx_v_self, PyObject *__pyx_v_sample); /*proto*/
+static PyObject *__pyx_pw_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_3get_kernel_contrib(PyObject *__pyx_v_self, PyObject *__pyx_v_sample) {
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
   int __pyx_clineno = 0;
   PyObject *__pyx_r = 0;
   __Pyx_RefNannyDeclarations
-  __Pyx_RefNannySetupContext("get_kernel (wrapper)", 0);
+  __Pyx_RefNannySetupContext("get_kernel_contrib (wrapper)", 0);
   if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_sample), __pyx_ptype_5numpy_ndarray, 1, "sample", 0))) __PYX_ERR(0, 128, __pyx_L1_error)
-  __pyx_r = __pyx_pf_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_2get_kernel(((struct __pyx_obj_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator *)__pyx_v_self), ((PyArrayObject *)__pyx_v_sample));
+  __pyx_r = __pyx_pf_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_2get_kernel_contrib(((struct __pyx_obj_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator *)__pyx_v_self), ((PyArrayObject *)__pyx_v_sample));
 
   /* function exit code */
   goto __pyx_L0;
@@ -4106,7 +4111,7 @@ static PyObject *__pyx_pw_7gryffin_16bayesian_network_18kernel_evaluations_15Ker
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_2get_kernel(struct __pyx_obj_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator *__pyx_v_self, PyArrayObject *__pyx_v_sample) {
+static PyObject *__pyx_pf_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_2get_kernel_contrib(struct __pyx_obj_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator *__pyx_v_self, PyArrayObject *__pyx_v_sample) {
   PyObject *__pyx_r = NULL;
   __Pyx_TraceDeclarations
   __Pyx_RefNannyDeclarations
@@ -4114,10 +4119,10 @@ static PyObject *__pyx_pf_7gryffin_16bayesian_network_18kernel_evaluations_15Ker
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
   int __pyx_clineno = 0;
-  __Pyx_RefNannySetupContext("get_kernel", 0);
-  __Pyx_TraceCall("get_kernel (wrapper)", __pyx_f[0], 128, 0, __PYX_ERR(0, 128, __pyx_L1_error));
+  __Pyx_RefNannySetupContext("get_kernel_contrib", 0);
+  __Pyx_TraceCall("get_kernel_contrib (wrapper)", __pyx_f[0], 128, 0, __PYX_ERR(0, 128, __pyx_L1_error));
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_1 = __pyx_f_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_get_kernel(__pyx_v_self, __pyx_v_sample, 1); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 128, __pyx_L1_error)
+  __pyx_t_1 = __pyx_f_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_get_kernel_contrib(__pyx_v_self, __pyx_v_sample, 1); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 128, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __pyx_r = __pyx_t_1;
   __pyx_t_1 = 0;
@@ -4126,7 +4131,7 @@ static PyObject *__pyx_pf_7gryffin_16bayesian_network_18kernel_evaluations_15Ker
   /* function exit code */
   __pyx_L1_error:;
   __Pyx_XDECREF(__pyx_t_1);
-  __Pyx_AddTraceback("gryffin.bayesian_network.kernel_evaluations.KernelEvaluator.get_kernel", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_AddTraceback("gryffin.bayesian_network.kernel_evaluations.KernelEvaluator.get_kernel_contrib", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = NULL;
   __pyx_L0:;
   __Pyx_XGIVEREF(__pyx_r);
@@ -5248,6 +5253,8 @@ static PyObject *__pyx_f_7gryffin_16bayesian_network_18kernel_evaluations_15Kern
  *         prob_infeas = posterior_1 / (posterior_0 + posterior_1)
  * 
  *         return prob_infeas             # <<<<<<<<<<<<<<
+ * 
+ *     cpdef get_probability_of_feasibility(self, np.ndarray sample, double log_prior_0, double log_prior_1):
  */
   __Pyx_XDECREF(__pyx_r);
   __pyx_t_2 = PyFloat_FromDouble(__pyx_v_prob_infeas); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 225, __pyx_L1_error)
@@ -5391,6 +5398,435 @@ static PyObject *__pyx_pf_7gryffin_16bayesian_network_18kernel_evaluations_15Ker
   return __pyx_r;
 }
 
+/* "gryffin/bayesian_network/kernel_evaluations.pyx":227
+ *         return prob_infeas
+ * 
+ *     cpdef get_probability_of_feasibility(self, np.ndarray sample, double log_prior_0, double log_prior_1):             # <<<<<<<<<<<<<<
+ * 
+ *         # 0 = feasible, 1 = infeasible
+ */
+
+static PyObject *__pyx_pw_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_11get_probability_of_feasibility(PyObject *__pyx_v_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
+static PyObject *__pyx_f_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_get_probability_of_feasibility(struct __pyx_obj_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator *__pyx_v_self, PyArrayObject *__pyx_v_sample, double __pyx_v_log_prior_0, double __pyx_v_log_prior_1, int __pyx_skip_dispatch) {
+  double __pyx_v_prob_feas;
+  double __pyx_v_log_density_0;
+  double __pyx_v_log_density_1;
+  double __pyx_v_posterior_0;
+  double __pyx_v_posterior_1;
+  PyObject *__pyx_r = NULL;
+  __Pyx_TraceDeclarations
+  __Pyx_RefNannyDeclarations
+  PyObject *__pyx_t_1 = NULL;
+  PyObject *__pyx_t_2 = NULL;
+  PyObject *__pyx_t_3 = NULL;
+  PyObject *__pyx_t_4 = NULL;
+  PyObject *__pyx_t_5 = NULL;
+  PyObject *__pyx_t_6 = NULL;
+  int __pyx_t_7;
+  PyObject *__pyx_t_8 = NULL;
+  PyObject *(*__pyx_t_9)(PyObject *);
+  double __pyx_t_10;
+  double __pyx_t_11;
+  int __pyx_t_12;
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
+  __Pyx_RefNannySetupContext("get_probability_of_feasibility", 0);
+  __Pyx_TraceCall("get_probability_of_feasibility", __pyx_f[0], 227, 0, __PYX_ERR(0, 227, __pyx_L1_error));
+  /* Check if called by wrapper */
+  if (unlikely(__pyx_skip_dispatch)) ;
+  /* Check if overridden in Python */
+  else if (unlikely((Py_TYPE(((PyObject *)__pyx_v_self))->tp_dictoffset != 0) || (Py_TYPE(((PyObject *)__pyx_v_self))->tp_flags & (Py_TPFLAGS_IS_ABSTRACT | Py_TPFLAGS_HEAPTYPE)))) {
+    #if CYTHON_USE_DICT_VERSIONS && CYTHON_USE_PYTYPE_LOOKUP && CYTHON_USE_TYPE_SLOTS
+    static PY_UINT64_T __pyx_tp_dict_version = __PYX_DICT_VERSION_INIT, __pyx_obj_dict_version = __PYX_DICT_VERSION_INIT;
+    if (unlikely(!__Pyx_object_dict_version_matches(((PyObject *)__pyx_v_self), __pyx_tp_dict_version, __pyx_obj_dict_version))) {
+      PY_UINT64_T __pyx_type_dict_guard = __Pyx_get_tp_dict_version(((PyObject *)__pyx_v_self));
+      #endif
+      __pyx_t_1 = __Pyx_PyObject_GetAttrStr(((PyObject *)__pyx_v_self), __pyx_n_s_get_probability_of_feasibility); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 227, __pyx_L1_error)
+      __Pyx_GOTREF(__pyx_t_1);
+      if (!PyCFunction_Check(__pyx_t_1) || (PyCFunction_GET_FUNCTION(__pyx_t_1) != (PyCFunction)(void*)__pyx_pw_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_11get_probability_of_feasibility)) {
+        __Pyx_XDECREF(__pyx_r);
+        __pyx_t_3 = PyFloat_FromDouble(__pyx_v_log_prior_0); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 227, __pyx_L1_error)
+        __Pyx_GOTREF(__pyx_t_3);
+        __pyx_t_4 = PyFloat_FromDouble(__pyx_v_log_prior_1); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 227, __pyx_L1_error)
+        __Pyx_GOTREF(__pyx_t_4);
+        __Pyx_INCREF(__pyx_t_1);
+        __pyx_t_5 = __pyx_t_1; __pyx_t_6 = NULL;
+        __pyx_t_7 = 0;
+        if (CYTHON_UNPACK_METHODS && unlikely(PyMethod_Check(__pyx_t_5))) {
+          __pyx_t_6 = PyMethod_GET_SELF(__pyx_t_5);
+          if (likely(__pyx_t_6)) {
+            PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_5);
+            __Pyx_INCREF(__pyx_t_6);
+            __Pyx_INCREF(function);
+            __Pyx_DECREF_SET(__pyx_t_5, function);
+            __pyx_t_7 = 1;
+          }
+        }
+        #if CYTHON_FAST_PYCALL
+        if (PyFunction_Check(__pyx_t_5)) {
+          PyObject *__pyx_temp[4] = {__pyx_t_6, ((PyObject *)__pyx_v_sample), __pyx_t_3, __pyx_t_4};
+          __pyx_t_2 = __Pyx_PyFunction_FastCall(__pyx_t_5, __pyx_temp+1-__pyx_t_7, 3+__pyx_t_7); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 227, __pyx_L1_error)
+          __Pyx_XDECREF(__pyx_t_6); __pyx_t_6 = 0;
+          __Pyx_GOTREF(__pyx_t_2);
+          __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+          __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
+        } else
+        #endif
+        #if CYTHON_FAST_PYCCALL
+        if (__Pyx_PyFastCFunction_Check(__pyx_t_5)) {
+          PyObject *__pyx_temp[4] = {__pyx_t_6, ((PyObject *)__pyx_v_sample), __pyx_t_3, __pyx_t_4};
+          __pyx_t_2 = __Pyx_PyCFunction_FastCall(__pyx_t_5, __pyx_temp+1-__pyx_t_7, 3+__pyx_t_7); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 227, __pyx_L1_error)
+          __Pyx_XDECREF(__pyx_t_6); __pyx_t_6 = 0;
+          __Pyx_GOTREF(__pyx_t_2);
+          __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
+          __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
+        } else
+        #endif
+        {
+          __pyx_t_8 = PyTuple_New(3+__pyx_t_7); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 227, __pyx_L1_error)
+          __Pyx_GOTREF(__pyx_t_8);
+          if (__pyx_t_6) {
+            __Pyx_GIVEREF(__pyx_t_6); PyTuple_SET_ITEM(__pyx_t_8, 0, __pyx_t_6); __pyx_t_6 = NULL;
+          }
+          __Pyx_INCREF(((PyObject *)__pyx_v_sample));
+          __Pyx_GIVEREF(((PyObject *)__pyx_v_sample));
+          PyTuple_SET_ITEM(__pyx_t_8, 0+__pyx_t_7, ((PyObject *)__pyx_v_sample));
+          __Pyx_GIVEREF(__pyx_t_3);
+          PyTuple_SET_ITEM(__pyx_t_8, 1+__pyx_t_7, __pyx_t_3);
+          __Pyx_GIVEREF(__pyx_t_4);
+          PyTuple_SET_ITEM(__pyx_t_8, 2+__pyx_t_7, __pyx_t_4);
+          __pyx_t_3 = 0;
+          __pyx_t_4 = 0;
+          __pyx_t_2 = __Pyx_PyObject_Call(__pyx_t_5, __pyx_t_8, NULL); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 227, __pyx_L1_error)
+          __Pyx_GOTREF(__pyx_t_2);
+          __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
+        }
+        __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
+        __pyx_r = __pyx_t_2;
+        __pyx_t_2 = 0;
+        __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+        goto __pyx_L0;
+      }
+      #if CYTHON_USE_DICT_VERSIONS && CYTHON_USE_PYTYPE_LOOKUP && CYTHON_USE_TYPE_SLOTS
+      __pyx_tp_dict_version = __Pyx_get_tp_dict_version(((PyObject *)__pyx_v_self));
+      __pyx_obj_dict_version = __Pyx_get_object_dict_version(((PyObject *)__pyx_v_self));
+      if (unlikely(__pyx_type_dict_guard != __pyx_tp_dict_version)) {
+        __pyx_tp_dict_version = __pyx_obj_dict_version = __PYX_DICT_VERSION_INIT;
+      }
+      #endif
+      __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+      #if CYTHON_USE_DICT_VERSIONS && CYTHON_USE_PYTYPE_LOOKUP && CYTHON_USE_TYPE_SLOTS
+    }
+    #endif
+  }
+
+  /* "gryffin/bayesian_network/kernel_evaluations.pyx":237
+ * 
+ *         # get log probabilities
+ *         log_density_0, log_density_1 = self.get_binary_kernel_densities(sample)             # <<<<<<<<<<<<<<
+ * 
+ *         # compute unnormalized posteriors
+ */
+  __pyx_t_1 = ((struct __pyx_vtabstruct_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator *)__pyx_v_self->__pyx_vtab)->get_binary_kernel_densities(__pyx_v_self, __pyx_v_sample, 0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 237, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_1);
+  if ((likely(PyTuple_CheckExact(__pyx_t_1))) || (PyList_CheckExact(__pyx_t_1))) {
+    PyObject* sequence = __pyx_t_1;
+    Py_ssize_t size = __Pyx_PySequence_SIZE(sequence);
+    if (unlikely(size != 2)) {
+      if (size > 2) __Pyx_RaiseTooManyValuesError(2);
+      else if (size >= 0) __Pyx_RaiseNeedMoreValuesError(size);
+      __PYX_ERR(0, 237, __pyx_L1_error)
+    }
+    #if CYTHON_ASSUME_SAFE_MACROS && !CYTHON_AVOID_BORROWED_REFS
+    if (likely(PyTuple_CheckExact(sequence))) {
+      __pyx_t_2 = PyTuple_GET_ITEM(sequence, 0); 
+      __pyx_t_5 = PyTuple_GET_ITEM(sequence, 1); 
+    } else {
+      __pyx_t_2 = PyList_GET_ITEM(sequence, 0); 
+      __pyx_t_5 = PyList_GET_ITEM(sequence, 1); 
+    }
+    __Pyx_INCREF(__pyx_t_2);
+    __Pyx_INCREF(__pyx_t_5);
+    #else
+    __pyx_t_2 = PySequence_ITEM(sequence, 0); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 237, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_2);
+    __pyx_t_5 = PySequence_ITEM(sequence, 1); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 237, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_5);
+    #endif
+    __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+  } else {
+    Py_ssize_t index = -1;
+    __pyx_t_8 = PyObject_GetIter(__pyx_t_1); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 237, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_8);
+    __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+    __pyx_t_9 = Py_TYPE(__pyx_t_8)->tp_iternext;
+    index = 0; __pyx_t_2 = __pyx_t_9(__pyx_t_8); if (unlikely(!__pyx_t_2)) goto __pyx_L3_unpacking_failed;
+    __Pyx_GOTREF(__pyx_t_2);
+    index = 1; __pyx_t_5 = __pyx_t_9(__pyx_t_8); if (unlikely(!__pyx_t_5)) goto __pyx_L3_unpacking_failed;
+    __Pyx_GOTREF(__pyx_t_5);
+    if (__Pyx_IternextUnpackEndCheck(__pyx_t_9(__pyx_t_8), 2) < 0) __PYX_ERR(0, 237, __pyx_L1_error)
+    __pyx_t_9 = NULL;
+    __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
+    goto __pyx_L4_unpacking_done;
+    __pyx_L3_unpacking_failed:;
+    __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
+    __pyx_t_9 = NULL;
+    if (__Pyx_IterFinish() == 0) __Pyx_RaiseNeedMoreValuesError(index);
+    __PYX_ERR(0, 237, __pyx_L1_error)
+    __pyx_L4_unpacking_done:;
+  }
+  __pyx_t_10 = __pyx_PyFloat_AsDouble(__pyx_t_2); if (unlikely((__pyx_t_10 == (double)-1) && PyErr_Occurred())) __PYX_ERR(0, 237, __pyx_L1_error)
+  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+  __pyx_t_11 = __pyx_PyFloat_AsDouble(__pyx_t_5); if (unlikely((__pyx_t_11 == (double)-1) && PyErr_Occurred())) __PYX_ERR(0, 237, __pyx_L1_error)
+  __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
+  __pyx_v_log_density_0 = __pyx_t_10;
+  __pyx_v_log_density_1 = __pyx_t_11;
+
+  /* "gryffin/bayesian_network/kernel_evaluations.pyx":240
+ * 
+ *         # compute unnormalized posteriors
+ *         posterior_0 = exp(log_density_0 + log_prior_0)             # <<<<<<<<<<<<<<
+ *         posterior_1 = exp(log_density_1 + log_prior_1)
+ * 
+ */
+  __pyx_v_posterior_0 = exp((__pyx_v_log_density_0 + __pyx_v_log_prior_0));
+
+  /* "gryffin/bayesian_network/kernel_evaluations.pyx":241
+ *         # compute unnormalized posteriors
+ *         posterior_0 = exp(log_density_0 + log_prior_0)
+ *         posterior_1 = exp(log_density_1 + log_prior_1)             # <<<<<<<<<<<<<<
+ * 
+ *         # guard against zero division. This may happen if both densities are zero
+ */
+  __pyx_v_posterior_1 = exp((__pyx_v_log_density_1 + __pyx_v_log_prior_1));
+
+  /* "gryffin/bayesian_network/kernel_evaluations.pyx":244
+ * 
+ *         # guard against zero division. This may happen if both densities are zero
+ *         if np.log(posterior_0 + posterior_1) < - 230:  # i.e. less then 1e-100             # <<<<<<<<<<<<<<
+ *             return exp(log_prior_1) / (exp(log_prior_0) + exp(log_prior_1))  # return prior prob
+ * 
+ */
+  __Pyx_GetModuleGlobalName(__pyx_t_5, __pyx_n_s_np); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 244, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_5);
+  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_t_5, __pyx_n_s_log); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 244, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_2);
+  __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
+  __pyx_t_5 = PyFloat_FromDouble((__pyx_v_posterior_0 + __pyx_v_posterior_1)); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 244, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_5);
+  __pyx_t_8 = NULL;
+  if (CYTHON_UNPACK_METHODS && unlikely(PyMethod_Check(__pyx_t_2))) {
+    __pyx_t_8 = PyMethod_GET_SELF(__pyx_t_2);
+    if (likely(__pyx_t_8)) {
+      PyObject* function = PyMethod_GET_FUNCTION(__pyx_t_2);
+      __Pyx_INCREF(__pyx_t_8);
+      __Pyx_INCREF(function);
+      __Pyx_DECREF_SET(__pyx_t_2, function);
+    }
+  }
+  __pyx_t_1 = (__pyx_t_8) ? __Pyx_PyObject_Call2Args(__pyx_t_2, __pyx_t_8, __pyx_t_5) : __Pyx_PyObject_CallOneArg(__pyx_t_2, __pyx_t_5);
+  __Pyx_XDECREF(__pyx_t_8); __pyx_t_8 = 0;
+  __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
+  if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 244, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_1);
+  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+  __pyx_t_2 = PyObject_RichCompare(__pyx_t_1, __pyx_int_neg_230, Py_LT); __Pyx_XGOTREF(__pyx_t_2); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 244, __pyx_L1_error)
+  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+  __pyx_t_12 = __Pyx_PyObject_IsTrue(__pyx_t_2); if (unlikely(__pyx_t_12 < 0)) __PYX_ERR(0, 244, __pyx_L1_error)
+  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
+  if (__pyx_t_12) {
+
+    /* "gryffin/bayesian_network/kernel_evaluations.pyx":245
+ *         # guard against zero division. This may happen if both densities are zero
+ *         if np.log(posterior_0 + posterior_1) < - 230:  # i.e. less then 1e-100
+ *             return exp(log_prior_1) / (exp(log_prior_0) + exp(log_prior_1))  # return prior prob             # <<<<<<<<<<<<<<
+ * 
+ *         # get normalized posterior for prob of infeasible
+ */
+    __Pyx_XDECREF(__pyx_r);
+    __pyx_t_11 = exp(__pyx_v_log_prior_1);
+    __pyx_t_10 = (exp(__pyx_v_log_prior_0) + exp(__pyx_v_log_prior_1));
+    if (unlikely(__pyx_t_10 == 0)) {
+      PyErr_SetString(PyExc_ZeroDivisionError, "float division");
+      __PYX_ERR(0, 245, __pyx_L1_error)
+    }
+    __pyx_t_2 = PyFloat_FromDouble((__pyx_t_11 / __pyx_t_10)); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 245, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_2);
+    __pyx_r = __pyx_t_2;
+    __pyx_t_2 = 0;
+    goto __pyx_L0;
+
+    /* "gryffin/bayesian_network/kernel_evaluations.pyx":244
+ * 
+ *         # guard against zero division. This may happen if both densities are zero
+ *         if np.log(posterior_0 + posterior_1) < - 230:  # i.e. less then 1e-100             # <<<<<<<<<<<<<<
+ *             return exp(log_prior_1) / (exp(log_prior_0) + exp(log_prior_1))  # return prior prob
+ * 
+ */
+  }
+
+  /* "gryffin/bayesian_network/kernel_evaluations.pyx":248
+ * 
+ *         # get normalized posterior for prob of infeasible
+ *         prob_feas = posterior_0 / (posterior_0 + posterior_1)             # <<<<<<<<<<<<<<
+ * 
+ *         return prob_feas
+ */
+  __pyx_t_10 = (__pyx_v_posterior_0 + __pyx_v_posterior_1);
+  if (unlikely(__pyx_t_10 == 0)) {
+    PyErr_SetString(PyExc_ZeroDivisionError, "float division");
+    __PYX_ERR(0, 248, __pyx_L1_error)
+  }
+  __pyx_v_prob_feas = (__pyx_v_posterior_0 / __pyx_t_10);
+
+  /* "gryffin/bayesian_network/kernel_evaluations.pyx":250
+ *         prob_feas = posterior_0 / (posterior_0 + posterior_1)
+ * 
+ *         return prob_feas             # <<<<<<<<<<<<<<
+ */
+  __Pyx_XDECREF(__pyx_r);
+  __pyx_t_2 = PyFloat_FromDouble(__pyx_v_prob_feas); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 250, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_2);
+  __pyx_r = __pyx_t_2;
+  __pyx_t_2 = 0;
+  goto __pyx_L0;
+
+  /* "gryffin/bayesian_network/kernel_evaluations.pyx":227
+ *         return prob_infeas
+ * 
+ *     cpdef get_probability_of_feasibility(self, np.ndarray sample, double log_prior_0, double log_prior_1):             # <<<<<<<<<<<<<<
+ * 
+ *         # 0 = feasible, 1 = infeasible
+ */
+
+  /* function exit code */
+  __pyx_L1_error:;
+  __Pyx_XDECREF(__pyx_t_1);
+  __Pyx_XDECREF(__pyx_t_2);
+  __Pyx_XDECREF(__pyx_t_3);
+  __Pyx_XDECREF(__pyx_t_4);
+  __Pyx_XDECREF(__pyx_t_5);
+  __Pyx_XDECREF(__pyx_t_6);
+  __Pyx_XDECREF(__pyx_t_8);
+  __Pyx_AddTraceback("gryffin.bayesian_network.kernel_evaluations.KernelEvaluator.get_probability_of_feasibility", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __pyx_r = 0;
+  __pyx_L0:;
+  __Pyx_XGIVEREF(__pyx_r);
+  __Pyx_TraceReturn(__pyx_r, 0);
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+/* Python wrapper */
+static PyObject *__pyx_pw_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_11get_probability_of_feasibility(PyObject *__pyx_v_self, PyObject *__pyx_args, PyObject *__pyx_kwds); /*proto*/
+static PyObject *__pyx_pw_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_11get_probability_of_feasibility(PyObject *__pyx_v_self, PyObject *__pyx_args, PyObject *__pyx_kwds) {
+  PyArrayObject *__pyx_v_sample = 0;
+  double __pyx_v_log_prior_0;
+  double __pyx_v_log_prior_1;
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
+  PyObject *__pyx_r = 0;
+  __Pyx_RefNannyDeclarations
+  __Pyx_RefNannySetupContext("get_probability_of_feasibility (wrapper)", 0);
+  {
+    static PyObject **__pyx_pyargnames[] = {&__pyx_n_s_sample,&__pyx_n_s_log_prior_0,&__pyx_n_s_log_prior_1,0};
+    PyObject* values[3] = {0,0,0};
+    if (unlikely(__pyx_kwds)) {
+      Py_ssize_t kw_args;
+      const Py_ssize_t pos_args = PyTuple_GET_SIZE(__pyx_args);
+      switch (pos_args) {
+        case  3: values[2] = PyTuple_GET_ITEM(__pyx_args, 2);
+        CYTHON_FALLTHROUGH;
+        case  2: values[1] = PyTuple_GET_ITEM(__pyx_args, 1);
+        CYTHON_FALLTHROUGH;
+        case  1: values[0] = PyTuple_GET_ITEM(__pyx_args, 0);
+        CYTHON_FALLTHROUGH;
+        case  0: break;
+        default: goto __pyx_L5_argtuple_error;
+      }
+      kw_args = PyDict_Size(__pyx_kwds);
+      switch (pos_args) {
+        case  0:
+        if (likely((values[0] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_sample)) != 0)) kw_args--;
+        else goto __pyx_L5_argtuple_error;
+        CYTHON_FALLTHROUGH;
+        case  1:
+        if (likely((values[1] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_log_prior_0)) != 0)) kw_args--;
+        else {
+          __Pyx_RaiseArgtupleInvalid("get_probability_of_feasibility", 1, 3, 3, 1); __PYX_ERR(0, 227, __pyx_L3_error)
+        }
+        CYTHON_FALLTHROUGH;
+        case  2:
+        if (likely((values[2] = __Pyx_PyDict_GetItemStr(__pyx_kwds, __pyx_n_s_log_prior_1)) != 0)) kw_args--;
+        else {
+          __Pyx_RaiseArgtupleInvalid("get_probability_of_feasibility", 1, 3, 3, 2); __PYX_ERR(0, 227, __pyx_L3_error)
+        }
+      }
+      if (unlikely(kw_args > 0)) {
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "get_probability_of_feasibility") < 0)) __PYX_ERR(0, 227, __pyx_L3_error)
+      }
+    } else if (PyTuple_GET_SIZE(__pyx_args) != 3) {
+      goto __pyx_L5_argtuple_error;
+    } else {
+      values[0] = PyTuple_GET_ITEM(__pyx_args, 0);
+      values[1] = PyTuple_GET_ITEM(__pyx_args, 1);
+      values[2] = PyTuple_GET_ITEM(__pyx_args, 2);
+    }
+    __pyx_v_sample = ((PyArrayObject *)values[0]);
+    __pyx_v_log_prior_0 = __pyx_PyFloat_AsDouble(values[1]); if (unlikely((__pyx_v_log_prior_0 == (double)-1) && PyErr_Occurred())) __PYX_ERR(0, 227, __pyx_L3_error)
+    __pyx_v_log_prior_1 = __pyx_PyFloat_AsDouble(values[2]); if (unlikely((__pyx_v_log_prior_1 == (double)-1) && PyErr_Occurred())) __PYX_ERR(0, 227, __pyx_L3_error)
+  }
+  goto __pyx_L4_argument_unpacking_done;
+  __pyx_L5_argtuple_error:;
+  __Pyx_RaiseArgtupleInvalid("get_probability_of_feasibility", 1, 3, 3, PyTuple_GET_SIZE(__pyx_args)); __PYX_ERR(0, 227, __pyx_L3_error)
+  __pyx_L3_error:;
+  __Pyx_AddTraceback("gryffin.bayesian_network.kernel_evaluations.KernelEvaluator.get_probability_of_feasibility", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __Pyx_RefNannyFinishContext();
+  return NULL;
+  __pyx_L4_argument_unpacking_done:;
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_sample), __pyx_ptype_5numpy_ndarray, 1, "sample", 0))) __PYX_ERR(0, 227, __pyx_L1_error)
+  __pyx_r = __pyx_pf_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_10get_probability_of_feasibility(((struct __pyx_obj_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator *)__pyx_v_self), __pyx_v_sample, __pyx_v_log_prior_0, __pyx_v_log_prior_1);
+
+  /* function exit code */
+  goto __pyx_L0;
+  __pyx_L1_error:;
+  __pyx_r = NULL;
+  __pyx_L0:;
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
+static PyObject *__pyx_pf_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_10get_probability_of_feasibility(struct __pyx_obj_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator *__pyx_v_self, PyArrayObject *__pyx_v_sample, double __pyx_v_log_prior_0, double __pyx_v_log_prior_1) {
+  PyObject *__pyx_r = NULL;
+  __Pyx_TraceDeclarations
+  __Pyx_RefNannyDeclarations
+  PyObject *__pyx_t_1 = NULL;
+  int __pyx_lineno = 0;
+  const char *__pyx_filename = NULL;
+  int __pyx_clineno = 0;
+  __Pyx_RefNannySetupContext("get_probability_of_feasibility", 0);
+  __Pyx_TraceCall("get_probability_of_feasibility (wrapper)", __pyx_f[0], 227, 0, __PYX_ERR(0, 227, __pyx_L1_error));
+  __Pyx_XDECREF(__pyx_r);
+  __pyx_t_1 = __pyx_f_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_get_probability_of_feasibility(__pyx_v_self, __pyx_v_sample, __pyx_v_log_prior_0, __pyx_v_log_prior_1, 1); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 227, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_1);
+  __pyx_r = __pyx_t_1;
+  __pyx_t_1 = 0;
+  goto __pyx_L0;
+
+  /* function exit code */
+  __pyx_L1_error:;
+  __Pyx_XDECREF(__pyx_t_1);
+  __Pyx_AddTraceback("gryffin.bayesian_network.kernel_evaluations.KernelEvaluator.get_probability_of_feasibility", __pyx_clineno, __pyx_lineno, __pyx_filename);
+  __pyx_r = NULL;
+  __pyx_L0:;
+  __Pyx_XGIVEREF(__pyx_r);
+  __Pyx_TraceReturn(__pyx_r, 0);
+  __Pyx_RefNannyFinishContext();
+  return __pyx_r;
+}
+
 /* "(tree fragment)":1
  * def __reduce_cython__(self):             # <<<<<<<<<<<<<<
  *     cdef tuple state
@@ -5398,19 +5834,19 @@ static PyObject *__pyx_pf_7gryffin_16bayesian_network_18kernel_evaluations_15Ker
  */
 
 /* Python wrapper */
-static PyObject *__pyx_pw_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_11__reduce_cython__(PyObject *__pyx_v_self, CYTHON_UNUSED PyObject *unused); /*proto*/
-static PyObject *__pyx_pw_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_11__reduce_cython__(PyObject *__pyx_v_self, CYTHON_UNUSED PyObject *unused) {
+static PyObject *__pyx_pw_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_13__reduce_cython__(PyObject *__pyx_v_self, CYTHON_UNUSED PyObject *unused); /*proto*/
+static PyObject *__pyx_pw_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_13__reduce_cython__(PyObject *__pyx_v_self, CYTHON_UNUSED PyObject *unused) {
   PyObject *__pyx_r = 0;
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("__reduce_cython__ (wrapper)", 0);
-  __pyx_r = __pyx_pf_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_10__reduce_cython__(((struct __pyx_obj_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator *)__pyx_v_self));
+  __pyx_r = __pyx_pf_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_12__reduce_cython__(((struct __pyx_obj_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator *)__pyx_v_self));
 
   /* function exit code */
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_10__reduce_cython__(struct __pyx_obj_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator *__pyx_v_self) {
+static PyObject *__pyx_pf_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_12__reduce_cython__(struct __pyx_obj_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator *__pyx_v_self) {
   PyObject *__pyx_v_state = 0;
   PyObject *__pyx_v__dict = 0;
   int __pyx_v_use_setstate;
@@ -5738,19 +6174,19 @@ static PyObject *__pyx_pf_7gryffin_16bayesian_network_18kernel_evaluations_15Ker
  */
 
 /* Python wrapper */
-static PyObject *__pyx_pw_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_13__setstate_cython__(PyObject *__pyx_v_self, PyObject *__pyx_v___pyx_state); /*proto*/
-static PyObject *__pyx_pw_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_13__setstate_cython__(PyObject *__pyx_v_self, PyObject *__pyx_v___pyx_state) {
+static PyObject *__pyx_pw_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_15__setstate_cython__(PyObject *__pyx_v_self, PyObject *__pyx_v___pyx_state); /*proto*/
+static PyObject *__pyx_pw_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_15__setstate_cython__(PyObject *__pyx_v_self, PyObject *__pyx_v___pyx_state) {
   PyObject *__pyx_r = 0;
   __Pyx_RefNannyDeclarations
   __Pyx_RefNannySetupContext("__setstate_cython__ (wrapper)", 0);
-  __pyx_r = __pyx_pf_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_12__setstate_cython__(((struct __pyx_obj_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator *)__pyx_v_self), ((PyObject *)__pyx_v___pyx_state));
+  __pyx_r = __pyx_pf_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_14__setstate_cython__(((struct __pyx_obj_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator *)__pyx_v_self), ((PyObject *)__pyx_v___pyx_state));
 
   /* function exit code */
   __Pyx_RefNannyFinishContext();
   return __pyx_r;
 }
 
-static PyObject *__pyx_pf_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_12__setstate_cython__(struct __pyx_obj_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator *__pyx_v_self, PyObject *__pyx_v___pyx_state) {
+static PyObject *__pyx_pf_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_14__setstate_cython__(struct __pyx_obj_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator *__pyx_v_self, PyObject *__pyx_v___pyx_state) {
   PyObject *__pyx_r = NULL;
   __Pyx_TraceDeclarations
   __Pyx_RefNannyDeclarations
@@ -22358,12 +22794,13 @@ static int __pyx_tp_clear_7gryffin_16bayesian_network_18kernel_evaluations_Kerne
 }
 
 static PyMethodDef __pyx_methods_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator[] = {
-  {"get_kernel", (PyCFunction)__pyx_pw_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_3get_kernel, METH_O, 0},
+  {"get_kernel_contrib", (PyCFunction)__pyx_pw_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_3get_kernel_contrib, METH_O, 0},
   {"get_regression_surrogate", (PyCFunction)__pyx_pw_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_5get_regression_surrogate, METH_O, 0},
   {"get_binary_kernel_densities", (PyCFunction)__pyx_pw_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_7get_binary_kernel_densities, METH_O, 0},
   {"get_probability_of_infeasibility", (PyCFunction)(void*)(PyCFunctionWithKeywords)__pyx_pw_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_9get_probability_of_infeasibility, METH_VARARGS|METH_KEYWORDS, 0},
-  {"__reduce_cython__", (PyCFunction)__pyx_pw_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_11__reduce_cython__, METH_NOARGS, 0},
-  {"__setstate_cython__", (PyCFunction)__pyx_pw_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_13__setstate_cython__, METH_O, 0},
+  {"get_probability_of_feasibility", (PyCFunction)(void*)(PyCFunctionWithKeywords)__pyx_pw_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_11get_probability_of_feasibility, METH_VARARGS|METH_KEYWORDS, 0},
+  {"__reduce_cython__", (PyCFunction)__pyx_pw_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_13__reduce_cython__, METH_NOARGS, 0},
+  {"__setstate_cython__", (PyCFunction)__pyx_pw_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_15__setstate_cython__, METH_O, 0},
   {0, 0, 0, 0}
 };
 
@@ -23250,7 +23687,8 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_n_s_fortran, __pyx_k_fortran, sizeof(__pyx_k_fortran), 0, 0, 1, 1},
   {&__pyx_n_u_fortran, __pyx_k_fortran, sizeof(__pyx_k_fortran), 0, 1, 0, 1},
   {&__pyx_n_s_get_binary_kernel_densities, __pyx_k_get_binary_kernel_densities, sizeof(__pyx_k_get_binary_kernel_densities), 0, 0, 1, 1},
-  {&__pyx_n_s_get_kernel, __pyx_k_get_kernel, sizeof(__pyx_k_get_kernel), 0, 0, 1, 1},
+  {&__pyx_n_s_get_kernel_contrib, __pyx_k_get_kernel_contrib, sizeof(__pyx_k_get_kernel_contrib), 0, 0, 1, 1},
+  {&__pyx_n_s_get_probability_of_feasibility, __pyx_k_get_probability_of_feasibility, sizeof(__pyx_k_get_probability_of_feasibility), 0, 0, 1, 1},
   {&__pyx_n_s_get_probability_of_infeasibility, __pyx_k_get_probability_of_infeasibility, sizeof(__pyx_k_get_probability_of_infeasibility), 0, 0, 1, 1},
   {&__pyx_n_s_get_regression_surrogate, __pyx_k_get_regression_surrogate, sizeof(__pyx_k_get_regression_surrogate), 0, 0, 1, 1},
   {&__pyx_n_s_getstate, __pyx_k_getstate, sizeof(__pyx_k_getstate), 0, 0, 1, 1},
@@ -23753,10 +24191,11 @@ static int __Pyx_modinit_type_init_code(void) {
   /*--- Type init code ---*/
   __pyx_vtabptr_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator = &__pyx_vtable_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator;
   __pyx_vtable_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator._probs = (__Pyx_memviewslice (*)(struct __pyx_obj_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator *, __Pyx_memviewslice))__pyx_f_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator__probs;
-  __pyx_vtable_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator.get_kernel = (PyObject *(*)(struct __pyx_obj_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator *, PyArrayObject *, int __pyx_skip_dispatch))__pyx_f_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_get_kernel;
+  __pyx_vtable_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator.get_kernel_contrib = (PyObject *(*)(struct __pyx_obj_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator *, PyArrayObject *, int __pyx_skip_dispatch))__pyx_f_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_get_kernel_contrib;
   __pyx_vtable_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator.get_regression_surrogate = (PyObject *(*)(struct __pyx_obj_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator *, PyArrayObject *, int __pyx_skip_dispatch))__pyx_f_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_get_regression_surrogate;
   __pyx_vtable_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator.get_binary_kernel_densities = (PyObject *(*)(struct __pyx_obj_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator *, PyArrayObject *, int __pyx_skip_dispatch))__pyx_f_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_get_binary_kernel_densities;
   __pyx_vtable_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator.get_probability_of_infeasibility = (PyObject *(*)(struct __pyx_obj_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator *, PyArrayObject *, double, double, int __pyx_skip_dispatch))__pyx_f_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_get_probability_of_infeasibility;
+  __pyx_vtable_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator.get_probability_of_feasibility = (PyObject *(*)(struct __pyx_obj_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator *, PyArrayObject *, double, double, int __pyx_skip_dispatch))__pyx_f_7gryffin_16bayesian_network_18kernel_evaluations_15KernelEvaluator_get_probability_of_feasibility;
   if (PyType_Ready(&__pyx_type_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator) < 0) __PYX_ERR(0, 29, __pyx_L1_error)
   #if PY_VERSION_HEX < 0x030800B1
   __pyx_type_7gryffin_16bayesian_network_18kernel_evaluations_KernelEvaluator.tp_print = 0;
@@ -24101,7 +24540,7 @@ if (!__Pyx_RefNanny) {
  * cimport cython
  * import  numpy as np             # <<<<<<<<<<<<<<
  * cimport numpy as np
- * from libc.math cimport exp, abs, round
+ * from libc.math cimport exp, round
  */
   __pyx_t_1 = __Pyx_Import(__pyx_n_s_numpy, 0, 0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 12, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);

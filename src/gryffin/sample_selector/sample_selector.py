@@ -56,7 +56,6 @@ class SampleSelector(Logger):
         # compute exp of acquisition values
         # ---------------------------------
         # TODO: this is slightly redundant as we have computed acquisition values already in Acquisition
-        #  also, eval_acquisition might be fast enough that the overhead of multiprocessing might not be worth it
         for batch_index, sampling_param in enumerate(sampling_param_values):
 
             # -------------------

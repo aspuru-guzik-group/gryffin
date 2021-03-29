@@ -11,7 +11,7 @@ import  cython
 cimport cython
 import  numpy as np 
 cimport numpy as np
-from libc.math cimport exp, abs, round
+from libc.math cimport exp, round
 
 #========================================================================
 
@@ -125,7 +125,7 @@ cdef class KernelEvaluator:
                     probs[obs_index] = (obs_probs * inv_sqrt_two_pi**num_continuous) / self.num_samples
         return probs
 
-    cpdef get_kernel(self, np.ndarray sample):
+    cpdef get_kernel_contrib(self, np.ndarray sample):
 
         cdef int obs_index
         cdef double temp_0, temp_1
@@ -223,3 +223,28 @@ cdef class KernelEvaluator:
         prob_infeas = posterior_1 / (posterior_0 + posterior_1)
 
         return prob_infeas
+
+    cpdef get_probability_of_feasibility(self, np.ndarray sample, double log_prior_0, double log_prior_1):
+
+        # 0 = feasible, 1 = infeasible
+        cdef double prob_feas
+        cdef double log_density_0
+        cdef double log_density_1
+        cdef double posterior_0
+        cdef double posterior_1
+
+        # get log probabilities
+        log_density_0, log_density_1 = self.get_binary_kernel_densities(sample)
+
+        # compute unnormalized posteriors
+        posterior_0 = exp(log_density_0 + log_prior_0)
+        posterior_1 = exp(log_density_1 + log_prior_1)
+
+        # guard against zero division. This may happen if both densities are zero
+        if np.log(posterior_0 + posterior_1) < - 230:  # i.e. less then 1e-100
+            return exp(log_prior_1) / (exp(log_prior_0) + exp(log_prior_1))  # return prior prob
+
+        # get normalized posterior for prob of infeasible
+        prob_feas = posterior_0 / (posterior_0 + posterior_1)
+
+        return prob_feas

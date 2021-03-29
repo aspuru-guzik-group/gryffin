@@ -23,8 +23,9 @@ class Acquisition(Logger):
         self.total_num_vars = len(self.config.feature_names)
         self.optimizer_type = self.config.get('acquisition_optimizer')
 
-        self.kernel_contribution = None
-        self.probability_infeasible = None
+        #self.kernel_contribution = None
+        #self.probability_infeasible = None
+        self.bayesian_network = None
         self.local_optimizers = None
         self.sampling_param_values = None
         self.frac_infeasible = None
@@ -107,7 +108,7 @@ class Acquisition(Logger):
 
         acq_values = []
         for proposal in random_proposals:
-            num, inv_den = self.kernel_contribution(proposal)
+            num, inv_den = self.bayesian_network.kernel_contribution(proposal)
             acq_samp = (num + sampling_param) * inv_den
             acq_values.append(acq_samp)
 
@@ -121,13 +122,12 @@ class Acquisition(Logger):
         top_params = random_proposals[indices_top, :]  # params of highest n
         bottom_params = random_proposals[indices_bottom, :]  # params of lowest n
 
-        # define acquisition function to be optimized. With frac_infeasible=0 we choose the sample acquisition only,
-        # and with acq_min=0, acq_max=1 we are not scaling it
-        acquisition = AcquisitionFunction(kernel_contribution=self.kernel_contribution,
-                                          probability_infeasible=self.probability_infeasible,
-                                          sampling_param=sampling_param, frac_infeasible=0,
-                                          acq_min=0, acq_max=1, feas_approach=self.feas_approach,
-                                          feas_sensitivity=1.0)
+        # define acquisition function to be optimized. With acq_min=0, acq_max=1 we are not scaling it.
+        acquisition = AcquisitionFunction(bayesian_network=self.bayesian_network, sampling_param=sampling_param,
+                                          acq_min=0, acq_max=1, feas_approach=self.feas_approach, feas_sensitivity=1.0)
+        # manually set acquitision function to be the acquisition for the samples only (no feasibility involved)
+        acquisition.acquisition_function = acquisition._acquisition_all_feasible
+        acquisition.feasibility_weight = None
 
         # get params to be constrained
         if dominant_samples is not None:
@@ -178,9 +178,7 @@ class Acquisition(Logger):
             self.acqs_min_max[batch_index] = [acq_min, acq_max]
 
             # define acquisition function to be optimized
-            acquisition = AcquisitionFunction(kernel_contribution=self.kernel_contribution,
-                                              probability_infeasible=self.probability_infeasible,
-                                              sampling_param=sampling_param, frac_infeasible=self.frac_infeasible,
+            acquisition = AcquisitionFunction(bayesian_network=self.bayesian_network, sampling_param=sampling_param,
                                               acq_min=acq_min, acq_max=acq_max,
                                               feas_approach=self.feas_approach, feas_sensitivity=self.feas_sensitivity)
 
@@ -250,7 +248,7 @@ class Acquisition(Logger):
                                         f'\n\tPlease choose "adam" or "genetic"')
         return local_optimizers
 
-    def propose(self, best_params, kernel_contribution, probability_infeasible, frac_infeasible, sampling_param_values,
+    def propose(self, best_params, bayesian_network, sampling_param_values,
                 num_samples=200, dominant_samples=None, timings_dict=None):
         """Highest-level method of this class that takes the BNN results, builds the acquisition function, optimises
         it, and returns a number of possible parameter points. These will then be used by the SampleSelector to pick
@@ -264,11 +262,12 @@ class Acquisition(Logger):
         # -------------------------------------------------------------
         # register attributes we'll be using to compute the acquisition
         # -------------------------------------------------------------
+        self.bayesian_network = bayesian_network
         self.acquisition_functions = {}  # reinitialize acquisition functions, otherwise we keep using old ones!
         self.sampling_param_values = sampling_param_values
-        self.frac_infeasible = frac_infeasible
-        self.kernel_contribution = kernel_contribution
-        self.probability_infeasible = probability_infeasible
+        #self.frac_infeasible = frac_infeasible
+        #self.kernel_contribution = kernel_contribution
+        #self.probability_infeasible = probability_infeasible
         # -------------------------------------------------------------
 
         # get random samples
@@ -305,13 +304,18 @@ class Acquisition(Logger):
 class AcquisitionFunction:
     """Acquisition function class that is used to support the class Acquisition. It selects the function to
     be optimized given the situation. It avoids re-defining the same functions multiple times in Acquisition methods"""
-    def __init__(self, kernel_contribution, probability_infeasible, sampling_param, frac_infeasible,
-                 acq_min=0, acq_max=1, feas_approach='fia', feas_sensitivity=1.0):
+    def __init__(self, bayesian_network, sampling_param, acq_min=0, acq_max=1,
+                 feas_approach='fia', feas_sensitivity=1.0):
+        """
+        bayesian_network : object
+            instance of BayesianNetwork with BNN trained and kernels built
+        """
 
-        self.kernel_contribution = kernel_contribution
-        self.probability_infeasible = probability_infeasible
+        self.bayesian_network = bayesian_network
+        #self.kernel_contribution = kernel_contribution
+        #self.probability_infeasible = probability_infeasible
         self.sampling_param = sampling_param
-        self.frac_infeasible = frac_infeasible
+        self.frac_infeasible = bayesian_network.prior_1
         self.acq_min = acq_min
         self.acq_max = acq_max
         self.inv_range = 1. / (acq_max - acq_min)
@@ -349,18 +353,17 @@ class AcquisitionFunction:
         return self.acquisition_function(x)
 
     def _acquisition_times_pof(self, x):
-        num, inv_den = self.kernel_contribution(x)  # standard acquisition for samples
-        prob_infeas = self.probability_infeasible(x)  # feasibility acquisition
+        num, inv_den = self.bayesian_network.kernel_contribution(x)  # standard acquisition for samples
+        prob_feas = self.bayesian_network.prob_feasible(x)  # feasibility acquisition
         acq_samp = (num + self.sampling_param) * inv_den
         # approximately normalize sample acquisition
         acq_samp = (acq_samp - self.acq_min) * self.inv_range
-        prob_feas = 1. - prob_infeas
         acq_samp_maximize = 1. - acq_samp
         return -(acq_samp_maximize * prob_feas)
 
     def _acquisition_standard(self, x):
-        num, inv_den = self.kernel_contribution(x)  # standard acquisition for samples
-        prob_infeas = self.probability_infeasible(x)  # feasibility acquisition
+        num, inv_den = self.bayesian_network.kernel_contribution(x)  # standard acquisition for samples
+        prob_infeas = self.bayesian_network.prob_infeasible(x)  # feasibility acquisition
         acq_samp = (num + self.sampling_param) * inv_den
         # approximately normalize sample acquisition so it has same scale of prob_infeas
         acq_samp = (acq_samp - self.acq_min) * self.inv_range
@@ -368,15 +371,17 @@ class AcquisitionFunction:
 
     # if all feasible, prob_infeas always zero, so no need to estimate feasibility
     def _acquisition_all_feasible(self, x):
-        num, inv_den = self.kernel_contribution(x)  # standard acquisition for samples
+        num, inv_den = self.bayesian_network.kernel_contribution(x)  # standard acquisition for samples
         acq_samp = (num + self.sampling_param) * inv_den
         # approximately normalize sample acquisition
         acq_samp = (acq_samp - self.acq_min) * self.inv_range
         return acq_samp
 
     # if all infeasible, acquisition is flat, so no need to compute it
+    # we also cannot train a classifier, so we minimize the kernel density of infeasible points as a way to get away
+    # from high p(x|infeasible) areas.
     def _acquisition_all_infeasible(self, x):
-        prob_infeas = self.probability_infeasible(x)
+        prob_infeas = self.bayesian_network.infeasible_kernel_density(x)
         return prob_infeas
 
 
