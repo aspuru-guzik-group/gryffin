@@ -9,6 +9,7 @@ from gryffin.utilities import Logger, parse_time
 from gryffin.utilities import GryffinUnknownSettingsError
 from .kernel_evaluations import KernelEvaluator
 from .tfprob_interface import run_tf_network
+from copy import deepcopy
 
 
 class BayesianNetwork(Logger):
@@ -116,24 +117,18 @@ class BayesianNetwork(Logger):
         self.log_prior_1 = np.log(self.prior_1) if self.prior_1 > 0. else -np.inf
 
         # retrieve kernels densities
-        # shape of the tensors below: (# samples, # obs, # kernels)
-        trace_kernels = self.trace_kernels
+        # all kernels - shape of the tensors below: (# samples, # obs, # kernels)
+        locs_all = self.trace_kernels['locs']
+        sqrt_precs_all = self.trace_kernels['sqrt_precs']
+        probs_all = self.trace_kernels['probs']
 
-        locs_all = trace_kernels['locs']
-        sqrt_precs_all = trace_kernels['sqrt_precs']
-        probs_all = trace_kernels['probs']
-
+        # kernels only for known/feasible objectives/params
         locs_kwn = locs_all[:, mask_kwn, :]
-        sqrt_precs_kwn = locs_all[:, mask_kwn, :]
-        probs_kwn = locs_all[:, mask_kwn, :]
+        sqrt_precs_kwn = sqrt_precs_all[:, mask_kwn, :]
+        probs_kwn = probs_all[:, mask_kwn, :]
 
         assert locs_kwn.shape[1] == len(self.obs_objs_kwn)
         assert locs_all.shape[1] == len(self.obs_objs_feas)
-
-        print('locs', locs_all.shape, locs_kwn.shape)
-        print('precs', sqrt_precs_all.shape, sqrt_precs_kwn.shape)
-        print('probs', probs_all.shape, probs_kwn.shape)
-        print('obs_objs_kwn', self.obs_objs_kwn)
 
         # reshape categorical probabilities
         start = time.time()
@@ -146,13 +141,9 @@ class BayesianNetwork(Logger):
             self.log('[TIME]:  ' + parse_time(start, end) + '  (reshaping categorical space)', 'INFO')
 
         # kernels used for regression
-        obs_objs_kwn = self.obs_objs_kwn
-        kernel_types = self.kernel_types
-        kernel_sizes = self.kernel_sizes
-        lower_prob_bound = self.lower_prob_bound
         self.kernel_regression = KernelEvaluator(locs=locs_kwn, sqrt_precs=sqrt_precs_kwn, cat_probs=probs_kwn,
-                                                 kernel_types=kernel_types, kernel_sizes=kernel_sizes,
-                                                 lower_prob_bound=lower_prob_bound, objs=obs_objs_kwn,
+                                                 kernel_types=self.kernel_types, kernel_sizes=self.kernel_sizes,
+                                                 lower_prob_bound=self.lower_prob_bound, objs=self.obs_objs_kwn,
                                                  inv_vol=self.inverse_volume)
 
         # kernels used for feasibility classification
@@ -211,11 +202,6 @@ class BayesianNetwork(Logger):
         """
         _, log_density_1 = self.kernel_classification.get_binary_kernel_densities(proposed_sample.astype(np.float64))
         return np.exp(log_density_1)
-
-    #def empty_kernel_contribution(self, proposed_sample):
-    #    num = 0.
-    #    inv_den = self.volume  # = 1/p(x) = 1/inverse_volume
-    #    return num, inv_den
 
     def _reshape_categorical_probabilities(self, probs, descriptors):
         try:

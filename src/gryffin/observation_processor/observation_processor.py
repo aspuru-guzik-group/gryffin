@@ -128,14 +128,6 @@ class ObservationProcessor(Logger):
         mask_kwn = np.array(mask_kwn)
         mask_mirror = np.array(mask_mirror)
 
-        #print('ObservationProcessor:')
-        #print('obs_params', obs_params)
-        #print('raw_objs', raw_objs)
-        #print('obs_feas', obs_feas)
-        #print('mask_kwn', mask_kwn)
-        #print('mask_mirror', mask_mirror)
-        #print()
-
         # ---------------------------
         # process multiple objectives
         # ---------------------------

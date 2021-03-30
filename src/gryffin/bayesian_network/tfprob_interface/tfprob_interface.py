@@ -78,7 +78,6 @@ class TfprobNetwork(object):
 
         self.lower_rescalings = lower_rescalings
         self.upper_rescalings = upper_rescalings
-        print('rescalings', lower_rescalings, upper_rescalings)
 
         self.rescaled_features = (self.features - self.lower_rescalings) / (self.upper_rescalings - self.lower_rescalings)
         self.rescaled_targets = (self.targets - self.lower_rescalings) / (self.upper_rescalings - self.lower_rescalings)
