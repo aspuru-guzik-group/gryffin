@@ -23,8 +23,6 @@ class Acquisition(Logger):
         self.total_num_vars = len(self.config.feature_names)
         self.optimizer_type = self.config.get('acquisition_optimizer')
 
-        #self.kernel_contribution = None
-        #self.probability_infeasible = None
         self.bayesian_network = None
         self.local_optimizers = None
         self.sampling_param_values = None
@@ -265,9 +263,6 @@ class Acquisition(Logger):
         self.bayesian_network = bayesian_network
         self.acquisition_functions = {}  # reinitialize acquisition functions, otherwise we keep using old ones!
         self.sampling_param_values = sampling_param_values
-        #self.frac_infeasible = frac_infeasible
-        #self.kernel_contribution = kernel_contribution
-        #self.probability_infeasible = probability_infeasible
         # -------------------------------------------------------------
 
         # get random samples
@@ -312,8 +307,6 @@ class AcquisitionFunction:
         """
 
         self.bayesian_network = bayesian_network
-        #self.kernel_contribution = kernel_contribution
-        #self.probability_infeasible = probability_infeasible
         self.sampling_param = sampling_param
         self.frac_infeasible = bayesian_network.prior_1
         self.acq_min = acq_min

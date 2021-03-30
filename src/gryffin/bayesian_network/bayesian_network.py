@@ -117,9 +117,7 @@ class BayesianNetwork(Logger):
         self.log_prior_1 = np.log(self.prior_1) if self.prior_1 > 0. else -np.inf
 
         # retrieve kernels densities
-        # shape of the tensors below: (# samples, # obs, # kernels)
-
-        # all kernels
+        # all kernels - shape of the tensors below: (# samples, # obs, # kernels)
         locs_all = self.trace_kernels['locs']
         sqrt_precs_all = self.trace_kernels['sqrt_precs']
         probs_all = self.trace_kernels['probs']
@@ -131,9 +129,6 @@ class BayesianNetwork(Logger):
 
         assert locs_kwn.shape[1] == len(self.obs_objs_kwn)
         assert locs_all.shape[1] == len(self.obs_objs_feas)
-
-        print('locs',  type(locs_all), locs_all.shape, type(locs_kwn), locs_kwn.shape)
-        print('obs_objs_kwn', self.obs_objs_kwn)
 
         # reshape categorical probabilities
         start = time.time()
@@ -157,68 +152,56 @@ class BayesianNetwork(Logger):
                                                      lower_prob_bound=self.lower_prob_bound, objs=self.obs_objs_feas,
                                                      inv_vol=self.inverse_volume)
 
-        def kernel_contribution(proposed_sample):
-            """
-            Computes acquisition terms that rely on kernel densities.
-            """
-            if self.caching is True:
-                sample_string = '-'.join([str(int(element)) for element in proposed_sample])
-                if sample_string in self.cache:
-                    num, inv_den = self.cache[sample_string]
-                else:
-                    num, inv_den, _ = self.kernel_regression.get_kernel_contrib(proposed_sample.astype(np.float64))
-                    self.cache[sample_string] = (num, inv_den)
+    def kernel_contribution(self, proposed_sample):
+        """
+        Computes acquisition terms that rely on kernel densities.
+        """
+        if self.caching is True:
+            sample_string = '-'.join([str(int(element)) for element in proposed_sample])
+            if sample_string in self.cache:
+                num, inv_den = self.cache[sample_string]
             else:
                 num, inv_den, _ = self.kernel_regression.get_kernel_contrib(proposed_sample.astype(np.float64))
-            return num, inv_den
+                self.cache[sample_string] = (num, inv_den)
+        else:
+            num, inv_den, _ = self.kernel_regression.get_kernel_contrib(proposed_sample.astype(np.float64))
+        return num, inv_den
 
-        def regression_surrogate(proposed_sample):
-            y_pred = self.kernel_regression.get_regression_surrogate(proposed_sample.astype(np.float64))
-            return y_pred
+    def regression_surrogate(self, proposed_sample):
+        y_pred = self.kernel_regression.get_regression_surrogate(proposed_sample.astype(np.float64))
+        return y_pred
 
-        def classification_surrogate(proposed_sample, threshold=0.5):
-            prob = self.kernel_classification.get_probability_of_feasibility(proposed_sample.astype(np.float64),
-                                                                             self.log_prior_0,
-                                                                             self.log_prior_1)
-            if prob > threshold:
-                return True
-            else:
-                return False
+    def classification_surrogate(self, proposed_sample, threshold=0.5):
+        prob = self.kernel_classification.get_probability_of_feasibility(proposed_sample.astype(np.float64),
+                                                                         self.log_prior_0,
+                                                                         self.log_prior_1)
+        if prob > threshold:
+            return True
+        else:
+            return False
 
-        def prob_feasible(proposed_sample):
-            """
-            Computes probability of feasibility based on kernel density classification.
-            """
-            return self.kernel_classification.get_probability_of_feasibility(proposed_sample.astype(np.float64),
-                                                                             self.log_prior_0,
-                                                                             self.log_prior_1)
+    def prob_feasible(self, proposed_sample):
+        """
+        Computes probability of feasibility based on kernel density classification.
+        """
+        return self.kernel_classification.get_probability_of_feasibility(proposed_sample.astype(np.float64),
+                                                                         self.log_prior_0,
+                                                                         self.log_prior_1)
 
-        def prob_infeasible(proposed_sample):
-            """
-            Computes probability of infeasibility based on kernel density classification.
-            """
-            return self.kernel_classification.get_probability_of_infeasibility(proposed_sample.astype(np.float64),
-                                                                               self.log_prior_0,
-                                                                               self.log_prior_1)
+    def prob_infeasible(self, proposed_sample):
+        """
+        Computes probability of infeasibility based on kernel density classification.
+        """
+        return self.kernel_classification.get_probability_of_infeasibility(proposed_sample.astype(np.float64),
+                                                                           self.log_prior_0,
+                                                                           self.log_prior_1)
 
-        def infeasible_kernel_density(proposed_sample):
-            """
-            Computes kernel density estimate of infeasible points.
-            """
-            _, log_density_1 = self.kernel_classification.get_binary_kernel_densities(proposed_sample.astype(np.float64))
-            return np.exp(log_density_1)
-
-        self.kernel_contribution = kernel_contribution
-        self.regression_surrogate = regression_surrogate
-        self.classification_surrogate = classification_surrogate
-        self.prob_feasible = prob_feasible
-        self.prob_infeasible = prob_infeasible
-        self.infeasible_kernel_density = infeasible_kernel_density
-
-    #def empty_kernel_contribution(self, proposed_sample):
-    #    num = 0.
-    #    inv_den = self.volume  # = 1/p(x) = 1/inverse_volume
-    #    return num, inv_den
+    def infeasible_kernel_density(self, proposed_sample):
+        """
+        Computes kernel density estimate of infeasible points.
+        """
+        _, log_density_1 = self.kernel_classification.get_binary_kernel_densities(proposed_sample.astype(np.float64))
+        return np.exp(log_density_1)
 
     def _reshape_categorical_probabilities(self, probs, descriptors):
         try:

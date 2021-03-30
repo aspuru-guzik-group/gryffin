@@ -98,27 +98,12 @@ class Gryffin(Logger):
 
         # we have observations
         else:
-            # obs_params_kwn, obs_objs_kwn == all observations with known objective
-            # obs_params_ukwn, obs_objs_ukwn == all observations with unknown objective, so objs contains whether
-            #  feasible (0) or not (1)
-            #obs_params_kwn, obs_objs_kwn, mirror_mask_kwn, \
-            #obs_params_ukwn, obs_objs_ukwn, mirror_mask_ukwn = self.obs_processor.process_observations(observations)
-
             # obs_params == all observed parameters
             # obs_objs == all observed objective function evaluations (including NaNs)
             # obs_feas == whether observed parameters are feasible (0) or infeasible (1)
             # mask_kwn == mask that selects only known/feasible params/objs (including mirrored params)
             # mask_mirror == mask that selects the parameters that have been mirrored across opt bounds
             obs_params, obs_objs, obs_feas, mask_kwn, mask_mirror = self.obs_processor.process_observations(observations)
-
-            print('GRYFFIN:')
-            print('obs_params', obs_params)
-            print('obs_objs', obs_objs)
-            print('obs_feas', obs_feas)
-            print('mask_kwn', mask_kwn)
-            print('mask_mirror', mask_mirror)
-            print()
-
 
             # ---------------------------
             # get categorical descriptors
@@ -159,22 +144,6 @@ class Gryffin(Logger):
                 best_params_idx = np.random.randint(low=0, high=len(obs_params))
                 best_params = obs_params[best_params_idx]
 
-            # If we have called build_kernels, we'll have actual kernels
-            # otherwise the default kernel_contribution return (0, volume)
-            #kernel_contribution = self.bayesian_network.kernel_contribution
-
-            # sample from BNN for feasibility surrogate is we have at least one unfeasible point
-            #if np.sum(obs_objs_ukwn) > 0.1:
-                # use mask to avoid using mirrored samples here
-            #    self.bayesian_network_feas.sample(obs_params_ukwn[mirror_mask_ukwn], obs_objs_ukwn[mirror_mask_ukwn])
-            #    self.bayesian_network_feas.build_kernels(descriptors_feas)
-
-            # If we have called build_kernels, we'll have actual surrogate
-            # otherwise surrogate always returns zero, i.e. feasible
-            #probability_infeasible = self.bayesian_network_feas.surrogate
-            # prior_1 is fraction of unfeasible samples
-            #frac_infeasible = self.bayesian_network_feas.prior_1
-
             # if there are process constraining parameters, run those first
             if self.config.process_constrained:
                 proposed_samples = self.acquisition.propose(best_params, self.bayesian_network,
@@ -197,18 +166,6 @@ class Gryffin(Logger):
             samples = self.sample_selector.select(self.config.get('batches'), proposed_samples,
                                                   self.acquisition.eval_acquisition,
                                                   self.sampling_param_values, obs_params)
-
-            # store info so to be able to recontruct surrogate and acquisition function if needed
-            #self.last_kernel_contribution = kernel_contribution
-            #self.last_probability_infeasible = probability_infeasible
-            #self.last_sampling_strategies = sampling_strategies
-            self.incumbent = best_params
-            self.obs_params = obs_params
-            self.obs_objs = obs_objs
-            self.obs_feas = obs_feas
-            self.mask_kwn = mask_kwn
-            self.mask_mirror = mask_mirror
-            #self.last_recommended_samples = samples
 
         GB, MB, kB = memory_usage()
         self.log(f'[MEM]:  {GB} GB, {MB} MB, {kB} kB', 'INFO')
@@ -304,6 +261,40 @@ class Gryffin(Logger):
                 y_pred = self.bayesian_network.prob_feasible(x)
             else:
                 y_pred = self.bayesian_network.classification_surrogate(x, threshold=threshold)
+            y_preds.append(y_pred)
+        return np.array(y_preds)
+
+    def get_kernel_density_estimate(self, params, separate_kwn_ukwn=False):
+        """
+        Retrieve the feasibility surrogate model.
+
+        Parameters
+        ----------
+        params : list or DataFrame
+            list of dicts with input parameters to evaluate. Alternatively it can also be a pandas DataFrame where
+            each column name corresponds to one of the input parameters in Gryffin.
+        separate_kwn_ukwn : bool
+            whether to return the density for all samples, or to separate the density for feasible/infeasible samples.
+
+        Returns
+        -------
+        y_pred : list
+            kernel density estimates.
+        """
+        if isinstance(params, pd.DataFrame):
+            params = self._df_to_list_of_dicts(params)
+
+        X = param_dicts_to_vectors(params, param_names=self.config.param_names,
+                                   param_options=self.config.param_options, param_types=self.config.param_types)
+        y_preds = []
+        for x in X:
+            log_density_0, log_density_1 = self.bayesian_network.kernel_classification.get_binary_kernel_densities(x)
+            density_0 = np.exp(log_density_0)
+            density_1 = np.exp(log_density_1)
+            if separate_kwn_ukwn is True:
+                y_pred = [density_0, density_1]
+            else:
+                y_pred = density_0 + density_1
             y_preds.append(y_pred)
         return np.array(y_preds)
 
