@@ -76,14 +76,11 @@ class ObservationProcessor(Logger):
 
     def process_observations(self, obs_dicts):
 
-        mirror_mask_kwn = []
-        mirror_mask_ukwn = []
-
-        # get raw results
-        raw_params_kwn = []  # known result = feasible
-        raw_objs_kwn = []
-        raw_params_ukwn = []  # unknown result = unfeasible
-        raw_objs_ukwn = []
+        obs_params = []  # all params
+        raw_objs = []  # all objective values (possibly >1 objective)
+        obs_feas = []  # all feasibility values, 0 for feasible, 1 for infeasible (i.e. obj == NaN)
+        mask_kwn = []  # mask known/feasible objectives
+        mask_mirror = []  # mask for original (non-mirrored params)
 
         # -------------------------------
         # parse parameters and objectives
@@ -101,61 +98,62 @@ class ObservationProcessor(Logger):
             # --------------------
             # add processed params
             # --------------------
-            if any(np.isnan(obj_vector)) is False:
-                # add to known if there is no nan (note: we expect all objs to either feasible or unfeasible)
-                for i, param in enumerate(mirrored_params):
-                    raw_params_kwn.append(param)
-                    raw_objs_kwn.append(obj_vector)
+            for i, param in enumerate(mirrored_params):
+                obs_params.append(param)
+                raw_objs.append(obj_vector)
 
-                    # add feasibility info to ukwn lists (i.e. all feasible)
-                    raw_params_ukwn.append(param)
-                    raw_objs_ukwn.append([0.])  # single objective
+                # if any of the objectives is NaN ==> unknown/infeasible point
+                if any(np.isnan(obj_vector)) is True:
+                    feas = 1.  # i.e. infeasible/unknown
+                    kwn = False
+                else:
+                    feas = 0.  # i.e. feasible/known
+                    kwn = True
 
-                    # keep track of mirrored params
-                    if i == 0:
-                        mirror_mask_kwn.append(True)
-                        mirror_mask_ukwn.append(True)
-                    else:
-                        mirror_mask_kwn.append(False)
-                        mirror_mask_ukwn.append(False)
+                # keep track of mirrored params. The first set of params is the original one, if more are present,
+                # they are mirrored ones
+                if i == 0:
+                    mirror = False
+                else:
+                    mirror = True
 
-            # if we have nan ==> unfeasible, add only to ukwn list
-            else:
-                for i, param in enumerate(mirrored_params):
-                    raw_params_ukwn.append(param)
-                    raw_objs_ukwn.append([1.])  # single objective
+                obs_feas.append(feas)
+                mask_kwn.append(kwn)
+                mask_mirror.append(mirror)
 
-                    # keep track of mirrored params
-                    if i == 0:
-                        mirror_mask_ukwn.append(True)
-                    else:
-                        mirror_mask_ukwn.append(False)
+        # lists to np arrays
+        obs_params = np.array(obs_params)
+        raw_objs = np.array(raw_objs)
+        obs_feas = np.array(obs_feas)
+        mask_kwn = np.array(mask_kwn)
+        mask_mirror = np.array(mask_mirror)
 
-        # process standard params/objs
-        # ----------------------------
-        raw_objs_kwn = np.array(raw_objs_kwn)
-        raw_params_kwn = np.array(raw_params_kwn)
-        params_kwn = raw_params_kwn
-        if raw_objs_kwn.shape[0] > 0:  # guard against empty objs, which can happen if first sample is nan
+        #print('ObservationProcessor:')
+        #print('obs_params', obs_params)
+        #print('raw_objs', raw_objs)
+        #print('obs_feas', obs_feas)
+        #print('mask_kwn', mask_kwn)
+        #print('mask_mirror', mask_mirror)
+        #print()
+
+        # ---------------------------
+        # process multiple objectives
+        # ---------------------------
+        obs_objs = np.empty(shape=len(raw_objs))
+
+        # we scalarize of known objectives, while we assign NaN to any objective vector containing NaN values
+
+        if len(raw_objs[mask_kwn]) > 0:  # guard against empty knw objs
             # Note that Chimera takes care of adjusting the objectives based on whether we are
             #  minimizing vs maximizing
-            objs_kwn = self.scalarize_objectives(raw_objs_kwn)
-        else:
-            objs_kwn = raw_objs_kwn
+            obs_objs_kwn = self.scalarize_objectives(raw_objs[mask_kwn])
+            obs_objs[mask_kwn] = obs_objs_kwn
 
-        # process feasibility space
-        # -------------------------
-        raw_objs_ukwn = np.array(raw_objs_ukwn)
-        raw_params_ukwn = np.array(raw_params_ukwn)
-        params_ukwn = raw_params_ukwn
-        # no need to adjust objs_ukwn: we assume we are minimizing and 0 = feasible, 1 = infeasible
-        # we also do not scalarize because:
-        # (i) we consider all objectives to be known/unknown at the same time
-        # (ii) the threshold are defined for the objectives, not for the feasibility. If feasibility
-        #  itself is an objective, it should be defined as such in the config.
-        objs_ukwn = raw_objs_ukwn.flatten()
+        if len(raw_objs[~mask_kwn]) > 0:  # guard against empty uknw objs
+            obs_objs_ukwn = np.array([np.nan] * len(raw_objs[~mask_kwn]))  # array of NaNs
+            obs_objs[~mask_kwn] = obs_objs_ukwn
 
-        return params_kwn, objs_kwn, mirror_mask_kwn, params_ukwn, objs_ukwn, mirror_mask_ukwn
+        return obs_params, obs_objs, obs_feas, mask_kwn, mask_mirror
 
 
 # ================

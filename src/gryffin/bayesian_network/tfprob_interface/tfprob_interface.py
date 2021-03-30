@@ -8,7 +8,6 @@ warnings.filterwarnings('ignore')
 
 import os
 import sys
-import pickle
 import numpy as np
 import tensorflow as tf
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
@@ -40,12 +39,10 @@ class TfprobNetwork(object):
         with self.graph.as_default():
             self.sess = tf.compat.v1.InteractiveSession()
 
-    def declare_training_data(self, obs_params, obs_objs):
+    def declare_training_data(self, obs_params):
 
-        assert len(obs_params) == len(obs_objs)
         # categorical features are encoded as single numbers, bnn output is one-hot encoded
         self.num_obs = len(obs_params)
-        self.obs_objs = obs_objs
 
         # initialize training features and targets
         self.features = np.zeros((self.num_obs, self.feature_size))
@@ -81,6 +78,7 @@ class TfprobNetwork(object):
 
         self.lower_rescalings = lower_rescalings
         self.upper_rescalings = upper_rescalings
+        print('rescalings', lower_rescalings, upper_rescalings)
 
         self.rescaled_features = (self.features - self.lower_rescalings) / (self.upper_rescalings - self.lower_rescalings)
         self.rescaled_targets = (self.targets - self.lower_rescalings) / (self.upper_rescalings - self.lower_rescalings)
@@ -175,24 +173,24 @@ class TfprobNetwork(object):
                 feature_begin, feature_end = target_element_index, target_element_index + 1
                 kernel_begin, kernel_end   = kernel_element_index, kernel_element_index + kernel_size
 
-                prior_relevant = self.prior_bnn_output[:, kernel_begin : kernel_end]
-                post_relevant  = self.post_bnn_output[:,  kernel_begin : kernel_end]
+                prior_relevant = self.prior_bnn_output[:, kernel_begin: kernel_end]
+                post_relevant  = self.post_bnn_output[:,  kernel_begin: kernel_end]
 
                 if kernel_type == 'continuous':
-                    target  = self.y[:, kernel_begin : kernel_end]
-                    lowers, uppers = self.config.kernel_lowers[kernel_begin : kernel_end], self.config.kernel_uppers[kernel_begin : kernel_end]
+                    target = self.y[:, kernel_begin: kernel_end]
+                    lowers, uppers = self.config.kernel_lowers[kernel_begin: kernel_end], self.config.kernel_uppers[kernel_begin : kernel_end]
 
                     prior_support = (uppers - lowers) * (1.2 * tf.nn.sigmoid(prior_relevant) - 0.1) + lowers
-                    post_support = (uppers - lowers) * (1.2 * tf.nn.sigmoid(post_relevant) - 0.1)  + lowers
+                    post_support = (uppers - lowers) * (1.2 * tf.nn.sigmoid(post_relevant) - 0.1) + lowers
 
-                    prior_predict = tfd.Normal(prior_support, self.prior_scale[:, kernel_begin : kernel_end].sample())
-                    post_predict = tfd.Normal(post_support,  self.post_scale[:,  kernel_begin : kernel_end].sample())
+                    prior_predict = tfd.Normal(prior_support, self.prior_scale[:, kernel_begin: kernel_end].sample())
+                    post_predict = tfd.Normal(post_support,  self.post_scale[:,  kernel_begin: kernel_end].sample())
 
                     targets_dict[prior_predict] = target
                     post_kernels['param_%d' % target_element_index] = {
                         'loc':       tfd.Deterministic(post_support),
-                        'sqrt_prec': tfd.Deterministic(self.post_sqrt_tau[:, kernel_begin : kernel_end]),
-                        'scale':     tfd.Deterministic(self.post_scale[:, kernel_begin : kernel_end].sample())}
+                        'sqrt_prec': tfd.Deterministic(self.post_sqrt_tau[:, kernel_begin: kernel_end]),
+                        'scale':     tfd.Deterministic(self.post_scale[:, kernel_begin: kernel_end].sample())}
 
                     inference = {'pred': post_predict, 'target': target}
                     inferences.append(inference)
@@ -276,11 +274,12 @@ class TfprobNetwork(object):
         for param_index in range(len(self.config.param_names)):
             post_kernel = self.trace['param_%d' % param_index]
 
+            # continuous kernels
             if 'loc' in post_kernel and 'sqrt_prec' in post_kernel:
                 trace_kernels['locs'].append(post_kernel['loc'].astype(np.float64))
                 trace_kernels['sqrt_precs'].append(post_kernel['sqrt_prec'].astype(np.float64))
                 trace_kernels['probs'].append(np.zeros(post_kernel['loc'].shape, dtype=np.float64))
-
+            # categorical kernels
             elif 'probs' in post_kernel:
                 trace_kernels['locs'].append(np.zeros(post_kernel['probs'].shape, dtype=np.float64))
                 trace_kernels['sqrt_precs'].append(np.zeros(post_kernel['probs'].shape, dtype=np.float64))
@@ -291,41 +290,20 @@ class TfprobNetwork(object):
         for key, kernel in trace_kernels.items():
             trace_kernels[key] = np.concatenate(kernel, axis=2)
 
-        return trace_kernels, self.obs_objs
+        return trace_kernels
 
 
 @processify
-def run_tf_network(observed_params, observed_objs, config, model_details):
+def run_tf_network(observed_params, config, model_details):
     """Run network in a function that gets run in a temporary process. Important to keep the @processify decorator,
     otherwise TensorFlow keeps a bunch of global variables that do not get garbage collected and memory usage
     keeps increasing when Gryffin is run in a loop, until we run out of memory.
     """
     tfprob_network = TfprobNetwork(config, model_details)
-    tfprob_network.declare_training_data(observed_params, observed_objs)
+    tfprob_network.declare_training_data(observed_params)
     tfprob_network.construct_model()
     tfprob_network.sample()
-    trace_kernels, obs_objs = tfprob_network.get_kernels()
-    return trace_kernels, obs_objs
+    trace_kernels = tfprob_network.get_kernels()
+    return trace_kernels
 
-
-if __name__ == '__main__':
-    import sys
-    home_path    = sys.argv[1]
-    sim_file     = sys.argv[2]
-    results_file = sys.argv[3]
-
-    sys.path.append(home_path)
-
-    with open(sim_file, 'rb') as content:
-        sim_data = pickle.load(content)
-
-    tfprob_network = TfprobNetwork(sim_data['config'], sim_data['model_details'])
-    tfprob_network.declare_training_data(sim_data['obs_params'], sim_data['obs_objs'])
-    tfprob_network.construct_model()
-    tfprob_network.sample()
-
-    trace_kernels, obs_objs = tfprob_network.get_kernels()
-    results = {'trace_kernels': trace_kernels, 'obs_objs': obs_objs}
-    with open(results_file, 'wb') as content:
-        pickle.dump(results, content)
 

@@ -8,9 +8,9 @@ from . import GryffinParseError, GryffinValueError
 from . import Logger
 
 from . import ParserJSON, CategoryParser
-from . import default_general_configurations
-from . import default_database_configurations
-from . import default_model_configurations
+from . import default_general_configuration
+from . import default_database_configuration
+from . import default_model_configuration
 from . import safe_execute
 
 
@@ -74,7 +74,7 @@ class ConfigParser(Logger):
 
     def _parse_general(self, provided_settings):
         self.general = Configuration('general')
-        for general_key, general_value in default_general_configurations.items():
+        for general_key, general_value in default_general_configuration.items():
             if general_key in provided_settings:
                 general_value = provided_settings[general_key]
             if general_value in ['True', 'False']:
@@ -83,7 +83,7 @@ class ConfigParser(Logger):
 
     def _parse_database(self, provided_settings):
         self.database = Configuration('database')
-        for general_key, general_value in default_database_configurations.items():
+        for general_key, general_value in default_database_configuration.items():
             if general_key in provided_settings:
                 general_value = provided_settings[general_key]
             if general_value in ['True', 'False']:
@@ -92,7 +92,7 @@ class ConfigParser(Logger):
 
     def _parse_model(self, provided_settings):
         self.model_details = Configuration('model')
-        for general_key, general_value in default_model_configurations.items():
+        for general_key, general_value in default_model_configuration.items():
             if general_key in provided_settings:
                 general_value = provided_settings[general_key]
             if general_value in ['True', 'False']:
@@ -358,22 +358,8 @@ class ConfigParser(Logger):
         return len(self.feature_names)
 
     @property
-    def kernel_lowers(self):
-        lowers = []
-        for spec in self.kernels.specifics:
-            if 'options' in spec:
-                lowers.append(0.)
-            else:
-                lowers.append(spec['low'])
-        return np.array(lowers)
-
-    @property
     def kernel_names(self):
         return self.kernels.name
-
-    @property
-    def kernel_ranges(self):
-        return self.kernel_uppers - self.kernel_lowers
 
     @property
     def kernel_sizes(self):
@@ -395,6 +381,16 @@ class ConfigParser(Logger):
         return self.kernels.type
 
     @property
+    def kernel_lowers(self):
+        lowers = []
+        for spec in self.kernels.specifics:
+            if 'options' in spec:
+                lowers.append(0.)
+            else:
+                lowers.append(spec['low'])
+        return np.array(lowers)
+
+    @property
     def kernel_uppers(self):
         uppers = []
         for spec in self.kernels.specifics:
@@ -403,6 +399,10 @@ class ConfigParser(Logger):
             else:
                 uppers.append(spec['high'])
         return np.array(uppers)
+
+    @property
+    def kernel_ranges(self):
+        return self.kernel_uppers - self.kernel_lowers
 
     # ------------------------------------
     # Properties related to the objectives

@@ -7,7 +7,7 @@ __author__ = 'Florian Hase'
 # =============================
 # Default general configuration
 # =============================
-default_general_configurations = {
+default_general_configuration = {
     'num_cpus':               1,  # Options are a number, or 'all'
     'boosted':                True,
     'caching':                True,
@@ -31,7 +31,7 @@ default_general_configurations = {
 # ==============================
 # Default database configuration
 # ==============================
-default_database_configurations = {
+default_database_configuration = {
     'format':           'sqlite',
     'path':             './SearchProgress',
     'log_observations':  True,
@@ -41,9 +41,9 @@ default_database_configurations = {
 # =========================
 # Default BNN configuration
 # =========================
-default_model_configurations = {
+default_model_configuration = {
     'num_epochs':  2 * 10**3,
-    'learning_rate': 0.01,
+    'learning_rate': 0.05,
     'num_draws': 10**3,
     'num_layers': 3,
     'hidden_shape': 6,
@@ -58,13 +58,13 @@ default_model_configurations = {
 # =============================
 default_configuration = {
     'general': {
-        key: default_general_configurations[key] for key in default_general_configurations.keys()
+        key: default_general_configuration[key] for key in default_general_configuration.keys()
     },
     'database': {
-        key: default_database_configurations[key] for key in default_database_configurations.keys()
+        key: default_database_configuration[key] for key in default_database_configuration.keys()
     },
     'model': {
-        key: default_model_configurations[key] for key in default_model_configurations.keys()
+        key: default_model_configuration[key] for key in default_model_configuration.keys()
     },
     'parameters': [
         {'name': 'param_0', 'type': 'continuous', 'low': 0, 'high': 1},

@@ -43,8 +43,8 @@ class Gryffin(Logger):
         self.obs_processor = ObservationProcessor(self.config)
         self.descriptor_generator = DescriptorGenerator(self.config)
         self.descriptor_generator_feas = DescriptorGenerator(self.config)
-        self.bayesian_network = BayesianNetwork(config=self.config, classification=False)
-        self.bayesian_network_feas = BayesianNetwork(config=self.config, classification=True)
+        self.bayesian_network = BayesianNetwork(config=self.config)
+        #self.bayesian_network_feas = BayesianNetwork(config=self.config, classification=True)
         self.acquisition = Acquisition(self.config, self.known_constraints)
         self.sample_selector = SampleSelector(self.config)
 
@@ -98,21 +98,43 @@ class Gryffin(Logger):
 
         # we have observations
         else:
-            obs_params_kwn, obs_objs_kwn, mirror_mask_kwn, \
-            obs_params_ukwn, obs_objs_ukwn, mirror_mask_ukwn = self.obs_processor.process_observations(observations)
+            # obs_params_kwn, obs_objs_kwn == all observations with known objective
+            # obs_params_ukwn, obs_objs_ukwn == all observations with unknown objective, so objs contains whether
+            #  feasible (0) or not (1)
+            #obs_params_kwn, obs_objs_kwn, mirror_mask_kwn, \
+            #obs_params_ukwn, obs_objs_ukwn, mirror_mask_ukwn = self.obs_processor.process_observations(observations)
 
-            # run descriptor generation
+            # obs_params == all observed parameters
+            # obs_objs == all observed objective function evaluations (including NaNs)
+            # obs_feas == whether observed parameters are feasible (0) or infeasible (1)
+            # mask_kwn == mask that selects only known/feasible params/objs (including mirrored params)
+            # mask_mirror == mask that selects the parameters that have been mirrored across opt bounds
+            obs_params, obs_objs, obs_feas, mask_kwn, mask_mirror = self.obs_processor.process_observations(observations)
+
+            print('GRYFFIN:')
+            print('obs_params', obs_params)
+            print('obs_objs', obs_objs)
+            print('obs_feas', obs_feas)
+            print('mask_kwn', mask_kwn)
+            print('mask_mirror', mask_mirror)
+            print()
+
+
+            # ---------------------------
+            # get categorical descriptors
+            # ---------------------------
             if self.config.get('auto_desc_gen'):
-                if len(obs_params_kwn) > 2:
-                    self.descriptor_generator.generate_descriptors(obs_params_kwn, obs_objs_kwn)
-                # we run descriptor generation for unknown points only if we have at least 1 infeasible point,
-                #  otherwise they are all feasible and there is no point running this. Remember that
-                #  feasible = 0 and infeasible = 1.
-                if len(obs_params_ukwn) > 2 and np.sum(obs_objs_ukwn) > 0.1:
-                    self.descriptor_generator_feas.generate_descriptors(obs_params_ukwn, obs_objs_ukwn)
+                # only feasible points with known objectives
+                if len(obs_params[mask_kwn]) > 2:
+                    self.descriptor_generator.generate_descriptors(obs_params[mask_kwn], obs_objs[mask_kwn])
+                # for feasibility descriptors, we use all data, but we run descriptor generation
+                # only if we have at least 1 infeasible point, otherwise they are all feasible and there is no point
+                # running this. Remember that feasible = 0 and infeasible = 1.
+                if len(obs_params) > 2 and np.sum(obs_feas) > 0.1:
+                    self.descriptor_generator_feas.generate_descriptors(obs_params[~mask_kwn], obs_params[~mask_kwn])
 
             # extract descriptors and build kernels
-            descriptors = self.descriptor_generator.get_descriptors()
+            descriptors_kwn = self.descriptor_generator.get_descriptors()
             descriptors_feas = self.descriptor_generator_feas.get_descriptors()
 
             # get lambda values for exploration/exploitation
@@ -120,66 +142,73 @@ class Gryffin(Logger):
             dominant_strategy_index = self.iter_counter % len(self.sampling_param_values)
             dominant_strategy_value = np.array([self.sampling_param_values[dominant_strategy_index]])
 
-            # sample bnn for known parameters
-            if obs_params_kwn.shape[0] > 0:
-                self.bayesian_network.sample(obs_params_kwn, obs_objs_kwn)
-                self.bayesian_network.build_kernels(descriptors)
+            # ----------------------------------------------
+            # sample bnn to get kernels for all observations
+            # ----------------------------------------------
+            self.bayesian_network.sample(obs_params)  # infer kernel densities
+            # build kernel smoothing/classification surrogates
+            self.bayesian_network.build_kernels(descriptors_kwn=descriptors_kwn, descriptors_feas=descriptors_feas,
+                                                obs_objs=obs_objs, obs_feas=obs_feas, mask_kwn=mask_kwn)
+
+            # get incumbent
+            if len(obs_params[mask_kwn]) > 0:
                 # if we have kwn samples ==> pick params with best merit
-                best_params = obs_params_kwn[np.argmin(obs_objs_kwn)]
+                best_params = obs_params[mask_kwn][np.argmin(obs_objs[mask_kwn])]
             else:
                 # if we have do not have any feasible sample ==> pick any feasible param at random
-                best_params_idx = np.random.choice(np.flatnonzero(obs_objs_ukwn == obs_objs_ukwn.min()))
-                best_params = obs_params_ukwn[best_params_idx]
+                best_params_idx = np.random.randint(low=0, high=len(obs_params))
+                best_params = obs_params[best_params_idx]
 
             # If we have called build_kernels, we'll have actual kernels
             # otherwise the default kernel_contribution return (0, volume)
-            kernel_contribution = self.bayesian_network.kernel_contribution
+            #kernel_contribution = self.bayesian_network.kernel_contribution
 
             # sample from BNN for feasibility surrogate is we have at least one unfeasible point
-            if np.sum(obs_objs_ukwn) > 0.1:
+            #if np.sum(obs_objs_ukwn) > 0.1:
                 # use mask to avoid using mirrored samples here
-                self.bayesian_network_feas.sample(obs_params_ukwn[mirror_mask_ukwn], obs_objs_ukwn[mirror_mask_ukwn])
-                self.bayesian_network_feas.build_kernels(descriptors_feas)
+            #    self.bayesian_network_feas.sample(obs_params_ukwn[mirror_mask_ukwn], obs_objs_ukwn[mirror_mask_ukwn])
+            #    self.bayesian_network_feas.build_kernels(descriptors_feas)
 
             # If we have called build_kernels, we'll have actual surrogate
             # otherwise surrogate always returns zero, i.e. feasible
-            probability_infeasible = self.bayesian_network_feas.surrogate
+            #probability_infeasible = self.bayesian_network_feas.surrogate
             # prior_1 is fraction of unfeasible samples
-            frac_infeasible = self.bayesian_network_feas.prior_1
+            #frac_infeasible = self.bayesian_network_feas.prior_1
 
             # if there are process constraining parameters, run those first
             if self.config.process_constrained:
-                proposed_samples = self.acquisition.propose(best_params, kernel_contribution,
-                                                            probability_infeasible, frac_infeasible,
+                proposed_samples = self.acquisition.propose(best_params, self.bayesian_network,
                                                             self.sampling_param_values, num_samples=200,
                                                             dominant_samples=None)
                 constraining_samples = self.sample_selector.select(self.config.get('batches'), proposed_samples,
                                                                    self.acquisition.eval_acquisition,
-                                                                   dominant_strategy_value, obs_params_ukwn)
+                                                                   dominant_strategy_value, obs_params)
             else:
                 constraining_samples = None
 
             # then select the remaining proposals
             # note num_samples get multiplied by the number of input variables
-            proposed_samples = self.acquisition.propose(best_params, kernel_contribution, probability_infeasible,
-                                                        frac_infeasible, self.sampling_param_values, num_samples=200,
-                                                        dominant_samples=constraining_samples, timings_dict=self.timings)
+            proposed_samples = self.acquisition.propose(best_params=best_params, bayesian_network=self.bayesian_network,
+                                                        sampling_param_values=self.sampling_param_values,
+                                                        num_samples=200, dominant_samples=constraining_samples,
+                                                        timings_dict=self.timings)
 
-            # note: provide `obs_params_ukwn` as it contains the params for _all_ samples, including the unfeasible ones
+            # note: provide `obs_params` as it contains the params for _all_ samples, including the unfeasible ones
             samples = self.sample_selector.select(self.config.get('batches'), proposed_samples,
                                                   self.acquisition.eval_acquisition,
-                                                  self.sampling_param_values, obs_params_ukwn)
+                                                  self.sampling_param_values, obs_params)
 
             # store info so to be able to recontruct surrogate and acquisition function if needed
-            self.last_kernel_contribution = kernel_contribution
-            self.last_probability_infeasible = probability_infeasible
-            self.last_sampling_strategies = sampling_strategies
-            self.last_frac_infeasibile = frac_infeasible
-            self.last_params_kwn = obs_params_kwn[mirror_mask_kwn]
-            self.last_objs_kwn = obs_objs_kwn[mirror_mask_kwn]
-            self.last_params_ukwn = obs_params_ukwn[mirror_mask_ukwn]
-            self.last_objs_ukwn = obs_objs_ukwn[mirror_mask_ukwn]
-            self.last_recommended_samples = samples
+            #self.last_kernel_contribution = kernel_contribution
+            #self.last_probability_infeasible = probability_infeasible
+            #self.last_sampling_strategies = sampling_strategies
+            self.incumbent = best_params
+            self.obs_params = obs_params
+            self.obs_objs = obs_objs
+            self.obs_feas = obs_feas
+            self.mask_kwn = mask_kwn
+            self.mask_mirror = mask_mirror
+            #self.last_recommended_samples = samples
 
         GB, MB, kB = memory_usage()
         self.log(f'[MEM]:  {GB} GB, {MB} MB, {kB} kB', 'INFO')
@@ -220,17 +249,15 @@ class Gryffin(Logger):
             list_of_dicts.append(d)
         return list_of_dicts
 
-    def get_surrogate(self, params, feasibility=False):
+    def get_regression_surrogate(self, params):
         """
-        Retrieve the surrogate function.
+        Retrieve the surrogate model.
 
         Parameters
         ----------
         params : list or DataFrame
             list of dicts with input parameters to evaluate. Alternatively it can also be a pandas DataFrame where
             each column name corresponds to one of the input parameters in Gryffin.
-        feasibility : bool
-            whether to return the feasibility surrogate. Default is False.
 
         Returns
         -------
@@ -240,16 +267,43 @@ class Gryffin(Logger):
         if isinstance(params, pd.DataFrame):
             params = self._df_to_list_of_dicts(params)
 
-        if feasibility is True:
-            surrogate = self.bayesian_network_feas.surrogate
-        else:
-            surrogate = self.bayesian_network.surrogate
+        X = param_dicts_to_vectors(params, param_names=self.config.param_names,
+                                   param_options=self.config.param_options, param_types=self.config.param_types)
+        y_preds = []
+        for x in X:
+            y_pred = self.bayesian_network.regression_surrogate(x)
+            y_preds.append(y_pred)
+        return np.array(y_preds)
+
+    def get_feasibility_surrogate(self, params, threshold=None):
+        """
+        Retrieve the feasibility surrogate model.
+
+        Parameters
+        ----------
+        params : list or DataFrame
+            list of dicts with input parameters to evaluate. Alternatively it can also be a pandas DataFrame where
+            each column name corresponds to one of the input parameters in Gryffin.
+        threshold : float
+            the threshold used to classify whether a set of parameters is feasible or not. If ``None``, the probability
+            of feasibility is returned instead of a binary True/False (feasible/infeasible) output. Default is None.
+
+        Returns
+        -------
+        y_pred : list
+            surrogate model evaluated at the locations defined in params.
+        """
+        if isinstance(params, pd.DataFrame):
+            params = self._df_to_list_of_dicts(params)
 
         X = param_dicts_to_vectors(params, param_names=self.config.param_names,
                                    param_options=self.config.param_options, param_types=self.config.param_types)
         y_preds = []
         for x in X:
-            y_pred = surrogate(x)
+            if threshold is None:
+                y_pred = self.bayesian_network.prob_feasible(x)
+            else:
+                y_pred = self.bayesian_network.classification_surrogate(x, threshold=threshold)
             y_preds.append(y_pred)
         return np.array(y_preds)
 
