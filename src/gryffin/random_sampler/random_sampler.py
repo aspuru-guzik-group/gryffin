@@ -5,7 +5,7 @@ __author__ = 'Florian Hase'
 
 import numpy as np
 from gryffin.utilities import Logger
-from gryffin.utilities import GryffinUnknownSettingsError
+from gryffin.utilities import GryffinUnknownSettingsError, GryffinComputeError
 from gryffin.observation_processor import param_vector_to_dict
 
 
@@ -58,6 +58,7 @@ class RandomSampler(Logger):
 
     def _slow_draw(self, num=1):
         samples = []
+        counter = 0
 
         # keep trying random samples until we get num samples
         while len(samples) < num:
@@ -67,7 +68,7 @@ class RandomSampler(Logger):
             for param_index, param_settings in enumerate(self.config.parameters):
                 specs = param_settings['specifics']
                 param_type = param_settings['type']
-                param_sample = self._draw_single_parameter(num=num, param_type=param_type, specs=specs)[0]
+                param_sample = self._draw_single_parameter(num=1, param_type=param_type, specs=specs)[0]
                 sample.append(param_sample[0])
 
             # evaluate whether the sample violates the known constraints
@@ -76,6 +77,11 @@ class RandomSampler(Logger):
             feasible = self.known_constraints(param)
             if feasible is True:
                 samples.append(sample)
+
+            counter += 1
+            if counter > 100 * num:
+                raise GryffinComputeError("the feasible region seems to be less than 1% of the optimization "
+                                          "domain - consider redefining the problem")
 
         samples = np.array(samples)
         return samples
@@ -108,6 +114,7 @@ class RandomSampler(Logger):
 
     def _slow_perturb(self, ref_sample, num=1, scale=0.05):
         perturbed_samples = []
+        counter = 0
 
         # keep trying random samples until we get num samples
         while len(perturbed_samples) < num:
@@ -128,6 +135,11 @@ class RandomSampler(Logger):
             feasible = self.known_constraints(param)
             if feasible is True:
                 perturbed_samples.append(perturbed_sample)
+
+            counter += 1
+            if counter > 100 * num:
+                raise GryffinComputeError("we cannot find feasible solutions to perturbations of the incumbent - "
+                                          "something is badly wrong with either the setup or the code")
 
         perturbed_samples = np.array(perturbed_samples)
         return perturbed_samples
