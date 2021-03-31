@@ -86,7 +86,7 @@ class RandomSampler(Logger):
                 samples.append(sample)
 
             counter += 1
-            if counter > 100 * num:
+            if counter > 1000 * num:
                 raise GryffinComputeError("the feasible region seems to be less than 1% of the optimization "
                                           "domain - consider redefining the problem")
 
@@ -145,7 +145,7 @@ class RandomSampler(Logger):
                 perturbed_samples.append(perturbed_sample)
 
             counter += 1
-            if counter > 100 * num:
+            if counter > 1000 * num:
                 raise GryffinComputeError("we cannot find feasible solutions to perturbations of the incumbent - "
                                           "something is badly wrong with either the setup or the code")
 
