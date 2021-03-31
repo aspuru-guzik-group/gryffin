@@ -9,7 +9,6 @@ from gryffin.utilities import Logger, parse_time
 from gryffin.utilities import GryffinUnknownSettingsError
 from .kernel_evaluations import KernelEvaluator
 from .tfprob_interface import run_tf_network
-from copy import deepcopy
 
 
 class BayesianNetwork(Logger):

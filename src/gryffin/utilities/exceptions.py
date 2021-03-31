@@ -36,6 +36,10 @@ class GryffinParseError(AbstractError):
     name = 'GryffinParseError'
 
 
+class GryffinSettingsError(AbstractError):
+    name = 'GryffinSettingsError'
+
+
 class GryffinUnknownSettingsError(AbstractError):
     name = 'GryffinUnknownSettingsError'
 

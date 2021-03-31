@@ -11,16 +11,22 @@ from gryffin.observation_processor import param_vector_to_dict
 
 class RandomSampler(Logger):
 
-    def __init__(self, config, known_constraints=None):
+    def __init__(self, config, constraints=None):
         """
-        known_constraints : callable
-            A function that takes a parameter dict, e.g. {'x0':0.1, 'x1':10, 'x2':'A'} and returns a bool indicating
+        known_constraints : list of callable
+            List of constraint functions. Each is a function that takes a parameter dict, e.g.
+            {'x0':0.1, 'x1':10, 'x2':'A'} and returns a bool indicating
             whether it is in the feasible region or not.
         """
 
         # register attributes
         self.config = config
-        self.known_constraints = known_constraints
+
+        # if constraints not None, and not a list, put into a list
+        if constraints is not None and isinstance(constraints, list) is False:
+            self.constraints = [constraints]
+        else:
+            self.constraints = constraints
 
         # set verbosity
         verbosity = self.config.get('verbosity')
@@ -30,7 +36,7 @@ class RandomSampler(Logger):
 
     def draw(self, num=1):
         # if no constraints, we do not need to do any "rejection sampling"
-        if self.known_constraints is None:
+        if self.constraints is None:
             samples = self._fast_draw(num=num)
         else:
             samples = self._slow_draw(num=num)
@@ -39,7 +45,7 @@ class RandomSampler(Logger):
     def perturb(self, ref_sample, num=1, scale=0.05):
         """Take ref_sample and perturb it num times"""
         # if no constraints, we do not need to do any "rejection sampling"
-        if self.known_constraints is None:
+        if self.constraints is None:
             perturbed_samples = self._fast_perturb(ref_sample, num=num, scale=scale)
         else:
             perturbed_samples = self._slow_perturb(ref_sample, num=num, scale=scale)
@@ -74,8 +80,9 @@ class RandomSampler(Logger):
             # evaluate whether the sample violates the known constraints
             param = param_vector_to_dict(param_vector=sample, param_names=self.config.param_names,
                                          param_options=self.config.param_options, param_types=self.config.param_types)
-            feasible = self.known_constraints(param)
-            if feasible is True:
+
+            feasible = [constr(param) for constr in self.constraints]
+            if all(feasible) is True:
                 samples.append(sample)
 
             counter += 1
@@ -132,8 +139,9 @@ class RandomSampler(Logger):
             # evaluate whether the sample violates the known constraints
             param = param_vector_to_dict(param_vector=perturbed_sample, param_names=self.config.param_names,
                                          param_options=self.config.param_options, param_types=self.config.param_types)
-            feasible = self.known_constraints(param)
-            if feasible is True:
+
+            feasible = [constr(param) for constr in self.constraints]
+            if all(feasible) is True:
                 perturbed_samples.append(perturbed_sample)
 
             counter += 1

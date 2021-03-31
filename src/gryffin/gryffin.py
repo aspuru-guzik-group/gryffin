@@ -8,7 +8,7 @@ from .descriptor_generator import DescriptorGenerator
 from .observation_processor import ObservationProcessor, param_vectors_to_dicts, param_dicts_to_vectors
 from .random_sampler import RandomSampler
 from .sample_selector import SampleSelector
-from .utilities import ConfigParser, Logger, GryffinNotFoundError
+from .utilities import ConfigParser, Logger, GryffinNotFoundError, GryffinSettingsError
 from .utilities import parse_time, memory_usage
 
 import os
@@ -39,13 +39,12 @@ class Gryffin(Logger):
         self._create_folders()
 
         # Instantiate all objects needed
-        self.random_sampler = RandomSampler(self.config, self.known_constraints)
+        self.random_sampler = RandomSampler(self.config, constraints=self.known_constraints)
         self.obs_processor = ObservationProcessor(self.config)
         self.descriptor_generator = DescriptorGenerator(self.config)
         self.descriptor_generator_feas = DescriptorGenerator(self.config)
         self.bayesian_network = BayesianNetwork(config=self.config)
-        #self.bayesian_network_feas = BayesianNetwork(config=self.config, classification=True)
-        self.acquisition = Acquisition(self.config, self.known_constraints)
+        self.acquisition = Acquisition(self.config, known_constraints=self.known_constraints)
         self.sample_selector = SampleSelector(self.config)
 
         self.iter_counter = 0
@@ -88,7 +87,9 @@ class Gryffin(Logger):
         # register last sampling strategies
         self.sampling_strategies = sampling_strategies
 
+        # -----------------------------------------------------
         # no observations, need to fall back to random sampling
+        # -----------------------------------------------------
         if observations is None or len(observations) == 0:
             self.log('Could not find any observations, falling back to random sampling', 'WARNING')
             samples = self.random_sampler.draw(num=self.config.get('batches') * num_sampling_strategies)
@@ -96,7 +97,9 @@ class Gryffin(Logger):
                 dominant_features = self.config.feature_process_constrained
                 samples[:, dominant_features] = samples[0, dominant_features]
 
+        # --------------------
         # we have observations
+        # --------------------
         else:
             # obs_params == all observed parameters
             # obs_objs == all observed objective function evaluations (including NaNs)

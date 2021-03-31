@@ -12,6 +12,7 @@ from .exceptions      import GryffinUnknownSettingsError
 from .exceptions      import GryffinValueError
 from .exceptions      import GryffinVersionError
 from .exceptions      import GryffinComputeError
+from .exceptions      import GryffinSettingsError
 
 from .logger          import Logger
 

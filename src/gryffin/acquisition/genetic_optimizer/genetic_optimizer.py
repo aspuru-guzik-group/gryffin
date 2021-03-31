@@ -11,13 +11,24 @@ from deap import base, creator, tools
 
 class GeneticOptimizer(Logger):
 
-    def __init__(self, config, known_constraints=None):
+    def __init__(self, config, constraints=None):
+        """
+        constraints : list or None
+            List of callables that are constraints functions. Each function takes a parameter dict, e.g.
+            {'x0':0.1, 'x1':10, 'x2':'A'} and returns a bool indicating
+            whether it is in the feasible region or not.
+        """
         self.config = config
-        self.known_constraints = known_constraints
         Logger.__init__(self, 'GeneticOptimizer', verbosity=self.config.get('verbosity'))
 
+        # if constraints not None, and not a list, put into a list
+        if constraints is not None and isinstance(constraints, list) is False:
+            self.constraints = [constraints]
+        else:
+            self.constraints = constraints
+
         # define which single-step optimization function to use
-        if self.known_constraints is None:
+        if self.constraints is None:
             self._one_step_evolution = self._evolution
         else:
             self._one_step_evolution = self._constrained_evolution
@@ -200,8 +211,8 @@ class GeneticOptimizer(Logger):
         # evaluate whether the optimized sample violates the known constraints
         param = param_vector_to_dict(param_vector=param_vector, param_names=self.config.param_names,
                                      param_options=self.config.param_options, param_types=self.config.param_types)
-        feasible = self.known_constraints(param)
-        return feasible
+        feasible = [constr(param) for constr in self.constraints]
+        return all(feasible)
 
     @staticmethod
     def _update_individual(ind, value_vector):

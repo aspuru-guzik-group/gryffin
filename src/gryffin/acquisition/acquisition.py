@@ -10,6 +10,7 @@ from multiprocessing import Process, Manager
 from .gradient_optimizer import GradientOptimizer
 from gryffin.random_sampler import RandomSampler
 from gryffin.utilities import Logger, parse_time, GryffinUnknownSettingsError
+from gryffin.observation_processor import param_dict_to_vector
 
 
 class Acquisition(Logger):
@@ -19,7 +20,6 @@ class Acquisition(Logger):
         self.config = config
         self.known_constraints = known_constraints
         Logger.__init__(self, 'Acquisition', self.config.get('verbosity'))
-        self.random_sampler = RandomSampler(self.config, known_constraints)
         self.total_num_vars = len(self.config.feature_names)
         self.optimizer_type = self.config.get('acquisition_optimizer')
 
@@ -38,32 +38,53 @@ class Acquisition(Logger):
 
         # get feasibility approach and sensitivity parameter and do some checks
         self.feas_approach = self.config.get('feas_approach')
-        self.feas_sensitivity = self.config.get('feas_sensitivity')
+        self.feas_param = self.config.get('feas_param')
+        self._check_feas_options()
 
-        if self.feas_approach not in ['fwa', 'fai']:
+    def _check_feas_options(self):
+
+        if self.feas_approach not in ['fwa', 'fai', 'fca']:
             self.log(f'Cannot understand "feas_approach" option "{self.feas_approach}". '
                      f'Defaulting to "fwa".', 'WARNING')
             self.feas_approach = 'fwa'
 
-        if self.feas_sensitivity < 0.0:
-            self.log('Config parameter `feas_sensitivity` should be positive, applying np.abs()', 'WARNING')
-            self.feas_sensitivity = np.abs(self.feas_sensitivity)
-        elif self.feas_sensitivity == 0.0:
-            self.log('Config parameter `feas_sensitivity` cannot be zero, falling back to default value of 1',
+        if self.feas_approach == 'fai':
+            if self.feas_param < 0.0:
+                self.log('Config parameter `feas_param` should be positive, applying np.abs()', 'WARNING')
+                self.feas_param = np.abs(self.feas_param)
+            elif self.feas_param == 0.0:
+                self.log('Config parameter `feas_param` cannot be zero, falling back to default value of 1',
                         'WARNING')
-            self.feas_sensitivity = 1.0
+                self.feas_param = 1.0
 
-    def _propose_randomly(self, best_params, num_samples, dominant_samples=None):
+        if self.feas_approach == 'fca':
+            if self.feas_param <= 0.0 or self.feas_param >= 1.0:
+                self.log('Config parameter `feas_param` should be between zero and one when `feas_approach` is '
+                         '"fca", falling back to default of 0.5', 'WARNING')
+                self.feas_param = np.abs(self.feas_param)
+
+    def _propose_randomly(self, best_params, num_samples, acquisition_constraints, dominant_samples=None):
+        """
+        acquisition_constraints : list
+            list of constraints functions.
+        dominant_samples :
+            dominant samples for batch constraints.
+        """
+
+        random_sampler = RandomSampler(self.config, constraints=acquisition_constraints)
+
+        # -------------------
         # get uniform samples
+        # -------------------
         if dominant_samples is None:
-            uniform_samples = self.random_sampler.draw(num=self.total_num_vars * num_samples)
-            perturb_samples = self.random_sampler.perturb(best_params, num=self.total_num_vars * num_samples)
+            uniform_samples = random_sampler.draw(num=self.total_num_vars * num_samples)
+            perturb_samples = random_sampler.perturb(best_params, num=self.total_num_vars * num_samples)
             samples         = np.concatenate([uniform_samples, perturb_samples])
         else:
             dominant_features = self.config.feature_process_constrained
             for batch_sample in dominant_samples:
-                uniform_samples = self.random_sampler.draw(num=self.total_num_vars * num_samples // len(dominant_samples))
-                perturb_samples = self.random_sampler.perturb(best_params, num=self.total_num_vars * num_samples)
+                uniform_samples = random_sampler.draw(num=self.total_num_vars * num_samples // len(dominant_samples))
+                perturb_samples = random_sampler.perturb(best_params, num=self.total_num_vars * num_samples)
                 samples         = np.concatenate([uniform_samples, perturb_samples])
             samples[:, dominant_features] = batch_sample[dominant_features]
         return samples
@@ -122,7 +143,7 @@ class Acquisition(Logger):
 
         # define acquisition function to be optimized. With acq_min=0, acq_max=1 we are not scaling it.
         acquisition = AcquisitionFunction(bayesian_network=self.bayesian_network, sampling_param=sampling_param,
-                                          acq_min=0, acq_max=1, feas_approach=self.feas_approach, feas_sensitivity=1.0)
+                                          acq_min=0, acq_max=1, feas_approach=self.feas_approach, feas_param=1.0)
         # manually set acquitision function to be the acquisition for the samples only (no feasibility involved)
         acquisition.acquisition_function = acquisition._acquisition_all_feasible
         acquisition.feasibility_weight = None
@@ -178,7 +199,7 @@ class Acquisition(Logger):
             # define acquisition function to be optimized
             acquisition = AcquisitionFunction(bayesian_network=self.bayesian_network, sampling_param=sampling_param,
                                               acq_min=acq_min, acq_max=acq_max,
-                                              feas_approach=self.feas_approach, feas_sensitivity=self.feas_sensitivity)
+                                              feas_approach=self.feas_approach, feas_param=self.feas_param)
 
             # save acquisition instance for future use
             if batch_index not in self.acquisition_functions.keys():
@@ -235,12 +256,12 @@ class Acquisition(Logger):
 
         return np.array(optimized_samples)
 
-    def _load_optimizers(self, num):
+    def _load_optimizers(self, num, acquisition_constraints):
         if self.optimizer_type == 'adam':
-            local_optimizers = [GradientOptimizer(self.config, self.known_constraints) for _ in range(num)]
+            local_optimizers = [GradientOptimizer(self.config, acquisition_constraints) for _ in range(num)]
         elif self.optimizer_type == 'genetic':
             from .genetic_optimizer import GeneticOptimizer
-            local_optimizers = [GeneticOptimizer(self.config, self.known_constraints) for _ in range(num)]
+            local_optimizers = [GeneticOptimizer(self.config, acquisition_constraints) for _ in range(num)]
         else:
             GryffinUnknownSettingsError(f'Did not understand optimizer choice {self.optimizer_type}.'
                                         f'\n\tPlease choose "adam" or "genetic"')
@@ -254,24 +275,41 @@ class Acquisition(Logger):
 
         start_overall = time.time()
 
-        # define optimizers
-        self.local_optimizers = self._load_optimizers(num=len(sampling_param_values))
-
         # -------------------------------------------------------------
         # register attributes we'll be using to compute the acquisition
         # -------------------------------------------------------------
         self.bayesian_network = bayesian_network
         self.acquisition_functions = {}  # reinitialize acquisition functions, otherwise we keep using old ones!
         self.sampling_param_values = sampling_param_values
-        # -------------------------------------------------------------
 
+        # if using feasibility-constrained acquisition, we need to constrain the optimizers
+        if self.feas_approach == 'fca':
+            # if we also have already known_constraints, we need to merge them
+            if self.known_constraints is not None:
+                acquisition_constraints = [self.known_constraints, self._feasibility_constraint]
+            # otherwise, we only have feasibility constraints
+            else:
+                acquisition_constraints = [self._feasibility_constraint]
+        # if not using feasibility-constrained acquisition, then only constraints are the known_constraints, if any
+        else:
+            acquisition_constraints = self.known_constraints
+
+        # load local optimizers
+        self.local_optimizers = self._load_optimizers(num=len(sampling_param_values),
+                                                      acquisition_constraints=acquisition_constraints)
+
+        # ------------------
         # get random samples
+        # ------------------
         start_random = time.time()
-        random_proposals = self._propose_randomly(best_params, num_samples, dominant_samples=dominant_samples)
+        random_proposals = self._propose_randomly(best_params, num_samples, dominant_samples=dominant_samples,
+                                                  acquisition_constraints=acquisition_constraints)
         end_random = time.time()
         self.log('[TIME]:  ' + parse_time(start_random, end_random) + '  (random proposals)', 'INFO')
 
+        # ---------------------------------------------------------
         # run acquisition optimization starting from random samples
+        # ---------------------------------------------------------
         start_opt = time.time()
         optimized_proposals = self._optimize_proposals(random_proposals, dominant_samples=dominant_samples)
         end_opt = time.time()
@@ -295,12 +333,18 @@ class Acquisition(Logger):
         acquisition = self.acquisition_functions[batch_index]
         return acquisition(x)
 
+    def _feasibility_constraint(self, param_dict):
+        x = param_dict_to_vector(param_dict, param_names=self.config.param_names,
+                                 param_options=self.config.param_options, param_types=self.config.param_types)
+        feasible = self.bayesian_network.classification_surrogate(x, threshold=self.feas_param)
+        return feasible
+
 
 class AcquisitionFunction:
     """Acquisition function class that is used to support the class Acquisition. It selects the function to
     be optimized given the situation. It avoids re-defining the same functions multiple times in Acquisition methods"""
     def __init__(self, bayesian_network, sampling_param, acq_min=0, acq_max=1,
-                 feas_approach='fia', feas_sensitivity=1.0):
+                 feas_approach='fia', feas_param=1.0):
         """
         bayesian_network : object
             instance of BayesianNetwork with BNN trained and kernels built
@@ -328,7 +372,11 @@ class AcquisitionFunction:
             elif feas_approach == 'fai':
                 # select k * Acq + (1-k) * POF
                 self.acquisition_function = self._acquisition_standard
-                self.feasibility_weight = self.frac_infeasible ** feas_sensitivity
+                self.feasibility_weight = self.frac_infeasible ** feas_param
+            elif feas_approach == 'fca':
+                # select Acq constrained by feasible predictions
+                # Note that the constraints are not defined here
+                self.acquisition_function = self._acquisition_all_feasible
 
     def __call__(self, x):
         """Evaluate acquisition.

@@ -11,17 +11,27 @@ from . import AdamOptimizer, NaiveDiscreteOptimizer, NaiveCategoricalOptimizer
 
 class GradientOptimizer(Logger):
 
-    def __init__(self, config, known_constraints=None):
+    def __init__(self, config, constraints=None):
+        """
+        constraints : list or None
+            List of callables that are constraints functions. Each function takes a parameter dict, e.g.
+            {'x0':0.1, 'x1':10, 'x2':'A'} and returns a bool indicating
+            whether it is in the feasible region or not.
+        """
         self.config = config
-        self.known_constraints = known_constraints
+        Logger.__init__(self, 'GradientOptimizer', verbosity=self.config.get('verbosity'))
+
+        # if constraints not None, and not a list, put into a list
+        if constraints is not None and isinstance(constraints, list) is False:
+            self.constraints = [constraints]
+        else:
+            self.constraints = constraints
 
         # define which single-step optimization function to use
-        if known_constraints is None:
+        if constraints is None:
             self._optimize_one_sample = self._optimize_sample
         else:
             self._optimize_one_sample = self._constrained_optimize_sample
-
-        Logger.__init__(self, 'GradientOptimizer', verbosity=self.config.get('verbosity'))
 
         # parse positions
         self.pos_continuous = np.full(self.config.num_features, False, dtype=bool)
@@ -148,8 +158,8 @@ class GradientOptimizer(Logger):
             # evaluate whether the optimized sample violates the known constraints
             param = param_vector_to_dict(param_vector=optimized, param_names=self.config.param_names,
                                          param_options=self.config.param_options, param_types=self.config.param_types)
-            feasible = self.known_constraints(param)
-            if feasible is False:
+            feasible = [constr(param) for constr in self.constraints]
+            if not all(feasible):
                 # stop optimization and return last feasible point
                 optimized = sample_copy.copy()
                 break
