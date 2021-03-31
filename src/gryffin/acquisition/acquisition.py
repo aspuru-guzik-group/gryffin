@@ -283,7 +283,9 @@ class Acquisition(Logger):
         self.sampling_param_values = sampling_param_values
 
         # if using feasibility-constrained acquisition, we need to constrain the optimizers
-        if self.feas_approach == 'fca':
+        # However, do not use constraints if fraction of feasible samples is zero or one, in which case we
+        # we won't be needing the classification model
+        if self.feas_approach == 'fca' and self.bayesian_network.prior_1 > 1e-6 and self.bayesian_network.prior_0 > 1e-6:
             # if we also have already known_constraints, we need to merge them
             if self.known_constraints is not None:
                 acquisition_constraints = [self.known_constraints, self._feasibility_constraint]
@@ -359,23 +361,23 @@ class AcquisitionFunction:
 
         # NOTE: splitting the acquisition function into multiple funcs for efficiency when priors == 0/1
         # select the relevant acquisition
-        if self.frac_infeasible == 0:
+        if self.frac_infeasible < 1e-6:  # i.e. frac_infeasible == 0
             self.acquisition_function = self._acquisition_all_feasible
             self.feasibility_weight = None  # i.e. not used
-        elif self.frac_infeasible == 1:
+        elif 1. - self.frac_infeasible < 1e-6:  # i.e. frac_infeasible == 1
             self.acquisition_function = self._acquisition_all_infeasible
             self.feasibility_weight = None  # i.e. not used
         else:
             if feas_approach == 'fwa':
                 # select Acq * POF
-                self.acquisition_function = self._acquisition_times_pof
+                self.acquisition_function = self._fwa_acquisition
             elif feas_approach == 'fai':
                 # select k * Acq + (1-k) * POF
-                self.acquisition_function = self._acquisition_standard
+                self.acquisition_function = self._fai_acquisition
                 self.feasibility_weight = self.frac_infeasible ** feas_param
             elif feas_approach == 'fca':
                 # select Acq constrained by feasible predictions
-                # Note that the constraints are not defined here
+                # Note that the constraints are not defined here, but in the propose method (!)
                 self.acquisition_function = self._acquisition_all_feasible
 
     def __call__(self, x):
@@ -393,7 +395,7 @@ class AcquisitionFunction:
         """
         return self.acquisition_function(x)
 
-    def _acquisition_times_pof(self, x):
+    def _fwa_acquisition(self, x):
         num, inv_den = self.bayesian_network.kernel_contribution(x)  # standard acquisition for samples
         prob_feas = self.bayesian_network.prob_feasible(x)  # feasibility acquisition
         acq_samp = (num + self.sampling_param) * inv_den
@@ -402,7 +404,7 @@ class AcquisitionFunction:
         acq_samp_maximize = 1. - acq_samp
         return -(acq_samp_maximize * prob_feas)
 
-    def _acquisition_standard(self, x):
+    def _fai_acquisition(self, x):
         num, inv_den = self.bayesian_network.kernel_contribution(x)  # standard acquisition for samples
         prob_infeas = self.bayesian_network.prob_infeasible(x)  # feasibility acquisition
         acq_samp = (num + self.sampling_param) * inv_den
