@@ -1,6 +1,6 @@
 #!/usr/bin/env python 
 
-__author__ = 'Florian Hase'
+__author__ = 'Florian Hase, Matteo Aldeghi'
 
 import numpy as np
 import time
@@ -19,7 +19,10 @@ class Acquisition(Logger):
 
         self.config = config
         self.known_constraints = known_constraints
-        Logger.__init__(self, 'Acquisition', self.config.get('verbosity'))
+
+        self.verbosity = self.config.get('verbosity')
+        Logger.__init__(self, 'Acquisition', verbosity=self.verbosity)
+
         self.total_num_vars = len(self.config.feature_names)
         self.optimizer_type = self.config.get('acquisition_optimizer')
 
@@ -91,10 +94,8 @@ class Acquisition(Logger):
 
     def _proposal_optimization_thread(self, proposals, acquisition, batch_index,
                                       return_dict=None, return_index=0, dominant_samples=None):
-        if return_dict is not None:
-            self.log('running parallel optimization for lambda strategy number %d' % batch_index, 'INFO')
-        else:
-            self.log('running serial optimization for lambda strategy number %d' % batch_index, 'INFO')
+
+        self.log('running one optimization process', 'DEBUG')
 
         # get params to be constrained
         if dominant_samples is not None:
@@ -107,7 +108,11 @@ class Acquisition(Logger):
         local_optimizer.set_func(acquisition, ignores=ignore)
 
         # run acquisition optimization
-        optimized = local_optimizer.optimize(proposals, max_iter=10, verbose=False)
+        if self.verbosity > 2.5:  # i.e. INFO or DEBUG
+            show_progress = True
+        else:
+            show_progress = False
+        optimized = local_optimizer.optimize(proposals, max_iter=10, show_progress=show_progress)
 
         if return_dict.__class__.__name__ == 'DictProxy':
             return_dict[return_index] = optimized
@@ -191,6 +196,8 @@ class Acquisition(Logger):
         # Iterate over all sampling strategies
         # ------------------------------------
         for batch_index, sampling_param in enumerate(self.sampling_param_values):
+            # time
+            start_opt = time.time()
 
             # get approximate min/max of sample acquisition
             acq_min, acq_max = self._get_approx_min_max(random_proposals, sampling_param, dominant_samples)
@@ -254,6 +261,11 @@ class Acquisition(Logger):
             # append the optimized samples for this sampling strategy to the global list of optimized_samples
             optimized_samples.append(optimized_batch_samples)
 
+            # print info to screen
+            end_opt = time.time()
+            time_string = parse_time(start_opt, end_opt)
+            self.log(f'{len(optimized_batch_samples)} proposals optimized in {time_string} using {self.num_cpus} CPUs', 'INFO')
+
         return np.array(optimized_samples)
 
     def _load_optimizers(self, num, acquisition_constraints):
@@ -304,10 +316,12 @@ class Acquisition(Logger):
         # get random samples
         # ------------------
         start_random = time.time()
-        random_proposals = self._propose_randomly(best_params, num_samples, dominant_samples=dominant_samples,
-                                                  acquisition_constraints=acquisition_constraints)
+        with self.console.status("Drawing random samples..."):
+            random_proposals = self._propose_randomly(best_params, num_samples, dominant_samples=dominant_samples,
+                                                      acquisition_constraints=acquisition_constraints)
         end_random = time.time()
-        self.log('[TIME]:  ' + parse_time(start_random, end_random) + '  (random proposals)', 'INFO')
+        time_string = parse_time(start_random, end_random)
+        self.log(f'{len(random_proposals)} random proposals drawn in {time_string}', message_type='INFO')
 
         # ---------------------------------------------------------
         # run acquisition optimization starting from random samples
@@ -315,13 +329,14 @@ class Acquisition(Logger):
         start_opt = time.time()
         optimized_proposals = self._optimize_proposals(random_proposals, dominant_samples=dominant_samples)
         end_opt = time.time()
-        self.log('[TIME]:  ' + parse_time(start_opt, end_opt) + '  (optimizing proposals)', 'INFO')
 
         extended_proposals = np.array([random_proposals for _ in range(len(sampling_param_values))])
         combined_proposals = np.concatenate((extended_proposals, optimized_proposals), axis=1)
 
         end_overall = time.time()
-        self.log('[TIME]:  ' + parse_time(start_overall, end_overall) + '  (overall)', 'INFO')
+        time_string = parse_time(start_overall, end_overall)
+        strategy_str = 'strategies' if len(sampling_param_values) > 1 else 'strategy'
+        self.log(f'Acquisition tasks for {len(sampling_param_values)} sampling {strategy_str} performed in {time_string}', 'INFO')
 
         if timings_dict is not None:
             timings_dict['Acquisition'] = {}

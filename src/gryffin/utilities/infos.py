@@ -8,12 +8,12 @@ def parse_time(start, end):
     elapsed = end - start  # elapsed time in seconds
     if elapsed <= 1.0:
         ms = elapsed * 1000.
-        time_string = f"{ms:.4f} ms"
+        time_string = f"{ms:.1f} ms"
     elif 1.0 < elapsed < 60.0:
-        time_string = f"{elapsed:.2f} s"
+        time_string = f"{elapsed:.1f} s"
     else:
         m, s = divmod(elapsed, 60)
-        time_string = f"{m} min {s:.2f} s"
+        time_string = f"{m:.0f} min {s:.0f} s"
     return time_string
 
 

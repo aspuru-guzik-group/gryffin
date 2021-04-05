@@ -43,10 +43,8 @@ class BayesianNetwork(Logger):
         self.kernel_types, self.kernel_sizes = self._get_kernel_types_and_sizes(self.config)
 
         # verbosity settings
-        verbosity = self.config.get('verbosity')
-        if 'bayesian_network' in verbosity:
-            verbosity = verbosity['bayesian_network']
-        Logger.__init__(self, 'BayesianNetwork', verbosity=verbosity)
+        self.verbosity = self.config.get('verbosity')
+        Logger.__init__(self, 'BayesianNetwork', verbosity=self.verbosity)
 
         # get bnn model details
         if model_details is None:
@@ -92,13 +90,19 @@ class BayesianNetwork(Logger):
 
     def sample(self, obs_params):
         start = time.time()
-        self.log("training a BNN to build the surrogate model", "INFO")
 
-        trace_kernels = run_tf_network(observed_params=obs_params, config=self.config, model_details=self.model_details)
+        if self.verbosity > 2.5:  # i.e. INFO or DEBUG
+            with self.console.status("Training the Bayesian neural network..."):
+                trace_kernels = run_tf_network(observed_params=obs_params, config=self.config,
+                                               model_details=self.model_details)
+        else:
+            trace_kernels = run_tf_network(observed_params=obs_params, config=self.config,
+                                           model_details=self.model_details)
         self.trace_kernels = trace_kernels
 
         end = time.time()
-        self.log('[TIME]:  ' + parse_time(start, end) + '  (overall)', 'INFO')
+        time_string = parse_time(start, end)
+        self.log(f"Bayesian neural network trained in {time_string}", "INFO")
 
     def build_kernels(self, descriptors_kwn, descriptors_feas, obs_objs, obs_feas, mask_kwn):
 

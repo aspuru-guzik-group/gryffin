@@ -23,11 +23,7 @@ default_general_configuration = {
     'random_seed':            None,  # None for random, or set random seed to a value
     'save_database':          False,
     'acquisition_optimizer':  'adam',  # options are "adam" or "genetic"
-    'verbosity': {
-        'default':          2,
-        'bayesian_network': 3,
-        'random_sampler':   2,
-    }
+    'verbosity':                   3  # verbosity level, from 0 to 4. 0: FATAL, 1: ERROR, 2: WARNING, 3: INFO, 4: DEBUG
 }
 
 

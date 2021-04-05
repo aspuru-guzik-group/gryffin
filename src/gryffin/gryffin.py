@@ -1,6 +1,6 @@
 #!/usr/bin/env python 
 
-__author__ = 'Florian Hase'
+__author__ = 'Florian Hase, Matteo Aldeghi'
 
 from .acquisition import Acquisition
 from .bayesian_network import BayesianNetwork
@@ -8,7 +8,7 @@ from .descriptor_generator import DescriptorGenerator
 from .observation_processor import ObservationProcessor, param_vectors_to_dicts, param_dicts_to_vectors
 from .random_sampler import RandomSampler
 from .sample_selector import SampleSelector
-from .utilities import ConfigParser, Logger, GryffinNotFoundError, GryffinSettingsError
+from .utilities import ConfigParser, Logger, GryffinNotFoundError
 from .utilities import parse_time, memory_usage
 
 import os
@@ -19,14 +19,26 @@ import time
 
 class Gryffin(Logger):
 
-    def __init__(self, config_file=None, config_dict=None, known_constraints=None):
-
-        Logger.__init__(self, 'Gryffin', verbosity=0)
+    def __init__(self, config_file=None, config_dict=None, known_constraints=None, silent=False):
+        """
+        silent : bool
+            whether to suppress all standard output. If True, the ``verbosity`` settings in ``config`` will be
+            overwritten. Default is False.
+        """
 
         # parse configuration
         self.config = ConfigParser(config_file, config_dict)
         self.config.parse()
         self.config.set_home(os.path.dirname(os.path.abspath(__file__)))
+
+        # set verbosity
+        if silent is True:
+            self.verbosity = 2
+            self.config.general.verbosity = 2
+        else:
+            self.verbosity = self.config.get('verbosity')
+
+        Logger.__init__(self, 'Gryffin', verbosity=self.verbosity)
 
         # parse constraints function
         self.known_constraints = known_constraints
@@ -35,8 +47,7 @@ class Gryffin(Logger):
         self.timings = {}
 
         np.random.seed(self.config.get('random_seed'))
-        self.update_verbosity(self.config.get('verbosity'))
-        self._create_folders()
+        self._create_folders()  # folders created only if we are saving to database
 
         # Instantiate all objects needed
         self.random_sampler = RandomSampler(self.config, constraints=self.known_constraints)
@@ -50,6 +61,7 @@ class Gryffin(Logger):
         self.iter_counter = 0
         self.sampling_param_values = None
         self.sampling_strategies = None
+        self.num_batches = None
 
     def _create_folders(self):
         if self.config.get('save_database') is True and not os.path.isdir(self.config.get_db('path')):
@@ -75,6 +87,8 @@ class Gryffin(Logger):
         -------
         params : list
         """
+        self.log('', 'INFO')
+        self.log_chapter("Gryffin", line='=', style='bold #d9ed92')
 
         start_time = time.time()
         if sampling_strategies is None:
@@ -86,13 +100,22 @@ class Gryffin(Logger):
 
         # register last sampling strategies
         self.sampling_strategies = sampling_strategies
+        self.num_batches = self.config.get('batches')
+
+        # print summary of what will be proposed
+        num_recommended_samples = self.num_batches * num_sampling_strategies
+        samples_str = 'samples' if num_recommended_samples > 1 else 'sample'
+        batches_str = 'batches' if self.num_batches > 1 else 'batch'
+        strategy_str = 'strategies' if num_sampling_strategies > 1 else 'strategy'
+        self.log(f'Gryffin will propose {num_recommended_samples} {samples_str}: {self.num_batches} {batches_str} with'
+                 f' {num_sampling_strategies} sampling {strategy_str}', 'INFO')
 
         # -----------------------------------------------------
         # no observations, need to fall back to random sampling
         # -----------------------------------------------------
         if observations is None or len(observations) == 0:
             self.log('Could not find any observations, falling back to random sampling', 'WARNING')
-            samples = self.random_sampler.draw(num=self.config.get('batches') * num_sampling_strategies)
+            samples = self.random_sampler.draw(num=num_recommended_samples)
             if self.config.process_constrained:
                 dominant_features = self.config.feature_process_constrained
                 samples[:, dominant_features] = samples[0, dominant_features]
@@ -101,6 +124,7 @@ class Gryffin(Logger):
         # we have observations
         # --------------------
         else:
+            self.log(f'{len(observations)} observations found', 'INFO')
             # obs_params == all observed parameters
             # obs_objs == all observed objective function evaluations (including NaNs)
             # obs_feas == whether observed parameters are feasible (0) or infeasible (1)
@@ -133,6 +157,7 @@ class Gryffin(Logger):
             # ----------------------------------------------
             # sample bnn to get kernels for all observations
             # ----------------------------------------------
+            self.log_chapter('Bayesian Network')
             self.bayesian_network.sample(obs_params)  # infer kernel densities
             # build kernel smoothing/classification surrogates
             self.bayesian_network.build_kernels(descriptors_kwn=descriptors_kwn, descriptors_feas=descriptors_feas,
@@ -147,12 +172,16 @@ class Gryffin(Logger):
                 best_params_idx = np.random.randint(low=0, high=len(obs_params))
                 best_params = obs_params[best_params_idx]
 
+            # ----------------------------------------------
+            # optimize acquisition and select samples
+            # ----------------------------------------------
+
             # if there are process constraining parameters, run those first
             if self.config.process_constrained:
                 proposed_samples = self.acquisition.propose(best_params, self.bayesian_network,
                                                             self.sampling_param_values, num_samples=200,
                                                             dominant_samples=None)
-                constraining_samples = self.sample_selector.select(self.config.get('batches'), proposed_samples,
+                constraining_samples = self.sample_selector.select(self.num_batches, proposed_samples,
                                                                    self.acquisition.eval_acquisition,
                                                                    dominant_strategy_value, obs_params)
             else:
@@ -160,21 +189,33 @@ class Gryffin(Logger):
 
             # then select the remaining proposals
             # note num_samples get multiplied by the number of input variables
+            self.log_chapter('Acquisition')
             proposed_samples = self.acquisition.propose(best_params=best_params, bayesian_network=self.bayesian_network,
                                                         sampling_param_values=self.sampling_param_values,
                                                         num_samples=200, dominant_samples=constraining_samples,
                                                         timings_dict=self.timings)
 
+            self.log_chapter('Sample Selector')
             # note: provide `obs_params` as it contains the params for _all_ samples, including the unfeasible ones
-            samples = self.sample_selector.select(self.config.get('batches'), proposed_samples,
+            samples = self.sample_selector.select(self.num_batches, proposed_samples,
                                                   self.acquisition.eval_acquisition,
                                                   self.sampling_param_values, obs_params)
 
+        # --------------------------------
+        # Print overall info for recommend
+        # --------------------------------
+        self.log_chapter('Summary')
         GB, MB, kB = memory_usage()
-        self.log(f'[MEM]:  {GB} GB, {MB} MB, {kB} kB', 'INFO')
+        self.log(f'Memory usage: {GB:.0f} GB, {MB:.0f} MB, {kB:.0f} kB', 'INFO')
         end_time = time.time()
-        self.log('[TIME]:  ' + parse_time(start_time, end_time) + '  (overall)', 'INFO')
+        time_string = parse_time(start_time, end_time)
+        self.log(f'Overall time required: {time_string}', 'INFO')
+        self.log_chapter("End", line='=', style='bold #d9ed92')
+        self.log('', 'INFO')
 
+        # -----------------------
+        # Return proposed samples
+        # -----------------------
         if as_array:
             # return as is
             return_samples = samples

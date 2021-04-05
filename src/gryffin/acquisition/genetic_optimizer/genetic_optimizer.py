@@ -7,6 +7,7 @@ import numpy as np
 from gryffin.utilities import Logger
 from gryffin.observation_processor import param_vector_to_dict
 from deap import base, creator, tools
+from rich.progress import track
 
 
 class GeneticOptimizer(Logger):
@@ -19,7 +20,8 @@ class GeneticOptimizer(Logger):
             whether it is in the feasible region or not.
         """
         self.config = config
-        Logger.__init__(self, 'GeneticOptimizer', verbosity=self.config.get('verbosity'))
+        self.verbosity = self.config.get('verbosity')
+        Logger.__init__(self, 'GeneticOptimizer', verbosity=self.verbosity)
 
         # if constraints not None, and not a list, put into a list
         if constraints is not None and isinstance(constraints, list) is False:
@@ -43,7 +45,17 @@ class GeneticOptimizer(Logger):
             raise NotImplementedError('GeneticOptimizer with process constraints has not been implemented yet. '
                                       'Please choose "adam" as the "acquisition_optimizer".')
 
-    def optimize(self, samples, max_iter=10, verbose=False):
+    def optimize(self, samples, max_iter=10, show_progress=False):
+        """
+        show_progress : bool
+            whether to display the optimization progress. Default is False.
+        """
+
+        # print generations if verbosity set to DEBUG
+        if self.verbosity > 3.5:
+            verbose = True
+        else:
+            verbose = False
 
         # crossover and mutation probabilites
         CXPB = 0.5
@@ -103,13 +115,21 @@ class GeneticOptimizer(Logger):
         logbook.record(gen=0, nevals=len(population), **record)
         if verbose is True:
             split_stream = logbook.stream.split('\n')
-            self.log(split_stream[0], 'INFO')
-            self.log(split_stream[1], 'INFO')
+            self.log(split_stream[0], 'DEBUG')
+            self.log(split_stream[1], 'DEBUG')
 
         # ------------------------------
         # Begin the generational process
         # ------------------------------
-        for gen in range(1, max_iter + 1):
+        if show_progress is True:
+            # run loop with progress bar
+            iterable = track(range(1, max_iter + 1), total=max_iter,
+                             description='Optimizing proposals...', transient=True)
+        else:
+            # run loop without progress bar
+            iterable = range(1, max_iter + 1)
+
+        for gen in iterable:
             offspring = self._one_step_evolution(population=population, toolbox=toolbox, halloffame=halloffame,
                                                  cxpb=CXPB, mutpb=MUTPB)
 
@@ -132,7 +152,7 @@ class GeneticOptimizer(Logger):
             record = stats.compile(population) if stats else {}
             logbook.record(gen=gen, nevals=len(invalid_ind), **record)
             if verbose is True:
-                self.log(logbook.stream, 'INFO')
+                self.log(logbook.stream, 'DEBUG')
 
             # convergence criterion, if the population has very similar fitness, stop
             if record['std'] < 0.02:  # i.e. ~2% of acquisition codomain

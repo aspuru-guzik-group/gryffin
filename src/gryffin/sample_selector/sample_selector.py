@@ -13,20 +13,16 @@ class SampleSelector(Logger):
 
     def __init__(self, config):
         self.config = config
-        Logger.__init__(self, 'SampleSelector', verbosity=self.config.get('verbosity'))
+        self.verbosity = self.config.get('verbosity')
+        Logger.__init__(self, 'SampleSelector', verbosity=self.verbosity)
         # figure out how many CPUs to use
         if self.config.get('num_cpus') == 'all':
             self.num_cpus = multiprocessing.cpu_count()
         else:
             self.num_cpus = int(self.config.get('num_cpus'))
 
-    def compute_exp_objs(self, proposals, eval_acquisition, batch_index, return_index=0, return_dict=None):
-        # print info
-        if return_dict is not None:
-            self.log('running parallel process for lambda strategy number %d' % batch_index, 'INFO')
-        else:
-            self.log('running serial process for lambda strategy number %d' % batch_index, 'INFO')
-
+    @staticmethod
+    def compute_exp_objs(proposals, eval_acquisition, batch_index, return_index=0, return_dict=None):
         # batch_index is the index of the sampling_param_values used
         samples = proposals[batch_index]
         exp_objs = np.empty(len(samples))
@@ -41,9 +37,29 @@ class SampleSelector(Logger):
         return exp_objs
 
     def select(self, num_samples, proposals, eval_acquisition, sampling_param_values, obs_params):
-        # shape of proposals is (num strategies, num samples, num dimensions)
+        """
+        num_samples : int
+            number of samples to select per sampling strategy (i.e. the ``batches`` argument in the configuration)
+        proposals : ndarray
+            shape of proposals is (num strategies, num samples, num dimensions).
+        """
 
-        start = time.time()  # to keep track of time
+        start = time.time()
+
+        if self.verbosity > 2.5:  # i.e. INFO or DEBUG
+            with self.console.status("Selecting best samples to recommend..."):
+                samples = self._select(num_samples, proposals, eval_acquisition, sampling_param_values, obs_params)
+        else:
+            samples = self._select(num_samples, proposals, eval_acquisition, sampling_param_values, obs_params)
+
+        end = time.time()
+        time_string = parse_time(start, end)
+        samples_str = 'samples' if len(samples) > 1 else 'sample'
+        self.log(f'{len(samples)} {samples_str} selected in {time_string}', 'INFO')
+
+        return samples
+
+    def _select(self, num_samples, proposals, eval_acquisition, sampling_param_values, obs_params):
 
         num_obs = len(obs_params)
         feature_ranges = self.config.feature_ranges
@@ -147,10 +163,6 @@ class SampleSelector(Logger):
 
             samples.append(new_samples)
         samples = np.concatenate(samples)
-
-        # print time and return
-        end = time.time()
-        self.log('[TIME]:  ' + parse_time(start, end) + '  (selecting proposals)', 'INFO')
 
         return samples
 

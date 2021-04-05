@@ -30,8 +30,6 @@ class RandomSampler(Logger):
 
         # set verbosity
         verbosity = self.config.get('verbosity')
-        if 'random_sampler' in self.config.general.verbosity:
-            verbosity = self.config.general.verbosity['random_sampler']
         Logger.__init__(self, 'RandomSampler', verbosity)
 
     def draw(self, num=1):
@@ -59,7 +57,6 @@ class RandomSampler(Logger):
             param_samples = self._draw_single_parameter(num=num, param_type=param_type, specs=specs)
             samples.append(param_samples)
         samples = np.concatenate(samples, axis=1)
-        self.log('generated uniform samples: \n%s' % str(samples), 'DEBUG')
         return samples
 
     def _slow_draw(self, num=1):

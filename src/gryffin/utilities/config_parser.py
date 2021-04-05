@@ -67,7 +67,7 @@ class ConfigParser(Logger):
 
     def __init__(self, config_file=None, config_dict=None):
 
-        Logger.__init__(self, 'ConfigParser', verbosity=0)
+        Logger.__init__(self, 'ConfigParser', verbosity=3)
         self.category_parser = CategoryParser()
         self.config_file     = config_file
         self.config_dict     = config_dict

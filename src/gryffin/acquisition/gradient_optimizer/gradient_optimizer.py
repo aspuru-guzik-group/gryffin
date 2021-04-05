@@ -6,6 +6,7 @@ __author__ = 'Florian Hase'
 import numpy as np
 from gryffin.utilities import Logger, GryffinUnknownSettingsError
 from gryffin.observation_processor import param_vector_to_dict
+from rich.progress import track
 from . import AdamOptimizer, NaiveDiscreteOptimizer, NaiveCategoricalOptimizer
 
 
@@ -95,15 +96,31 @@ class GradientOptimizer(Logger):
         self.opt_dis.set_func(kernel, pos=np.arange(self.config.num_features)[pos_discrete],   highest=self.config.feature_sizes[self.pos_discrete])
         self.opt_cat.set_func(kernel, pos=np.arange(self.config.num_features)[pos_categories], highest=self.config.feature_sizes[self.pos_categories])
 
-    def optimize(self, samples, max_iter=10, verbose=False):
-        """Optimise a list of samples"""
-        if verbose is True:
-            self.log(f'optimizing {len(samples)} samples', 'INFO')
+    def optimize(self, samples, max_iter=10, show_progress=False):
+        """Optimise a list of samples
+
+        Parameters
+        ----------
+        samples :
+        max_iter :
+        show_progress : bool
+            whether to display the optimization progress. Default is False.
+        """
 
         optimized = []
-        for sample_index, sample in enumerate(samples):
+
+        if show_progress is True:
+            # run loop with progress bar
+            iterable = track(enumerate(samples), total=len(samples),
+                             description='Optimizing proposals...', transient=True)
+        else:
+            # run loop without progress bar
+            iterable = enumerate(samples)
+
+        for sample_index, sample in iterable:
             opt = self._optimize_one_sample(sample, max_iter=max_iter)
             optimized.append(opt)
+
         optimized = np.array(optimized)
         return optimized
 
