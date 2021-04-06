@@ -92,7 +92,7 @@ class Acquisition(Logger):
             samples[:, dominant_features] = batch_sample[dominant_features]
         return samples
 
-    def _proposal_optimization_thread(self, proposals, acquisition, batch_index,
+    def _proposal_optimization_thread(self, proposals, acquisition, acquisition_constraints,
                                       return_dict=None, return_index=0, dominant_samples=None):
 
         self.log('running one optimization process', 'DEBUG')
@@ -104,7 +104,7 @@ class Acquisition(Logger):
             ignore = np.array([False for _ in range(len(self.config.feature_process_constrained))])
 
         # get the optimizer instance and set function to be optimized
-        local_optimizer = self.local_optimizers[batch_index]
+        local_optimizer = self._load_optimizer(acquisition_constraints=acquisition_constraints)
         local_optimizer.set_func(acquisition, ignores=ignore)
 
         # run acquisition optimization
@@ -187,7 +187,7 @@ class Acquisition(Logger):
 
         return np.min(bottom_acq_values), np.max(top_acq_values)
 
-    def _optimize_proposals(self, random_proposals, dominant_samples=None):
+    def _optimize_proposals(self, random_proposals, acquisition_constraints=None, dominant_samples=None):
 
         optimized_samples = []  # all optimized samples, i.e. for all sampling strategies
         self.acqs_min_max = {}
@@ -231,7 +231,7 @@ class Acquisition(Logger):
                     # run optimization
                     process = Process(target=self._proposal_optimization_thread, args=(random_proposals_split,
                                                                                        acquisition,
-                                                                                       batch_index,
+                                                                                       acquisition_constraints,
                                                                                        return_dict,
                                                                                        idx,
                                                                                        dominant_samples))
@@ -254,7 +254,7 @@ class Acquisition(Logger):
                 # optimized samples for this batch/sampling strategy
                 optimized_batch_samples = self._proposal_optimization_thread(proposals=random_proposals,
                                                                              acquisition=acquisition,
-                                                                             batch_index=batch_index,
+                                                                             acquisition_constraints=acquisition_constraints,
                                                                              return_dict=None,
                                                                              return_index=0,
                                                                              dominant_samples=dominant_samples)
@@ -269,16 +269,16 @@ class Acquisition(Logger):
 
         return np.array(optimized_samples)
 
-    def _load_optimizers(self, num, acquisition_constraints):
+    def _load_optimizer(self, acquisition_constraints):
         if self.optimizer_type == 'adam':
-            local_optimizers = [GradientOptimizer(self.config, acquisition_constraints) for _ in range(num)]
+            local_optimizer = GradientOptimizer(self.config, acquisition_constraints)
         elif self.optimizer_type == 'genetic':
             from .genetic_optimizer import GeneticOptimizer
-            local_optimizers = [GeneticOptimizer(self.config, acquisition_constraints) for _ in range(num)]
+            local_optimizer = GeneticOptimizer(self.config, acquisition_constraints)
         else:
             GryffinUnknownSettingsError(f'Did not understand optimizer choice {self.optimizer_type}.'
                                         f'\n\tPlease choose "adam" or "genetic"')
-        return local_optimizers
+        return local_optimizer
 
     def propose(self, best_params, bayesian_network, sampling_param_values,
                 num_samples=200, dominant_samples=None, timings_dict=None):
@@ -310,8 +310,8 @@ class Acquisition(Logger):
             acquisition_constraints = self.known_constraints
 
         # load local optimizers
-        self.local_optimizers = self._load_optimizers(num=len(sampling_param_values),
-                                                      acquisition_constraints=acquisition_constraints)
+        #self.local_optimizers = self._load_optimizers(num=len(sampling_param_values),
+        #                                              acquisition_constraints=acquisition_constraints)
 
         # ------------------
         # get random samples
@@ -328,7 +328,9 @@ class Acquisition(Logger):
         # run acquisition optimization starting from random samples
         # ---------------------------------------------------------
         start_opt = time.time()
-        optimized_proposals = self._optimize_proposals(random_proposals, dominant_samples=dominant_samples)
+        optimized_proposals = self._optimize_proposals(random_proposals,
+                                                       acquisition_constraints=acquisition_constraints,
+                                                       dominant_samples=dominant_samples)
         end_opt = time.time()
 
         extended_proposals = np.array([random_proposals for _ in range(len(sampling_param_values))])
