@@ -200,7 +200,8 @@ class Acquisition(Logger):
             start_opt = time.time()
 
             # get approximate min/max of sample acquisition
-            acq_min, acq_max = self._get_approx_min_max(random_proposals, sampling_param, dominant_samples)
+            with self.console.status("Performing acquisition optimization pre-processing tasks..."):
+                acq_min, acq_max = self._get_approx_min_max(random_proposals, sampling_param, dominant_samples)
             self.acqs_min_max[batch_index] = [acq_min, acq_max]
 
             # define acquisition function to be optimized

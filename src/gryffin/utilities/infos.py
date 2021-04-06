@@ -27,3 +27,8 @@ def memory_usage():
     MB = kB // 1000.
     kB = kB % 1000.
     return GB, MB, kB
+
+
+def print_memory_usage():
+    GB, MB, kB = memory_usage()
+    print(f'==> MEMORY USAGE: {GB:.0f} GB, {MB:.0f} MB, {kB:.0f} kB')

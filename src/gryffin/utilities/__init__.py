@@ -21,4 +21,4 @@ from .pickle_parser   import ParserPickle
 from .category_parser import CategoryParser
 from .config_parser   import ConfigParser
 
-from .infos import parse_time, memory_usage
+from .infos import parse_time, memory_usage, print_memory_usage
