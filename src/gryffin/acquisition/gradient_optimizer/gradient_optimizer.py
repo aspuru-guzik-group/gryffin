@@ -112,7 +112,7 @@ class GradientOptimizer(Logger):
         if show_progress is True:
             # run loop with progress bar
             iterable = track(enumerate(samples), total=len(samples),
-                             description='Optimizing proposals...', transient=True)
+                             description='Optimizing proposals...', transient=False)
         else:
             # run loop without progress bar
             iterable = enumerate(samples)

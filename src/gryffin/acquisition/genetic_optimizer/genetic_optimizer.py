@@ -124,7 +124,7 @@ class GeneticOptimizer(Logger):
         if show_progress is True:
             # run loop with progress bar
             iterable = track(range(1, max_iter + 1), total=max_iter,
-                             description='Optimizing proposals...', transient=True)
+                             description='Optimizing proposals...', transient=False)
         else:
             # run loop without progress bar
             iterable = range(1, max_iter + 1)
