@@ -219,7 +219,10 @@ class Acquisition(Logger):
             start_opt = time.time()
 
             # get approximate min/max of sample acquisition
-            with self.console.status("Performing acquisition optimization pre-processing tasks..."):
+            if self.verbosity > 2.5:
+                with self.console.status("Performing acquisition optimization pre-processing tasks..."):
+                    acq_min, acq_max = self._get_approx_min_max(random_proposals, sampling_param, dominant_samples)
+            else:
                 acq_min, acq_max = self._get_approx_min_max(random_proposals, sampling_param, dominant_samples)
             self.acqs_min_max[batch_index] = [acq_min, acq_max]
 
@@ -333,7 +336,11 @@ class Acquisition(Logger):
         # get random samples
         # ------------------
         start_random = time.time()
-        with self.console.status("Drawing random samples..."):
+        if self.verbosity > 2.5:
+            with self.console.status("Drawing random samples..."):
+                random_proposals = self._propose_randomly(best_params, num_samples, dominant_samples=dominant_samples,
+                                                          acquisition_constraints=acquisition_constraints)
+        else:
             random_proposals = self._propose_randomly(best_params, num_samples, dominant_samples=dominant_samples,
                                                       acquisition_constraints=acquisition_constraints)
         end_random = time.time()
