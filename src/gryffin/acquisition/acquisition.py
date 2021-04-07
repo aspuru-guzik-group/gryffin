@@ -127,7 +127,7 @@ class Acquisition(Logger):
         # We still normalize approximately the acquisition if we are using the Genetic optimizer, because we use
         # the variance of the population as a stopping criterion
         if self.optimizer_type == 'adam':
-            if self.frac_infeasible == 0 or self.frac_infeasible == 1:
+            if self.frac_infeasible < 1e-6 or (1. - self.frac_infeasible) < 1e-6:
                 return 0.0, 1.0
 
         acq_values = []
@@ -185,7 +185,18 @@ class Acquisition(Logger):
         # concatenate with randomly collected acq values
         top_acq_values = np.concatenate((acq_values, top_acq_values), axis=0)
 
-        return np.min(bottom_acq_values), np.max(top_acq_values)
+        # min and max values found
+        acq_min = np.min(bottom_acq_values)
+        acq_max = np.max(top_acq_values)
+
+        # if min > max, or if the different is very small, the acquisition is flat,
+        # or something else is wrong, so we discard the results
+        if acq_max - acq_min < 1e-6:
+            self.log(f'The extrema could not be located correctly (min = {acq_min}, max = {acq_max}). '
+                     f'The acquisition function might be flat.', 'WARNING')
+            acq_min = 0.0
+            acq_max = 1.0
+        return acq_min, acq_max
 
     def _optimize_proposals(self, random_proposals, acquisition_constraints=None, dominant_samples=None):
 
@@ -294,6 +305,7 @@ class Acquisition(Logger):
         self.bayesian_network = bayesian_network
         self.acquisition_functions = {}  # reinitialize acquisition functions, otherwise we keep using old ones!
         self.sampling_param_values = sampling_param_values
+        self.frac_infeasible = bayesian_network.prior_1
 
         # if using feasibility-constrained acquisition, we need to constrain the optimizers
         # However, do not use constraints if fraction of feasible samples is zero or one, in which case we
@@ -308,10 +320,6 @@ class Acquisition(Logger):
         # if not using feasibility-constrained acquisition, then only constraints are the known_constraints, if any
         else:
             acquisition_constraints = self.known_constraints
-
-        # load local optimizers
-        #self.local_optimizers = self._load_optimizers(num=len(sampling_param_values),
-        #                                              acquisition_constraints=acquisition_constraints)
 
         # ------------------
         # get random samples
