@@ -46,12 +46,12 @@ class Acquisition(Logger):
 
     def _check_feas_options(self):
 
-        if self.feas_approach not in ['fwa', 'fai', 'fca']:
+        if self.feas_approach not in ['fwa', 'fia', 'fca']:
             self.log(f'Cannot understand "feas_approach" option "{self.feas_approach}". '
                      f'Defaulting to "fwa".', 'WARNING')
             self.feas_approach = 'fwa'
 
-        if self.feas_approach == 'fai':
+        if self.feas_approach == 'fia':
             if self.feas_param < 0.0:
                 self.log('Config parameter `feas_param` should be positive, applying np.abs()', 'WARNING')
                 self.feas_param = np.abs(self.feas_param)
@@ -124,10 +124,18 @@ class Acquisition(Logger):
 
         # If we only have feasible or infeasible points, no need to compute max/min as there is no need to rescale the
         # sample acquisition, because the acquisition will only be for feasible samples or for feasibility search
-        # We still normalize approximately the acquisition if we are using the Genetic optimizer, because we use
-        # the variance of the population as a stopping criterion
         if self.optimizer_type == 'adam':
             if self.frac_infeasible < 1e-6 or (1. - self.frac_infeasible) < 1e-6:
+                return 0.0, 1.0
+            # return 0,1 also if we are using a feasibility-constrained acquisition, with Adam as optimizer, as
+            # in this case there is no need to normalize _acquisition_all_feasible
+            if self.feas_approach == 'fca':
+                return 0.0, 1.0
+        # We still normalize approximately the acquisition if we are using the Genetic optimizer, because we use
+        # the variance of the population as a stopping criterion. But if we only have infeasible points, there is no
+        # need to normalize the _acquisition_all_feasible.
+        elif self.optimizer_type == 'genetic':
+            if 1. - self.frac_infeasible < 1e-6:  # i.e. all (or almost all) infeasible
                 return 0.0, 1.0
 
         acq_values = []
@@ -397,9 +405,9 @@ class AcquisitionFunction:
             if feas_approach == 'fwa':
                 # select Acq * POF
                 self.acquisition_function = self._fwa_acquisition
-            elif feas_approach == 'fai':
+            elif feas_approach == 'fia':
                 # select k * Acq + (1-k) * POF
-                self.acquisition_function = self._fai_acquisition
+                self.acquisition_function = self._fia_acquisition
                 self.feasibility_weight = self.frac_infeasible ** feas_param
             elif feas_approach == 'fca':
                 # select Acq constrained by feasible predictions
@@ -430,7 +438,7 @@ class AcquisitionFunction:
         acq_samp_maximize = 1. - acq_samp
         return -(acq_samp_maximize * prob_feas)
 
-    def _fai_acquisition(self, x):
+    def _fia_acquisition(self, x):
         num, inv_den = self.bayesian_network.kernel_contribution(x)  # standard acquisition for samples
         prob_infeas = self.bayesian_network.prob_infeasible(x)  # feasibility acquisition
         acq_samp = (num + self.sampling_param) * inv_den

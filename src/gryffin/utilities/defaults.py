@@ -16,7 +16,7 @@ default_general_configuration = {
     'sampling_strategies':    2,
     'softness':               0.001,  # softness of Chimera for multiobj optimizations
     # fwa = feasibility-weighted acquisition
-    # fai = feasibility-acquisition interpolation
+    # fia = feasibility-interpolated acquisition
     # fca = feasibility-constrained acquisition
     'feas_approach':          'fwa',
     'feas_param':       1,  # sensitivity to feasibility constraints
