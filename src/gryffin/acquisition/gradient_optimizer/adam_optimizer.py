@@ -9,6 +9,8 @@ class AdamOptimizer:
 
     def __init__(self, func=None, pos=None, eta=0.01, beta_1=0.9, beta_2=0.999, epsilon=1e-8, decay=False):
         """
+        Adam optimizer: https://arxiv.org/abs/1412.6980.
+
         Parameters
         ----------
         func : callable
@@ -74,7 +76,10 @@ class AdamOptimizer:
             self.init_params(pos)
 
     def grad(self, sample):
-        """Estimate the gradients"""
+        """
+        Estimate the gradients.
+        Note that Adam is invariant to diagonal rescaling of the gradients.
+        """
         gradients = np.zeros(len(sample), dtype=np.float32)
         perturb = np.zeros(len(sample), dtype=np.float32)
 
@@ -89,9 +94,19 @@ class AdamOptimizer:
         return gradients
 
     def get_update(self, sample):
+        """Update sample according to Adam method.
+
+        Parameters
+        ----------
+        sample : nd.array
+            starting position for the sample.
+
+        Returns
+        -------
+        sample : nd.array
+            updated sample position.
         """
-        vector : nd.array
-        """
+
         # get gradients: g
         grads = self.grad(sample)
         # get iteration: t

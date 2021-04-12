@@ -59,7 +59,7 @@ class GeneticOptimizer(Logger):
 
         # crossover and mutation probabilites
         CXPB = 0.5
-        MUTPB = 0.3
+        MUTPB = 0.4
 
         if self.acquisition is None:
             self.log('cannot optimize without a function being defined', 'ERROR')
@@ -155,7 +155,8 @@ class GeneticOptimizer(Logger):
                 self.log(logbook.stream, 'DEBUG')
 
             # convergence criterion, if the population has very similar fitness, stop
-            if record['std'] < 0.02:  # i.e. ~2% of acquisition codomain
+            # we quit if the population is found in the hypercube with edge 10% of the optimization domain
+            if self._converged(population, slack=0.1) is True:
                 break
 
         # DEAP cleanup
@@ -163,6 +164,13 @@ class GeneticOptimizer(Logger):
         del creator.Individual
 
         return np.array(population)
+
+    @staticmethod
+    def _converged(population, slack=0.1):
+        """If all individuals within specified subvolume, the population is not very diverse"""
+        ranges = np.max(population, axis=0) - np.min(population, axis=0)
+        bool_array = ranges < slack
+        return all(bool_array)
 
     @staticmethod
     def _evolution(population, toolbox, halloffame, cxpb=0.5, mutpb=0.3):
@@ -344,7 +352,7 @@ class GeneticOptimizer(Logger):
             self._update_individual(child, new_vector)
             return
 
-    def _custom_mutation(self, individual, indpb=0.2, continuous_scale=0.1, discrete_scale=0.1):
+    def _custom_mutation(self, individual, indpb=0.3, continuous_scale=0.1, discrete_scale=0.1):
         """Custom mutation that can handled continuous, discrete, and categorical variables.
 
         Parameters

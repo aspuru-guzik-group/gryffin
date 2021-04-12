@@ -124,19 +124,12 @@ class Acquisition(Logger):
 
         # If we only have feasible or infeasible points, no need to compute max/min as there is no need to rescale the
         # sample acquisition, because the acquisition will only be for feasible samples or for feasibility search
-        if self.optimizer_type == 'adam':
-            if self.frac_infeasible < 1e-6 or (1. - self.frac_infeasible) < 1e-6:
-                return 0.0, 1.0
-            # return 0,1 also if we are using a feasibility-constrained acquisition, with Adam as optimizer, as
-            # in this case there is no need to normalize _acquisition_all_feasible
-            if self.feas_approach == 'fca':
-                return 0.0, 1.0
-        # We still normalize approximately the acquisition if we are using the Genetic optimizer, because we use
-        # the variance of the population as a stopping criterion. But if we only have infeasible points, there is no
-        # need to normalize the _acquisition_all_feasible.
-        elif self.optimizer_type == 'genetic':
-            if 1. - self.frac_infeasible < 1e-6:  # i.e. all (or almost all) infeasible
-                return 0.0, 1.0
+        if self.frac_infeasible < 1e-6 or (1. - self.frac_infeasible) < 1e-6:
+            return 0.0, 1.0
+        # return 0,1 also if we are using a feasibility-constrained acquisition, as
+        # in this case there is no need to normalize _acquisition_all_feasible
+        if self.feas_approach == 'fca':
+            return 0.0, 1.0
 
         acq_values = []
         for proposal in random_proposals:
