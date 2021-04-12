@@ -4,9 +4,10 @@ __author__ = 'Florian Hase'
 
 
 import numpy as np
-from gryffin.utilities import Logger, GryffinUnknownSettingsError
+from gryffin.utilities import Logger, GryffinUnknownSettingsError, parse_time
 from gryffin.observation_processor import param_vector_to_dict
 from rich.progress import track
+import time
 from . import AdamOptimizer, NaiveDiscreteOptimizer, NaiveCategoricalOptimizer
 
 
@@ -102,7 +103,8 @@ class GradientOptimizer(Logger):
         Parameters
         ----------
         samples :
-        max_iter :
+        max_iter : int
+            maximum number of steps in the optimization.
         show_progress : bool
             whether to display the optimization progress. Default is False.
         """
@@ -118,6 +120,7 @@ class GradientOptimizer(Logger):
             iterable = enumerate(samples)
 
         for sample_index, sample in iterable:
+            self.opt_con.reset()  # reset Adam optimizer for each sample
             opt = self._optimize_one_sample(sample, max_iter=max_iter)
             optimized.append(opt)
 
