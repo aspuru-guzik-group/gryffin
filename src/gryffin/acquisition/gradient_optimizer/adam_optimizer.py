@@ -7,12 +7,31 @@ import numpy as np
 
 class AdamOptimizer:
 
-    def __init__(self, func=None, pos=None, eta=0.1, beta_1=0.9, beta_2=0.999, epsilon=1e-8):
+    def __init__(self, func=None, pos=None, eta=0.01, beta_1=0.9, beta_2=0.999, epsilon=1e-8, decay=False):
+        """
+        Parameters
+        ----------
+        func : callable
+            function to be optimized.
+        pos : list
+            list of indices corresponding to the continuous variables in the vectors that will be passed to update.
+        eta : float
+            ste size. This is alpha in the Adam paper.
+        beta1 : float
+            exponential decay rate for the first moment estimates.
+        beta2 : float
+            exponential decay rate for the second-moment estimates.
+        epsilon : float
+            small number to prevent any division by zero in the implementation.
+        decay : bool
+            whether to use rate decay. 1/sqrt(t) decay is used as per the Adam paper.
+        """
         self.func = func
         self.eta = eta
         self.beta_1 = beta_1
         self.beta_2 = beta_2
         self.epsilon = epsilon
+        self.decay = decay
         self.iterations = 0
 
         # init Adam parameters if pos is provided
@@ -78,10 +97,15 @@ class AdamOptimizer:
         # get iteration: t
         self.iterations += 1
 
+        if self.decay is True:
+            eta = self.eta / np.sqrt(self.iterations)
+        else:
+            eta = self.eta
+
         # eta(t) = eta * sqrt(1 – beta2(t)) / (1 – beta1(t))
         # where: beta(t) = beta^t
-        eta_next = self.eta * (np.sqrt(1. - np.power(self.beta_2, self.iterations)) /
-                               (1. - np.power(self.beta_1, self.iterations)))
+        eta_next = eta * (np.sqrt(1. - np.power(self.beta_2, self.iterations)) /
+                          (1. - np.power(self.beta_1, self.iterations)))
         # m(t) = beta1 * m(t-1) + (1 – beta1) * g(t)
         ms_next = (self.beta_1 * self.ms) + (1. - self.beta_1) * grads
         # v(t) = beta2 * v(t-1) + (1 – beta2) * g(t)^2
