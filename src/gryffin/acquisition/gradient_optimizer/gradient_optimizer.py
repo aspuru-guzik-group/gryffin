@@ -36,19 +36,11 @@ class GradientOptimizer(Logger):
             self._optimize_one_sample = self._constrained_optimize_sample
 
         # parse positions
-        self.pos_continuous = np.full(self.config.num_features, False, dtype=bool)
-        self.pos_categories = np.full(self.config.num_features, False, dtype=bool)
-        self.pos_discrete   = np.full(self.config.num_features, False, dtype=bool)
-        for feature_index, feature_type in enumerate(self.config.feature_types):
-            if feature_type == 'continuous':
-                self.pos_continuous[feature_index] = True
-            elif feature_type == 'categorical':
-                self.pos_categories[feature_index] = True
-            elif feature_type == 'discrete':
-                self.pos_discrete[feature_index] = True
-            else:
-                feature_name = self.config.feature_names[feature_index]
-                GryffinUnknownSettingsError('did not understand parameter type "%s" for parameter "%s".\n\t(%s) Please choose from "continuous" or "categorical"' % (feature_type, feature_name, self.template))
+        self.pos_continuous = np.array([True if f == 'continuous' else False for f in self.config.feature_types])
+        self.pos_categories = np.array([True if f == 'categorical' else False for f in self.config.feature_types])
+        self.pos_discrete = np.array([True if f == 'discrete' else False for f in self.config.feature_types])
+        # quick/simple check
+        assert sum(self.pos_continuous) + sum(self.pos_categories) + sum(self.pos_discrete) == self.config.num_features
 
         # instantiate optimizers for all variable types
         self.opt_con = AdamOptimizer()
@@ -93,7 +85,7 @@ class GradientOptimizer(Logger):
                     pos_discrete[ignore_index]   = False
                     pos_categories[ignore_index] = False
 
-        self.opt_con.set_func(kernel, pos=np.arange(self.config.num_features)[pos_continuous])
+        self.opt_con.set_func(kernel, select=pos_continuous)
         self.opt_dis.set_func(kernel, pos=np.arange(self.config.num_features)[pos_discrete],   highest=self.config.feature_sizes[self.pos_discrete])
         self.opt_cat.set_func(kernel, pos=np.arange(self.config.num_features)[pos_categories], highest=self.config.feature_sizes[self.pos_categories])
 

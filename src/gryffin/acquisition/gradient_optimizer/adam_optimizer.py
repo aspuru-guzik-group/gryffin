@@ -7,7 +7,7 @@ import numpy as np
 
 class AdamOptimizer:
 
-    def __init__(self, func=None, pos=None, eta=0.01, beta_1=0.9, beta_2=0.999, epsilon=1e-8, decay=False):
+    def __init__(self, func=None, select=None, eta=0.01, beta_1=0.9, beta_2=0.999, epsilon=1e-8, decay=False):
         """
         Adam optimizer: https://arxiv.org/abs/1412.6980.
 
@@ -15,8 +15,8 @@ class AdamOptimizer:
         ----------
         func : callable
             function to be optimized.
-        pos : list
-            list of indices corresponding to the continuous variables in the vectors that will be passed to update.
+        select : list
+            list of bools selecting the dimensions to be optimized.
         eta : float
             ste size. This is alpha in the Adam paper.
         beta1 : float
@@ -37,43 +37,45 @@ class AdamOptimizer:
         self.iterations = 0
 
         # init Adam parameters if pos is provided
-        if pos is not None:
-            self.init_params(pos)
+        if select is not None:
+            self.init_params(select)
         else:
-            self.pos = None
-            self.num_pos = None
+            self.select_bool = None
+            self.select_idx = None
+            self.num_dims = None
             self.ms = None
             self.vs = None
 
         # step used to estimate gradients numerically
         self.dx = 1e-6
 
-    def init_params(self, pos):
+    def init_params(self, select):
         """
-        pos : list
-            list of indices corresponding to the continuous variables in the vectors that will be passed to update.
+        select : list
+            list of bools selecting the dimensions to be optimized.
         """
-        self.pos = np.array(pos)
-        self.num_pos = len(pos)
-        self.ms = np.zeros(self.num_pos)  # moment vector
-        self.vs = np.zeros(self.num_pos)  # exponentially weighted infinity norm
+        self.select_bool = np.array(select)
+        self.num_dims = len(self.select_bool)
+        self.select_idx = np.arange(self.num_dims)[self.select_bool]
+        self.ms = np.zeros(self.num_dims)  # moment vector (length is size of input vector, i.e. opt domain)
+        self.vs = np.zeros(self.num_dims)  # exponentially weighted infinity norm
 
     def reset(self):
         self.iterations = 0
-        self.ms = np.zeros(self.num_pos)
-        self.vs = np.zeros(self.num_pos)
+        self.ms = np.zeros(self.num_dims)
+        self.vs = np.zeros(self.num_dims)
 
-    def set_func(self, func, pos=None):
+    def set_func(self, func, select=None):
         """
         func : callable
             function to be optimized.
-        pos : list
-            list of indices corresponding to the continuous variables in the vectors that will be passed to update.
+        select : list
+            list of bools selecting the dimensions to be optimized.
         """
         self.func = func
         self.reset()
-        if pos is not None:
-            self.init_params(pos)
+        if select is not None:
+            self.init_params(select)
 
     def grad(self, sample):
         """
@@ -83,9 +85,7 @@ class AdamOptimizer:
         gradients = np.zeros(len(sample), dtype=np.float32)
         perturb = np.zeros(len(sample), dtype=np.float32)
 
-        for i in self.pos:
-            if i is None:
-                continue
+        for i in self.select_idx:
             perturb[i] += self.dx
             gradient = (self.func(sample + perturb) - self.func(sample - perturb)) / (2. * self.dx)
             gradients[i] = gradient
@@ -146,7 +146,7 @@ if __name__ == '__main__':
     def func(x):
         return (x - 1)**2
 
-    adam.set_func(func, pos=np.arange(1))
+    adam.set_func(func, select=[True])
 
     domain = np.linspace(-1, 3, 200)
     values = func(domain)
