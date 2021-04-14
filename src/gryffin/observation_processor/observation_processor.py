@@ -24,6 +24,10 @@ class ObservationProcessor(Logger):
         self.soft_lower     = self.feature_lowers + 0.1 * (self.feature_uppers - self.feature_lowers)
         self.soft_upper     = self.feature_uppers - 0.1 * (self.feature_uppers - self.feature_lowers)
 
+        # attributes of the data
+        self.min_obj = None
+        self.max_obj = None
+
     def mirror_parameters(self, param_vector):
         # get indices
         lower_indices_prelim = np.where(param_vector < self.soft_lower)[0]
@@ -62,27 +66,25 @@ class ObservationProcessor(Logger):
 
     def scalarize_objectives(self, objs, transform='sqrt'):
         """Scalarize and transform objective if needed"""
+
+        # save min/max of the objective so that we can un-normalize the surrogate if it is requested
+        self.min_obj = np.amin(objs)
+        self.max_obj = np.amax(objs)
+
+        # chimera already normalizes the objective such that it is [0,1]
         scalarized = self.chimera.scalarize(objs)
 
-        # make sure objective is normalized
-        min_obj = np.amin(scalarized)
-        max_obj = np.amax(scalarized)
-        if min_obj != max_obj:
-            scaled_obj = (scalarized - min_obj) / (max_obj - min_obj)
-        else:
-            scaled_obj = scalarized - min_obj
-
         if transform is None:
-            return scaled_obj
+            return scalarized
         elif transform == 'sqrt':
             # accentuate global minimum
-            return np.sqrt(scaled_obj)
+            return np.sqrt(scalarized)
         elif transform == 'cbrt':
             # accentuate global minimum more than sqrt
-            return np.cbrt(scaled_obj)
+            return np.cbrt(scalarized)
         elif transform == 'square':
             # de-emphasise global minimum
-            return np.square(scaled_obj)
+            return np.square(scalarized)
         else:
             raise GryffinSettingsError(f'cannot understand transform argument "{transform}"')
 

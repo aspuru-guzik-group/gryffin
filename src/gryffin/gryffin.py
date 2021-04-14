@@ -274,7 +274,29 @@ class Gryffin(Logger):
         for x in X:
             y_pred = self.bayesian_network.regression_surrogate(x)
             y_preds.append(y_pred)
-        return np.array(y_preds)
+
+        # invert tranform the surrogate according to the chosen transform
+        y_preds = np.array(y_preds)
+        transform = self.config.get('obj_transform')
+        if transform is None:
+            pass
+        elif transform == 'sqrt':
+            # accentuate global minimum
+            y_preds = np.square(y_preds)
+        elif transform == 'cbrt':
+            # accentuate global minimum more than sqrt
+            y_preds = np.power(y_preds, 3)
+        elif transform == 'square':
+            # de-emphasise global minimum
+            y_preds = np.sqrt(y_preds)
+
+        # scale the predicted objective back to the original range
+        if self.obs_processor.min_obj != self.obs_processor.max_obj:
+            y_preds = y_preds * (self.obs_processor.max_obj - self.obs_processor.min_obj) + self.obs_processor.min_obj
+        else:
+            y_preds = y_preds + self.obs_processor.min_obj
+
+        return y_preds
 
     def get_feasibility_surrogate(self, params, threshold=None):
         """
