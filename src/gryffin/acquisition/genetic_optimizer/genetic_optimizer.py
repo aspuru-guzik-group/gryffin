@@ -35,6 +35,9 @@ class GeneticOptimizer(Logger):
         else:
             self._one_step_evolution = self._constrained_evolution
 
+        # range of opt domain dimensions
+        self.param_ranges = self.config.param_uppers - self.config.param_lowers
+
     def acquisition(self, x):
         return self._acquisition(x),
 
@@ -165,11 +168,11 @@ class GeneticOptimizer(Logger):
 
         return np.array(population)
 
-    @staticmethod
-    def _converged(population, slack=0.1):
+    def _converged(self, population, slack=0.1):
         """If all individuals within specified subvolume, the population is not very diverse"""
-        ranges = np.max(population, axis=0) - np.min(population, axis=0)
-        bool_array = ranges < slack
+        pop_ranges = np.max(population, axis=0) - np.min(population, axis=0)  # range of values in population
+        normalized_ranges = pop_ranges / self.param_ranges  # normalised ranges
+        bool_array = normalized_ranges < slack
         return all(bool_array)
 
     @staticmethod
