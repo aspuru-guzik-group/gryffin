@@ -5,7 +5,7 @@ __author__ = 'Florian Hase'
 import numpy as np
 
 from chimera import Chimera
-from gryffin.utilities import Logger
+from gryffin.utilities import Logger, GryffinSettingsError
 
 
 class ObservationProcessor(Logger):
@@ -60,19 +60,31 @@ class ObservationProcessor(Logger):
             params.append(param_vector.copy())
         return params
 
-    def scalarize_objectives(self, objs):
-        # MA: this is technically not needed because Chimera should already normalize its output
-        #  we still keep it however to really make sure the objectives are normalized, and because
-        #  Gryffin takes the sqrt of the scalarized objective and I do not want to affect the behavior,
-        #  although I don't know the reason of the sqrt
+    def scalarize_objectives(self, objs, transform='sqrt'):
+        """Scalarize and transform objective if needed"""
         scalarized = self.chimera.scalarize(objs)
-        min_obj, max_obj = np.amin(scalarized), np.amax(scalarized)
+
+        # make sure objective is normalized
+        min_obj = np.amin(scalarized)
+        max_obj = np.amax(scalarized)
         if min_obj != max_obj:
             scaled_obj = (scalarized - min_obj) / (max_obj - min_obj)
-            scaled_obj = np.sqrt(scaled_obj)
         else:
             scaled_obj = scalarized - min_obj
-        return scaled_obj
+
+        if transform is None:
+            return scaled_obj
+        elif transform == 'sqrt':
+            # accentuate global minimum
+            return np.sqrt(scaled_obj)
+        elif transform == 'cbrt':
+            # accentuate global minimum more than sqrt
+            return np.cbrt(scaled_obj)
+        elif transform == 'square':
+            # de-emphasise global minimum
+            return np.square(scaled_obj)
+        else:
+            raise GryffinSettingsError(f'cannot understand transform argument "{transform}"')
 
     def process_observations(self, obs_dicts):
 
@@ -138,7 +150,8 @@ class ObservationProcessor(Logger):
         if len(raw_objs[mask_kwn]) > 0:  # guard against empty knw objs
             # Note that Chimera takes care of adjusting the objectives based on whether we are
             #  minimizing vs maximizing
-            obs_objs_kwn = self.scalarize_objectives(raw_objs[mask_kwn])
+            obs_objs_kwn = self.scalarize_objectives(objs=raw_objs[mask_kwn],
+                                                     transform=self.config.get('obj_transform'))
             obs_objs[mask_kwn] = obs_objs_kwn
 
         if len(raw_objs[~mask_kwn]) > 0:  # guard against empty uknw objs

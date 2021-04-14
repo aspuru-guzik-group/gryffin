@@ -2,7 +2,7 @@
 
 import json
 
-__author__ = 'Florian Hase'
+__author__ = 'Florian Hase, Matteo Aldeghi'
 
 # =============================
 # Default general configuration
@@ -19,11 +19,12 @@ default_general_configuration = {
     # fia = feasibility-interpolated acquisition
     # fca = feasibility-constrained acquisition
     'feas_approach':          'fwa',
-    'feas_param':       1,  # sensitivity to feasibility constraints
+    'feas_param':             1,  # sensitivity to feasibility constraints
     'random_seed':            None,  # None for random, or set random seed to a value
     'save_database':          False,
     'acquisition_optimizer':  'adam',  # options are "adam" or "genetic"
-    'verbosity':                   3  # verbosity level, from 0 to 4. 0: FATAL, 1: ERROR, 2: WARNING, 3: INFO, 4: DEBUG
+    'obj_transform':          'sqrt',  # options are None, "sqrt", "cbrt", "square"
+    'verbosity':               3  # verbosity level, from 0 to 4. 0: FATAL, 1: ERROR, 2: WARNING, 3: INFO, 4: DEBUG
 }
 
 
