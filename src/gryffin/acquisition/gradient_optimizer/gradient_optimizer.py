@@ -4,10 +4,9 @@ __author__ = 'Florian Hase'
 
 
 import numpy as np
-from gryffin.utilities import Logger, GryffinUnknownSettingsError, parse_time
+from gryffin.utilities import Logger
 from gryffin.observation_processor import param_vector_to_dict
 from rich.progress import track
-import time
 from . import AdamOptimizer, NaiveDiscreteOptimizer, NaiveCategoricalOptimizer
 
 
@@ -134,7 +133,7 @@ class GradientOptimizer(Logger):
 
         return optimized
 
-    def _optimize_sample(self, sample, max_iter=10):
+    def _optimize_sample(self, sample, max_iter=10, convergence_dx=1e-7):
 
         sample = self._project_sample_onto_bounds(sample)
 
@@ -146,13 +145,13 @@ class GradientOptimizer(Logger):
             # one step of optimization
             optimized = self._single_opt_iteration(optimized)
             # check for convergence
-            if np.any(self.pos_continuous) and np.linalg.norm(sample_copy - optimized) < 1e-7:
+            if np.any(self.pos_continuous) and np.linalg.norm(sample_copy - optimized) < convergence_dx:
                 break
             else:
                 sample_copy = optimized.copy()
         return optimized
 
-    def _constrained_optimize_sample(self, sample, max_iter=10):
+    def _constrained_optimize_sample(self, sample, max_iter=10, convergence_dx=1e-7):
 
         sample = self._project_sample_onto_bounds(sample)
 
@@ -177,7 +176,7 @@ class GradientOptimizer(Logger):
                 break
 
             # check for convergence
-            if np.any(self.pos_continuous) and np.linalg.norm(sample_copy - optimized) < 1e-7:
+            if np.any(self.pos_continuous) and np.linalg.norm(sample_copy - optimized) < convergence_dx:
                 break
             else:
                 sample_copy = optimized.copy()
