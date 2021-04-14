@@ -36,11 +36,10 @@ class BayesianNetwork(Logger):
 
         # variables for kernel density estimation and regression
         self.trace_kernels = None
-        #self.kernel_contribution = lambda x: (0.0, self.volume)  # return den=0, inv_dev=volume
         self.cat_reshaper = CategoryReshaper(self.config)
 
         # get kernel types and sizes
-        self.kernel_types, self.kernel_sizes = self._get_kernel_types_and_sizes(self.config)
+        self.kernel_types, self.kernel_sizes, self.kernel_ranges = self._get_kernel_types_and_sizes(self.config)
 
         # verbosity settings
         self.verbosity = self.config.get('verbosity')
@@ -65,7 +64,8 @@ class BayesianNetwork(Logger):
         self.cache = None
         if self.caching is True:
             # check if we can actually construct cache and update option
-            if np.sum(self.kernel_types) == len(self.kernel_types):
+            # caching is done only if all kernel types are categorical (i.e. all type 2)
+            if np.sum(self.kernel_types > 1.5) == len(self.kernel_types):
                 self.cache = {}
             else:
                 self.caching = False
@@ -146,12 +146,14 @@ class BayesianNetwork(Logger):
         # kernels used for regression
         self.kernel_regression = KernelEvaluator(locs=locs_kwn, sqrt_precs=sqrt_precs_kwn, cat_probs=probs_kwn,
                                                  kernel_types=self.kernel_types, kernel_sizes=self.kernel_sizes,
+                                                 kernel_ranges=self.kernel_ranges,
                                                  lower_prob_bound=self.lower_prob_bound, objs=self.obs_objs_kwn,
                                                  inv_vol=self.inverse_volume)
 
         # kernels used for feasibility classification
         self.kernel_classification = KernelEvaluator(locs=locs_all, sqrt_precs=sqrt_precs_all, cat_probs=probs_all,
                                                      kernel_types=self.kernel_types, kernel_sizes=self.kernel_sizes,
+                                                     kernel_ranges=self.kernel_ranges,
                                                      lower_prob_bound=self.lower_prob_bound, objs=self.obs_objs_feas,
                                                      inv_vol=self.inverse_volume)
 
@@ -216,18 +218,31 @@ class BayesianNetwork(Logger):
 
     @staticmethod
     def _get_kernel_types_and_sizes(config):
+        """Convert kernel type string to integers as follows:
+        0 : continuous, non-periodic
+        1 : continuous, periodic
+        2 : categorical or discrete (which is treated as categorical with ordinal descriptors)
+        """
         kernel_type_strings = config.kernel_types
+        feature_periodic = config.kernel_periodic
+        assert len(kernel_type_strings) == len(feature_periodic)
+
         kernel_types = []
-        for kernel_type_string in kernel_type_strings:
+        for kernel_type_string, periodic in zip(kernel_type_strings, feature_periodic):
             if kernel_type_string == 'continuous':
-                kernel_types.append(0)
+                if periodic:
+                    kernel_types.append(1)
+                else:
+                    kernel_types.append(0)
             elif kernel_type_string == 'categorical':
-                kernel_types.append(1)
+                kernel_types.append(2)
             elif kernel_type_string == 'discrete':
-                kernel_types.append(1)
+                kernel_types.append(2)
+
         kernel_types = np.array(kernel_types, dtype=np.int32)
         kernel_sizes = config.kernel_sizes.astype(np.int32)
-        return kernel_types, kernel_sizes
+        kernel_ranges = config.kernel_ranges.astype(np.float64)
+        return kernel_types, kernel_sizes, kernel_ranges
 
 
 

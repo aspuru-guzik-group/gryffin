@@ -3,9 +3,7 @@
 # cython: language_level=3
 # cython: profile=True
 
-__author__ = 'Florian Hase'
-
-#========================================================================
+__author__ = 'Florian Hase, Matteo Aldeghi'
 
 import  cython 
 cimport cython
@@ -13,38 +11,62 @@ import  numpy as np
 cimport numpy as np
 from libc.math cimport exp, round
 
-#========================================================================
 
+# ==================
+# Distance functions
+# ==================
+@cython.cdivision(True)
 cdef double _gauss(double x, double loc, double sqrt_prec):
     cdef double argument, result
-    argument = 0.5 * ( sqrt_prec * (x - loc) )**2
+    argument = 0.5 * (sqrt_prec * (x - loc))**2
     if argument > 200.:
         result = 0.
     else:
-        result = exp( - argument) * sqrt_prec * 0.3989422804014327  # the number is 1. / np.sqrt(2 * np.pi)
+        result = exp(-argument) * sqrt_prec * 0.3989422804014327  # the number is 1. / np.sqrt(2 * np.pi)
     return result
 
-#========================================================================
 
+@cython.cdivision(True)
+cdef double _gauss_periodic(double x, double loc, double sqrt_prec, double var_range):
+
+    cdef double argument, result, distance
+
+    distance = abs(x - loc)
+    if var_range - distance < distance:
+        distance = var_range - distance
+
+    argument = 0.5 * (distance * sqrt_prec)**2
+    if argument > 200.:
+        result = 0.
+    else:
+        result = exp(-argument) * sqrt_prec * 0.3989422804014327  # the number is 1. / np.sqrt(2 * np.pi)
+    return result
+
+
+# ==========
+# Main Class
+# ==========
 cdef class KernelEvaluator:
 
-    cdef int    num_samples, num_obs, num_kernels, num_cats
+    cdef int num_samples, num_obs, num_kernels, num_cats, num_continuous
     cdef double lower_prob_bound, inv_vol
 
     cdef np.ndarray np_locs, np_sqrt_precs, np_cat_probs
-    cdef np.ndarray np_kernel_types, np_kernel_sizes
+    cdef np.ndarray np_kernel_types, np_kernel_sizes, np_kernel_ranges
     cdef np.ndarray np_objs
     cdef np.ndarray np_probs
 
     var_dict = {}
 
-    def __init__(self, locs, sqrt_precs, cat_probs, kernel_types, kernel_sizes, lower_prob_bound, objs, inv_vol):
+    def __init__(self, locs, sqrt_precs, cat_probs, kernel_types, kernel_sizes, kernel_ranges,
+                 lower_prob_bound, objs, inv_vol):
 
         self.np_locs          = locs
         self.np_sqrt_precs    = sqrt_precs
         self.np_cat_probs     = cat_probs
         self.np_kernel_types  = kernel_types
         self.np_kernel_sizes  = kernel_sizes
+        self.np_kernel_ranges = kernel_ranges
         self.np_objs          = objs
 
         self.num_samples      = locs.shape[0]
@@ -55,15 +77,15 @@ cdef class KernelEvaluator:
 
         self.np_probs = np.zeros(self.num_obs, dtype = np.float64)
 
+        # number of continuous variables (continuous kernels have id 0 or 1)
+        self.num_continuous = np.sum(kernel_types < 1.5)
 
     @cython.boundscheck(False)
     @cython.cdivision(True)
     cdef double [:] _probs(self, double [:] sample):
 
         cdef int    sample_index, obs_index, feature_index, kernel_index
-        cdef int    num_indices
-        cdef int    num_continuous, num_categorical
-        cdef double total_prob, prec_prod, exp_arg_sum
+        cdef double total_prob, prec_prod, exp_arg_sum, distance
 
         cdef double [:, :, :] locs       = self.np_locs
         cdef double [:, :, :] sqrt_precs = self.np_sqrt_precs
@@ -71,6 +93,7 @@ cdef class KernelEvaluator:
 
         cdef int [:] kernel_types = self.np_kernel_types
         cdef int [:] kernel_sizes = self.np_kernel_sizes
+        cdef double [:] kernel_ranges = self.np_kernel_ranges
 
         cdef double inv_sqrt_two_pi = 0.3989422804014327
 
@@ -80,12 +103,6 @@ cdef class KernelEvaluator:
 
         cdef double cat_prob
         cdef double obs_probs
-
-        # get number of continuous variables
-        num_continuous = 0
-        while kernel_index < self.num_kernels:
-            num_continuous += 1
-            kernel_index   += kernel_sizes[kernel_index]
 
         # for each kernel location
         for obs_index in range(self.num_obs):
@@ -100,29 +117,53 @@ cdef class KernelEvaluator:
 
                 # for each kernel/dimension
                 while kernel_index < self.num_kernels:
-
+                    # -----------------
+                    # continuous kernel
+                    # -----------------
                     if kernel_types[kernel_index] == 0:
-                        # continuous kernel
-                        prec_prod      = prec_prod * sqrt_precs[sample_index, obs_index, kernel_index]
-                        exp_arg_sum    = exp_arg_sum + (sqrt_precs[sample_index, obs_index, kernel_index] * (sample[feature_index] - locs[sample_index, obs_index, kernel_index]))**2
+                        # get product of inverse standard deviations
+                        prec_prod = prec_prod * sqrt_precs[sample_index, obs_index, kernel_index]
+                        # get sum of the exponent argument
+                        exp_arg_sum = exp_arg_sum + (sqrt_precs[sample_index, obs_index, kernel_index] * (sample[feature_index] - locs[sample_index, obs_index, kernel_index]))**2
 
+                    # --------------------------
+                    # continuous periodic kernel
+                    # --------------------------
                     elif kernel_types[kernel_index] == 1:
-                        # categorical kernel
+                        # get product of inverse standard deviations
+                        prec_prod = prec_prod * sqrt_precs[sample_index, obs_index, kernel_index]
+                        # get distance between gaussian mean and sample location
+                        distance = abs(sample[feature_index] - locs[sample_index, obs_index, kernel_index])
+                        # consider closest distance across boundaries
+                        if kernel_ranges[kernel_index] - distance < distance:
+                            distance = kernel_ranges[kernel_index] - distance
+                        # get sum of the exponent argument
+                        exp_arg_sum = exp_arg_sum + (sqrt_precs[sample_index, obs_index, kernel_index] * distance)**2
+
+                    # ------------------
+                    # categorical kernel
+                    # ------------------
+                    elif kernel_types[kernel_index] == 2:
+                        # total probability, if we have continuous variables only this stays at 1
                         total_prob *= cat_probs[sample_index, obs_index, kernel_index + <int>round(sample[feature_index])]
 
+                    # increment indices
                     kernel_index  += kernel_sizes[kernel_index]  # kernel size can be >1 for a certain param
                     feature_index += 1
 
-                obs_probs += total_prob * prec_prod * exp( - 0.5 * exp_arg_sum) #* inv_sqrt_two_pi**num_continuous
+                # combine precision product with exponent argument, and categorical probability
+                obs_probs += total_prob * prec_prod * exp(-0.5 * exp_arg_sum)
 
                 # we assume 1000 BNN samples, so 100 is 10%
                 if sample_index == 100:
-                    if 0.01 * obs_probs * inv_sqrt_two_pi**num_continuous < self.lower_prob_bound:
+                    # boosting criterion
+                    if 0.01 * obs_probs * inv_sqrt_two_pi**self.num_continuous < self.lower_prob_bound:
                         probs[obs_index] = 0.01 * obs_probs
                         break
                 else:
                     # we take the average across the BNN samples
-                    probs[obs_index] = (obs_probs * inv_sqrt_two_pi**num_continuous) / self.num_samples
+                    # normalise the gaussian kernel probabilities
+                    probs[obs_index] = (obs_probs * inv_sqrt_two_pi**self.num_continuous) / self.num_samples
         return probs
 
     cpdef get_kernel_contrib(self, np.ndarray sample):

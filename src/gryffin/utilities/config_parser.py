@@ -60,7 +60,7 @@ class Configuration(object):
 class ConfigParser(Logger):
 
     TYPE_ATTRIBUTES = {
-        'continuous':  ['low', 'high'],
+        'continuous':  ['low', 'high', 'periodic'],
         'discrete':    ['low', 'high', 'options', 'descriptors'],
         'categorical': ['options', 'descriptors', 'category_details'],
     }
@@ -114,9 +114,9 @@ class ConfigParser(Logger):
         # parse parameter configuration
         # -----------------------------
         for setting in provided_settings:
-
             num_cats = 1
 
+            # check if constrained
             if 'process_constrained' in setting:
                 setting['process_constrained'] = bool(setting['process_constrained'])
             else:
@@ -126,6 +126,12 @@ class ConfigParser(Logger):
                 # check order
                 if setting['high'] <= setting['low']:
                     GryffinValueError('upper limit (%f) needs to be larger than the lower limit (%f) for parameter "%s"' % (setting['high'], setting['low'], setting['name']))
+
+                # check if periodic
+                if 'periodic' in setting:
+                    setting['periodic'] = bool(setting['periodic'])
+                else:
+                    setting['periodic'] = False
 
             elif setting['type'] == 'discrete':
                 # check order
@@ -248,6 +254,16 @@ class ConfigParser(Logger):
         return options
 
     @property
+    def param_periodic(self):
+        periodic = []
+        for spec in self.parameters.specifics:
+            if 'periodic' in spec:
+                periodic.append(spec['periodic'])
+            else:
+                periodic.append(False)
+        return periodic
+
+    @property
     def param_lowers(self):
         lowers = []
         for spec in self.features.specifics:
@@ -354,6 +370,16 @@ class ConfigParser(Logger):
         return self.features.type
 
     @property
+    def feature_periodic(self):
+        periodic = []
+        for spec in self.features.specifics:
+            if 'periodic' in spec:
+                periodic.append(spec['periodic'])
+            else:
+                periodic.append(False)
+        return periodic
+
+    @property
     def num_features(self):
         return len(self.feature_names)
 
@@ -403,6 +429,16 @@ class ConfigParser(Logger):
     @property
     def kernel_ranges(self):
         return self.kernel_uppers - self.kernel_lowers
+
+    @property
+    def kernel_periodic(self):
+        periodic = []
+        for spec in self.kernels.specifics:
+            if 'periodic' in spec:
+                periodic.append(spec['periodic'])
+            else:
+                periodic.append(False)
+        return periodic
 
     # ------------------------------------
     # Properties related to the objectives
