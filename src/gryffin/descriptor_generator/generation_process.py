@@ -1,11 +1,10 @@
 #!/usr/bin/env python 
 
-__author__ = 'Florian Hase'
+__author__ = 'Florian Hase, Matteo Aldeghi'
 
 import sys
 import numpy as np
 import tensorflow as tf
-from copy import deepcopy
 from gryffin.utilities.decorators import processify
 
 
@@ -85,15 +84,17 @@ class Generator(object):
 
             # register training operation
             self.loss     = loss_0 + loss_1 + loss_2 + loss_3
-            optimizer     = tf.compat.v1.train.AdamOptimizer(learning_rate = self.eta)
+            optimizer     = tf.compat.v1.train.AdamOptimizer(learning_rate=self.eta)
             self.train_op = optimizer.minimize(self.loss)
 
-        init_op   = tf.group( tf.compat.v1.global_variables_initializer(), tf.compat.v1.local_variables_initializer())
+        init_op   = tf.group(tf.compat.v1.global_variables_initializer(), tf.compat.v1.local_variables_initializer())
         config    = tf.compat.v1.ConfigProto(inter_op_parallelism_threads=1, intra_op_parallelism_threads=1)
         self.sess = tf.compat.v1.Session(config=config)
         self.sess.run(init_op)
 
     def generate_descriptors(self):
+
+        network_results = {}
 
         self.construct_comp_graph()
         for epoch in range(self.max_iter):
@@ -103,28 +104,27 @@ class Generator(object):
             )
 
         corr_coeffs, gen_descs_cov = self.sess.run([self.corr_coeffs, self.cov_gen_descs],
-                                                   feed_dict = {self.tf_descs: self.descs, self.tf_objs: self.objs})
+                                                   feed_dict={self.tf_descs: self.descs, self.tf_objs: self.objs})
 
         # register results
-        self.config['min_corrs']        = self.min_corr
-        self.config['comp_corr_coeffs'] = corr_coeffs
-        self.config['gen_descs_cov']    = gen_descs_cov
-        self.config['weights']          = self.weights_0.eval(session=self.sess)
+        network_results['min_corrs'] = self.min_corr
+        network_results['comp_corr_coeffs'] = corr_coeffs
+        network_results['gen_descs_cov'] = gen_descs_cov
+        network_results['weights'] = self.weights_0.eval(session=self.sess)
 
         # run prediction
-        auto_gen_descs                = self.sess.run(self.gen_descs, feed_dict={self.tf_descs: self.grid_descs})
-        self.config['auto_gen_descs'] = auto_gen_descs.astype(np.float64)
+        auto_gen_descs = self.sess.run(self.gen_descs, feed_dict={self.tf_descs: self.grid_descs})
+        network_results['auto_gen_descs'] = auto_gen_descs.astype(np.float64)
 
         # compute reduced descriptors
         sufficient_desc_indices = np.where(np.abs(corr_coeffs) > self.min_corr)[0]
         if len(sufficient_desc_indices) == 0:
             sufficient_desc_indices = np.array([0])
         reduced_gen_descs = auto_gen_descs[:, sufficient_desc_indices]
-        self.config['reduced_gen_descs'] = reduced_gen_descs.astype(np.float64)
-        self.config['sufficient_indices'] = sufficient_desc_indices
+        network_results['reduced_gen_descs'] = reduced_gen_descs.astype(np.float64)
+        network_results['sufficient_indices'] = sufficient_desc_indices
 
-        results = deepcopy(self.config)
-        return results
+        return network_results
 
 
 @processify

@@ -45,6 +45,8 @@ class DescriptorGenerator(Logger):
     def _generate_single_descriptors(self, feature_index, result_dict=None):
         """Parse description generation for a specific parameter, ad indicated by the feature_index"""
 
+        self.log('running one optimization process', 'DEBUG')
+
         feature_types = self.config.feature_types
         feature_descriptors = self.config.feature_descriptors
         obs_params = self.obs_params
@@ -89,21 +91,22 @@ class DescriptorGenerator(Logger):
             sim_dict[prop] = getattr(self, prop)
 
         sim_dict['num_samples'] = descs.shape[0]
-        sim_dict['num_descs']   = descs.shape[1]
-        sim_dict['descs']       = descs
-        sim_dict['objs']        = objs
-        sim_dict['grid_descs']  = self.config.feature_descriptors[feature_index]
+        sim_dict['num_descs'] = descs.shape[1]
+        sim_dict['descs'] = descs
+        sim_dict['objs'] = objs
+        sim_dict['grid_descs'] = feature_descriptors[feature_index]
 
         # run the generation process
         network_results = run_generator_network(sim_dict)
 
-        self.min_corrs[feature_index]          = network_results['min_corrs']
-        self.auto_gen_descs[feature_index]     = network_results['auto_gen_descs']
-        self.comp_corr_coeffs[feature_index]   = network_results['comp_corr_coeffs']
-        self.gen_descs_cov[feature_index]      = network_results['gen_descs_cov']
-        self.reduced_gen_descs[feature_index]  = network_results['reduced_gen_descs']
-        self.weights[feature_index]            = network_results['weights']
-        self.sufficient_indices[feature_index] = network_results['sufficient_indices']
+        # This were saved only for later access
+        #self.min_corrs[feature_index]          = network_results['min_corrs']
+        #self.auto_gen_descs[feature_index]     = network_results['auto_gen_descs']
+        #self.comp_corr_coeffs[feature_index]   = network_results['comp_corr_coeffs']
+        #self.gen_descs_cov[feature_index]      = network_results['gen_descs_cov']
+        #self.reduced_gen_descs[feature_index]  = network_results['reduced_gen_descs']
+        #self.weights[feature_index]            = network_results['weights']
+        #self.sufficient_indices[feature_index] = network_results['sufficient_indices']
 
         if result_dict is not None:
             result_dict[feature_index] = deepcopy(network_results['reduced_gen_descs'])
@@ -116,7 +119,7 @@ class DescriptorGenerator(Logger):
         # print some info
         feature_names = [self.config.feature_names[i] for i in feature_indices]
         features_strings = ", ".join(feature_names)
-        self.log(f'running parallel descriptor generation for {features_strings}', 'INFO')
+        self.log(f'running parallel descriptor generation for {features_strings}', 'DEBUG')
 
         # run
         for feature_index in feature_indices:
@@ -145,8 +148,6 @@ class DescriptorGenerator(Logger):
 
     def generate_descriptors(self, obs_params, obs_objs):
         """Generates descriptors for each categorical parameters"""
-
-        start = time.time()
 
         self.obs_params = obs_params
         self.obs_objs = obs_objs
@@ -182,7 +183,6 @@ class DescriptorGenerator(Logger):
         # Serial descriptor generation
         # ----------------------------
         else:
-            self.log('running serial descriptor generation', 'INFO')
             result_dict = {}
             for feature_index in feature_indices:
                 gen_descriptor = self._generate_single_descriptors(feature_index=feature_index, result_dict=None)
@@ -192,11 +192,8 @@ class DescriptorGenerator(Logger):
         gen_feature_descriptors = []
         for feature_index in range(len(result_dict.keys())):
             gen_feature_descriptors.append(result_dict[feature_index])
-        self.gen_feature_descriptors = gen_feature_descriptors
 
-        end = time.time()
-        desc_gen_time = parse_time(start, end)
-        self.log('[TIME]:  ' + desc_gen_time + '  (descriptor generation)', 'INFO')
+        self.gen_feature_descriptors = gen_feature_descriptors
 
     def get_descriptors(self):
         if self.gen_feature_descriptors is not None:

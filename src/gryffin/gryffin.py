@@ -132,24 +132,35 @@ class Gryffin(Logger):
             # mask_mirror == mask that selects the parameters that have been mirrored across opt bounds
             obs_params, obs_objs, obs_feas, mask_kwn, mask_mirror = self.obs_processor.process_observations(observations)
 
-            # ---------------------------
-            # get categorical descriptors
-            # ---------------------------
-            if self.config.get('auto_desc_gen'):
-                # only feasible points with known objectives
-                if len(obs_params[mask_kwn]) > 2:
-                    self.descriptor_generator.generate_descriptors(obs_params[mask_kwn], obs_objs[mask_kwn])
-                # for feasibility descriptors, we use all data, but we run descriptor generation
-                # only if we have at least 1 infeasible point, otherwise they are all feasible and there is no point
-                # running this. Remember that feasible = 0 and infeasible = 1.
-                if len(obs_params) > 2 and np.sum(obs_feas) > 0.1:
-                    self.descriptor_generator_feas.generate_descriptors(obs_params[~mask_kwn], obs_params[~mask_kwn])
+            # -----------------------------
+            # Build categorical descriptors
+            # -----------------------------
+            can_generate_desc = len(obs_params[mask_kwn]) > 2 or (len(obs_params) > 2 and np.sum(obs_feas) > 0.1)
+            if self.config.get('auto_desc_gen') is True and can_generate_desc is True:
+                self.log_chapter('Descriptor Refinement')
+                start = time.time()
+                with self.console.status("Refining categories descriptors..."):
+                    # only feasible points with known objectives
+                    if len(obs_params[mask_kwn]) > 2:
+                        self.descriptor_generator.generate_descriptors(obs_params[mask_kwn], obs_objs[mask_kwn])
+                    # for feasibility descriptors, we use all data, but we run descriptor generation
+                    # only if we have at least 1 infeasible point, otherwise they are all feasible and there is no point
+                    # running this. Remember that feasible = 0 and infeasible = 1.
+                    if len(obs_params) > 2 and np.sum(obs_feas) > 0.1:
+                        self.descriptor_generator_feas.generate_descriptors(obs_params[~mask_kwn], obs_params[~mask_kwn])
+
+                end = time.time()
+                time_string = parse_time(start, end)
+                self.log(f"Categorical descriptors refined by [italic]Dynamic Gryffin[/italic] in {time_string}",
+                         "INFO")
 
             # extract descriptors and build kernels
             descriptors_kwn = self.descriptor_generator.get_descriptors()
             descriptors_feas = self.descriptor_generator_feas.get_descriptors()
 
+            # ----------------------------------------------
             # get lambda values for exploration/exploitation
+            # ----------------------------------------------
             self.sampling_param_values = sampling_strategies * self.bayesian_network.inverse_volume
             dominant_strategy_index = self.iter_counter % len(self.sampling_param_values)
             dominant_strategy_value = np.array([self.sampling_param_values[dominant_strategy_index]])

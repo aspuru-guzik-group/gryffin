@@ -141,7 +141,7 @@ class BayesianNetwork(Logger):
 
         # report cat reshaping time only if we have categorical variables
         if 'categorical' in self.config.kernel_types:
-            self.log('[TIME]:  ' + parse_time(start, end) + '  (reshaping categorical space)', 'INFO')
+            self.log('[TIME]:  ' + parse_time(start, end) + '  (reshaping categorical space)', 'DEBUG')
 
         # kernels used for regression
         self.kernel_regression = KernelEvaluator(locs=locs_kwn, sqrt_precs=sqrt_precs_kwn, cat_probs=probs_kwn,
