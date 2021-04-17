@@ -1,6 +1,6 @@
 #!/usr/bin/env python 
 
-__author__ = 'Florian Hase'
+__author__ = 'Florian Hase, Matteo Aldeghi'
 
 import numpy as np
 import multiprocessing
@@ -68,9 +68,9 @@ class SampleSelector(Logger):
         # save all objective values here
         exp_objs = []
 
-        # ---------------------------------
-        # compute exp of acquisition values
-        # ---------------------------------
+        # -----------------------------------------
+        # compute exponential of acquisition values
+        # -----------------------------------------
         # TODO: this is slightly redundant as we have computed acquisition values already in Acquisition
         for batch_index, sampling_param in enumerate(sampling_param_values):
 
@@ -117,44 +117,66 @@ class SampleSelector(Logger):
         # ----------------------------------------
         # compute prior recommendation punishments
         # ----------------------------------------
+
+        # compute normalised obs_params. In this way, we can rely on normalized distance thresholds, otherwise
+        # if obs_params has very small range, sample selector is messed up
+        obs_params_norm = (obs_params - self.config.param_lowers) / (self.config.param_uppers - self.config.param_lowers)
+        proposals_norm = (proposals - self.config.param_lowers) / (self.config.param_uppers - self.config.param_lowers)
+
+        # here we set to zero the reward if proposals are too close to previous observed params
         for batch_index in range(len(sampling_param_values)):
-            batch_proposals = proposals[batch_index, : exp_objs.shape[1]]
+            batch_proposals = proposals_norm[batch_index, : exp_objs.shape[1]]
 
             # compute distance to each obs_param
-            distances = [np.sum((obs_params - batch_proposal)**2, axis=1) for batch_proposal in batch_proposals]
+            distances = [np.sum((obs_params_norm - batch_proposal)**2, axis=1) for batch_proposal in batch_proposals]
             distances = np.array(distances)
+            # take min distance across dimensions
             min_distances = np.amin(distances, axis=1)
+            # get indices for proposals that are basically the same as previous samples
             ident_indices = np.where(min_distances < 1e-8)[0]
-
+            # set reward to zero for these samples since we do not want to select them
             exp_objs[batch_index, ident_indices] = 0.
 
         # ---------------
         # collect samples
         # ---------------
+        # here we add a penalty term that depends on the minimum distance between proposals and previous observations,
+        # or other samples that have been selected.
         samples = []
         for sample_index in range(num_samples):
             new_samples = []
 
             for batch_index in range(len(sampling_param_values)):
                 batch_proposals = proposals[batch_index]
+                batch_proposals_norm = proposals_norm[batch_index]
 
                 # compute diversity punishments
                 div_crits = np.ones(exp_objs.shape[1])
 
-                for proposal_index, proposal in enumerate(batch_proposals[:exp_objs.shape[1]]):
-                    obs_min_distance = np.amin([np.abs(proposal - x) for x in obs_params], axis=0)
+                # iterate over batch proposals and compute min distance to previous observations
+                # or other proposed samples
+                for proposal_index, proposal in enumerate(batch_proposals_norm[:exp_objs.shape[1]]):
+                    # compute min distance to observed samples
+                    obs_min_distance = np.amin([np.abs(proposal - x) for x in obs_params_norm], axis=0)
+                    # if we already chose a new sample, compute also min distance to newly chosen samples
                     if len(new_samples) > 0:
-                        min_distance = np.amin([np.abs(proposal - x) for x in new_samples], axis=0)
+                        new_samples_norm = (np.array(new_samples) - self.config.param_lowers /
+                                            (self.config.param_uppers - self.config.param_lowers))
+                        min_distance = np.amin([np.abs(proposal - x) for x in new_samples_norm], axis=0)
                         min_distance = np.minimum(min_distance, obs_min_distance)
                     else:
                         min_distance = obs_min_distance
 
+                    # compute distance reward
                     div_crits[proposal_index] = np.minimum(1., np.mean(np.exp(2. * (min_distance - char_dists) / feature_ranges)))
 
-                # reweight rewards
+                # reweight computed based on acquisition with rewards based on distance
                 reweighted_rewards = exp_objs[batch_index] * div_crits
+                # get index of proposal with largest rewards
                 largest_reward_index = np.argmax(reweighted_rewards)
 
+                # select the sample from batch_proposals
+                # not from batch_proposals_norm that was used only for computing penalties
                 new_sample = batch_proposals[largest_reward_index]
                 new_samples.append(new_sample)
 
