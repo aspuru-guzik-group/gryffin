@@ -91,29 +91,24 @@ def parse_options():
 def main(args):
 
     # load past experiments
-    infile_extension = args.file.split('.')[-1]
-    if infile_extension == 'csv':
-        df_in = pd.read_csv(args.file)
-    elif infile_extension in ['xls', 'xlsx']:
-        df_in = pd.read_excel(args.file)
-
-    # show past experiments
-    print()
-    print_df_as_rich_table(df_in, title='Past Experiments')
+    infile_extension = args.file.split('.')[-1]  # get extension
+    df_in = _load_tabular_data(args, infile_extension)
 
     # load params/objectives
     with open(args.json, 'r') as jsonfile:
         config = json.load(jsonfile)
 
     # check we have all right params/objs in the csv file
-    obj_names = [obj['name'] for obj in config["objectives"]]
+    obj_names = [obj['name'] for obj in config["objectives"]]  # N.B. order matters
     param_names = [param['name'] for param in config["parameters"]]  # N.B. order matters
-    for obj_name in obj_names:
-        if obj_name not in df_in.columns:
-            raise ValueError(f"Expected objective '{obj_name}' missing from {args.file}")
-    for param_name in param_names:
-        if param_name not in df_in.columns:
-            raise ValueError(f"Expected parameter '{param_name}' missing from {args.file}")
+    _check_table_against_config(args, df_in, obj_names, param_names)
+
+    # drop rows with NaN values in the parameters
+    df_in = df_in.dropna(subset=param_names)
+
+    # show past experiments
+    print()
+    print_df_as_rich_table(df_in, title='Past Experiments')
 
     # init gryffin
     gryffin = init_objects(args, config)
@@ -126,7 +121,7 @@ def main(args):
         samples = suggest_next_experiments(gryffin, observations, args.num_experiments)
     else:
         # build observation list for Gryffin
-        observations = build_observations(df_in, param_names, obj_names)
+        observations = _df_to_observations(df_in)
 
         # ask for next experiments
         samples = suggest_next_experiments(gryffin, observations, args.num_experiments)
@@ -174,6 +169,37 @@ def main(args):
 # =========
 # Functions
 # =========
+def _load_tabular_data(args, infile_extension):
+    # load data
+    if infile_extension == 'csv':
+        df_in = pd.read_csv(args.file)
+    elif infile_extension in ['xls', 'xlsx']:
+        df_in = pd.read_excel(args.file)
+
+    # rm rows if NaN in parameters. NaN in objective is allowed as infeasible experiment.
+    return df_in
+
+
+def _check_table_against_config(args, df_in, obj_names, param_names):
+    """Check inputs for correctness"""
+    for obj_name in obj_names:
+        if obj_name not in df_in.columns:
+            raise ValueError(f"Expected objective '{obj_name}' missing from {args.file}")
+    for param_name in param_names:
+        if param_name not in df_in.columns:
+            raise ValueError(f"Expected parameter '{param_name}' missing from {args.file}")
+
+
+def _df_to_observations(df):
+    observations = []
+    for index, row in df.iterrows():
+        d = {}
+        for col in df.columns:
+            d[col] = row[col]
+        observations.append(d)
+    return observations
+
+
 def infer_batches_and_strategies(num_experiments):
 
     # if num_experiments <= 2, we use 2 strategies either in parallel or sequence (done in suggest_next_experiments)
@@ -255,21 +281,6 @@ def suggest_next_experiments(gryffin, observations, num_experiments):
         samples = gryffin.recommend(observations=observations)
 
     return samples
-
-
-def build_observations(df_observations, param_names, obj_names):
-
-    observations = []
-
-    for obs in df_observations.to_numpy():
-        d = {}
-        for param_name, value in zip(param_names, obs):
-            d[param_name] = value
-        for obj_name, value in zip(obj_names, obs):
-            d[obj_name] = value
-        observations.append(d)
-
-    return observations
 
 
 def print_df_as_rich_table(df, title):
