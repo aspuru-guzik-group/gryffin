@@ -4619,7 +4619,7 @@ static PyObject *__pyx_f_7gryffin_16bayesian_network_18kernel_evaluations_15Kern
  *             num += temp_0 * temp_1
  *             den += temp_1             # <<<<<<<<<<<<<<
  * 
- *         y_pred = num / den
+ *         y_pred = num / (den + 1e-8)  # avoid division by zero
  */
     __pyx_v_den = (__pyx_v_den + __pyx_v_temp_1);
   }
@@ -4627,19 +4627,20 @@ static PyObject *__pyx_f_7gryffin_16bayesian_network_18kernel_evaluations_15Kern
   /* "gryffin/bayesian_network/kernel_evaluations.pyx":213
  *             den += temp_1
  * 
- *         y_pred = num / den             # <<<<<<<<<<<<<<
+ *         y_pred = num / (den + 1e-8)  # avoid division by zero             # <<<<<<<<<<<<<<
  *         return y_pred
  * 
  */
-  if (unlikely(__pyx_v_den == 0)) {
+  __pyx_t_11 = (__pyx_v_den + 1e-8);
+  if (unlikely(__pyx_t_11 == 0)) {
     PyErr_SetString(PyExc_ZeroDivisionError, "float division");
     __PYX_ERR(0, 213, __pyx_L1_error)
   }
-  __pyx_v_y_pred = (__pyx_v_num / __pyx_v_den);
+  __pyx_v_y_pred = (__pyx_v_num / __pyx_t_11);
 
   /* "gryffin/bayesian_network/kernel_evaluations.pyx":214
  * 
- *         y_pred = num / den
+ *         y_pred = num / (den + 1e-8)  # avoid division by zero
  *         return y_pred             # <<<<<<<<<<<<<<
  * 
  *     cpdef get_binary_kernel_densities(self, np.ndarray sample):

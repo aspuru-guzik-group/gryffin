@@ -1580,12 +1580,13 @@ static PyObject *__pyx_pf_7gryffin_16bayesian_network_18kernel_evaluations_15Ker
 <pre class='cython code score-0 '>    __pyx_v_den = (__pyx_v_den + __pyx_v_temp_1);
   }
 </pre><pre class="cython line score-0">&#xA0;<span class="">212</span>: </pre>
-<pre class="cython line score-5" onclick="(function(s){s.display=s.display==='block'?'none':'block'})(this.nextElementSibling.style)">+<span class="">213</span>:         <span class="n">y_pred</span> <span class="o">=</span> <span class="n">num</span> <span class="o">/</span> <span class="n">den</span></pre>
-<pre class='cython code score-5 '>  if (unlikely(__pyx_v_den == 0)) {
+<pre class="cython line score-5" onclick="(function(s){s.display=s.display==='block'?'none':'block'})(this.nextElementSibling.style)">+<span class="">213</span>:         <span class="n">y_pred</span> <span class="o">=</span> <span class="n">num</span> <span class="o">/</span> <span class="p">(</span><span class="n">den</span> <span class="o">+</span> <span class="mf">1e-8</span><span class="p">)</span>  <span class="c"># avoid division by zero</span></pre>
+<pre class='cython code score-5 '>  __pyx_t_11 = (__pyx_v_den + 1e-8);
+  if (unlikely(__pyx_t_11 == 0)) {
     <span class='py_c_api'>PyErr_SetString</span>(PyExc_ZeroDivisionError, "float division");
     <span class='error_goto'>__PYX_ERR(0, 213, __pyx_L1_error)</span>
   }
-  __pyx_v_y_pred = (__pyx_v_num / __pyx_v_den);
+  __pyx_v_y_pred = (__pyx_v_num / __pyx_t_11);
 </pre><pre class="cython line score-6" onclick="(function(s){s.display=s.display==='block'?'none':'block'})(this.nextElementSibling.style)">+<span class="">214</span>:         <span class="k">return</span> <span class="n">y_pred</span></pre>
 <pre class='cython code score-6 '>  <span class='pyx_macro_api'>__Pyx_XDECREF</span>(__pyx_r);
   __pyx_t_1 = <span class='py_c_api'>PyFloat_FromDouble</span>(__pyx_v_y_pred);<span class='error_goto'> if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 214, __pyx_L1_error)</span>

@@ -210,7 +210,7 @@ cdef class KernelEvaluator:
             num += temp_0 * temp_1
             den += temp_1
 
-        y_pred = num / den
+        y_pred = num / (den + 1e-8)  # avoid division by zero
         return y_pred
 
     cpdef get_binary_kernel_densities(self, np.ndarray sample):
