@@ -62,6 +62,9 @@ class Gryffin(Logger):
         self.sampling_param_values = None
         self.sampling_strategies = None
         self.num_batches = None
+        # attributes used mainly for investigation/debugging
+        self.parsed_input_data = {}
+        self.proposed_samples = None
 
     def _create_folders(self):
         if self.config.get('save_database') is True and not os.path.isdir(self.config.get_db('path')):
@@ -132,6 +135,13 @@ class Gryffin(Logger):
             # mask_mirror == mask that selects the parameters that have been mirrored across opt bounds
             obs_params, obs_objs, obs_feas, mask_kwn, mask_mirror = self.obs_processor.process_observations(observations)
 
+            # keep for inspection/debugging
+            self.parsed_input_data['obs_params'] = obs_params
+            self.parsed_input_data['obs_objs'] = obs_objs
+            self.parsed_input_data['obs_feas'] = obs_feas
+            self.parsed_input_data['mask_kwn'] = mask_kwn
+            self.parsed_input_data['mask_mirror'] = mask_mirror
+
             # -----------------------------
             # Build categorical descriptors
             # -----------------------------
@@ -189,10 +199,10 @@ class Gryffin(Logger):
 
             # if there are process constraining parameters, run those first
             if self.config.process_constrained:
-                proposed_samples = self.acquisition.propose(best_params, self.bayesian_network,
-                                                            self.sampling_param_values, num_samples=200,
-                                                            dominant_samples=None)
-                constraining_samples = self.sample_selector.select(self.num_batches, proposed_samples,
+                self.proposed_samples = self.acquisition.propose(best_params, self.bayesian_network,
+                                                                 self.sampling_param_values, num_samples=200,
+                                                                 dominant_samples=None)
+                constraining_samples = self.sample_selector.select(self.num_batches, self.proposed_samples,
                                                                    self.acquisition.eval_acquisition,
                                                                    dominant_strategy_value, obs_params)
             else:
@@ -201,16 +211,18 @@ class Gryffin(Logger):
             # then select the remaining proposals
             # note num_samples get multiplied by the number of input variables
             self.log_chapter('Acquisition')
-            proposed_samples = self.acquisition.propose(best_params=best_params, bayesian_network=self.bayesian_network,
-                                                        sampling_param_values=self.sampling_param_values,
-                                                        num_samples=200, dominant_samples=constraining_samples,
-                                                        timings_dict=self.timings)
+            self.proposed_samples = self.acquisition.propose(best_params=best_params,
+                                                             bayesian_network=self.bayesian_network,
+                                                             sampling_param_values=self.sampling_param_values,
+                                                             num_samples=200, dominant_samples=constraining_samples,
+                                                             timings_dict=self.timings)
 
             self.log_chapter('Sample Selector')
             # note: provide `obs_params` as it contains the params for _all_ samples, including the unfeasible ones
-            samples = self.sample_selector.select(self.num_batches, proposed_samples,
-                                                  self.acquisition.eval_acquisition,
-                                                  self.sampling_param_values, obs_params)
+            samples = self.sample_selector.select(num_samples=self.num_batches, proposals=self.proposed_samples,
+                                                  eval_acquisition=self.acquisition.eval_acquisition,
+                                                  sampling_param_values=self.sampling_param_values,
+                                                  obs_params=obs_params)
 
         # --------------------------------
         # Print overall info for recommend
