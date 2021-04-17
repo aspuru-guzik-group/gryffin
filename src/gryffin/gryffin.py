@@ -96,6 +96,10 @@ class Gryffin(Logger):
         start_time = time.time()
         if sampling_strategies is None:
             num_sampling_strategies = self.config.get('sampling_strategies')
+            # positive lambda is exploitation, negative is exploration
+            # we start with exploitation and follow with exploration
+            # in sample selector, we first choose exploitation, then exploration (with distance penalty for exploration
+            # points close to already selected exploitation ones)
             sampling_strategies = np.linspace(1, -1, num_sampling_strategies)
         else:
             sampling_strategies = np.array(sampling_strategies)
