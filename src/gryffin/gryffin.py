@@ -64,7 +64,7 @@ class Gryffin(Logger):
         self.num_batches = None
         # attributes used mainly for investigation/debugging
         self.parsed_input_data = {}
-        self.proposed_samples = None
+        self.proposals = None
 
     def _create_folders(self):
         if self.config.get('save_database') is True and not os.path.isdir(self.config.get_db('path')):
@@ -77,18 +77,26 @@ class Gryffin(Logger):
             from .database_handler import DatabaseHandler
             self.db_handler = DatabaseHandler(self.config)
 
-    def recommend(self, observations=None, sampling_strategies=None, as_array=False):
+    def recommend(self, observations=None, sampling_strategies=None, num_batches=None, as_array=False):
         """Recommends the next set(s) of parameters based on the provided observations.
 
         Parameters
         ----------
         observations : list
+            List of dictionaries with the previous observations.
         sampling_strategies : list
+            List of the chosen sampling strategies. When providing this argument, the config setting ``strategies``
+            will be ignored.
+        num_batches : int
+            Number of parameter batches requested. When providing this argument, the config setting ``batches`` will
+            be ignored.
         as_array : bool
+            Whether to return suggested samples as numpy arrays instead of a list of dictionaries. Default is False.
 
         Returns
         -------
         params : list
+            List of dictionaries with the suggested parameters.
         """
         self.log('', 'INFO')
         self.log_chapter("Gryffin", line='=', style='bold #d9ed92')
@@ -107,7 +115,10 @@ class Gryffin(Logger):
 
         # register last sampling strategies
         self.sampling_strategies = sampling_strategies
-        self.num_batches = self.config.get('batches')
+        if num_batches is None:
+            self.num_batches = self.config.get('batches')
+        else:
+            self.num_batches = num_batches
 
         # print summary of what will be proposed
         num_recommended_samples = self.num_batches * num_sampling_strategies
@@ -203,27 +214,29 @@ class Gryffin(Logger):
 
             # if there are process constraining parameters, run those first
             if self.config.process_constrained:
-                self.proposed_samples = self.acquisition.propose(best_params, self.bayesian_network,
-                                                                 self.sampling_param_values, num_samples=200,
-                                                                 dominant_samples=None)
-                constraining_samples = self.sample_selector.select(self.num_batches, self.proposed_samples,
-                                                                   self.acquisition.eval_acquisition,
-                                                                   dominant_strategy_value, obs_params)
+                self.proposals = self.acquisition.propose(best_params, self.bayesian_network,
+                                                          self.sampling_param_values, num_samples=200,
+                                                          dominant_samples=None)
+                constraining_samples = self.sample_selector.select(num_batches=self.num_batches,
+                                                                   proposals=self.proposals,
+                                                                   eval_acquisition=self.acquisition.eval_acquisition,
+                                                                   sampling_param_values=dominant_strategy_value,
+                                                                   obs_params=obs_params)
             else:
                 constraining_samples = None
 
             # then select the remaining proposals
             # note num_samples get multiplied by the number of input variables
             self.log_chapter('Acquisition')
-            self.proposed_samples = self.acquisition.propose(best_params=best_params,
-                                                             bayesian_network=self.bayesian_network,
-                                                             sampling_param_values=self.sampling_param_values,
-                                                             num_samples=200, dominant_samples=constraining_samples,
-                                                             timings_dict=self.timings)
+            self.proposals = self.acquisition.propose(best_params=best_params,
+                                                      bayesian_network=self.bayesian_network,
+                                                      sampling_param_values=self.sampling_param_values,
+                                                      num_samples=200, dominant_samples=constraining_samples,
+                                                      timings_dict=self.timings)
 
             self.log_chapter('Sample Selector')
             # note: provide `obs_params` as it contains the params for _all_ samples, including the unfeasible ones
-            samples = self.sample_selector.select(num_samples=self.num_batches, proposals=self.proposed_samples,
+            samples = self.sample_selector.select(num_batches=self.num_batches, proposals=self.proposals,
                                                   eval_acquisition=self.acquisition.eval_acquisition,
                                                   sampling_param_values=self.sampling_param_values,
                                                   obs_params=obs_params)

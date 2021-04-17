@@ -9,6 +9,7 @@ import argparse
 from rich.console import Console
 from rich.table import Table
 from gryffin import Gryffin
+from gryffin.utilities import GryffinSettingsError
 
 
 # =============
@@ -232,9 +233,10 @@ def infer_batches_and_strategies(num_experiments):
             sampling_strategies = 2
             batches = num_experiments / 2
             return batches, sampling_strategies
-        raise ValueError('please do not select a prime number of experiments')
+        raise GryffinSettingsError('please do not select a prime number of experiments')
     else:
-        raise ValueError('you are selecting a large batch of experiments! This is not ideal. Talk to Matteo if needed.')
+        raise GryffinSettingsError('you are selecting a large batch of experiments - this is not the intended use of '
+                                   'Gryffin. Contanct the authors for further guidance if needed.')
 
     return batches, sampling_strategies
 

@@ -22,13 +22,13 @@ class SampleSelector(Logger):
             self.num_cpus = int(self.config.get('num_cpus'))
 
     @staticmethod
-    def compute_exp_objs(proposals, eval_acquisition, batch_index, return_index=0, return_dict=None):
+    def compute_exp_objs(proposals, eval_acquisition, sampling_param_idx, return_index=0, return_dict=None):
         # batch_index is the index of the sampling_param_values used
-        samples = proposals[batch_index]
+        samples = proposals[sampling_param_idx]
         exp_objs = np.empty(len(samples))
 
         for sample_index, sample in enumerate(samples):
-            acq = eval_acquisition(sample, batch_index)  # this is a method of the Acquisition instance
+            acq = eval_acquisition(sample, sampling_param_idx)  # this is a method of the Acquisition instance
             exp_objs[sample_index] = np.exp(-acq)
 
         if return_dict.__class__.__name__ == 'DictProxy':
@@ -36,7 +36,7 @@ class SampleSelector(Logger):
 
         return exp_objs
 
-    def select(self, num_samples, proposals, eval_acquisition, sampling_param_values, obs_params):
+    def select(self, num_batches, proposals, eval_acquisition, sampling_param_values, obs_params):
         """
         num_samples : int
             number of samples to select per sampling strategy (i.e. the ``batches`` argument in the configuration)
@@ -48,9 +48,9 @@ class SampleSelector(Logger):
 
         if self.verbosity > 2.5:  # i.e. INFO or DEBUG
             with self.console.status("Selecting best samples to recommend..."):
-                samples = self._select(num_samples, proposals, eval_acquisition, sampling_param_values, obs_params)
+                samples = self._select(num_batches, proposals, eval_acquisition, sampling_param_values, obs_params)
         else:
-            samples = self._select(num_samples, proposals, eval_acquisition, sampling_param_values, obs_params)
+            samples = self._select(num_batches, proposals, eval_acquisition, sampling_param_values, obs_params)
 
         end = time.time()
         time_string = parse_time(start, end)
@@ -59,7 +59,7 @@ class SampleSelector(Logger):
 
         return samples
 
-    def _select(self, num_samples, proposals, eval_acquisition, sampling_param_values, obs_params):
+    def _select(self, num_batches, proposals, eval_acquisition, sampling_param_values, obs_params):
 
         num_obs = len(obs_params)
         feature_ranges = self.config.feature_ranges
@@ -72,7 +72,7 @@ class SampleSelector(Logger):
         # compute exponential of acquisition values
         # -----------------------------------------
         # TODO: this is slightly redundant as we have computed acquisition values already in Acquisition
-        for batch_index, sampling_param in enumerate(sampling_param_values):
+        for sampling_param_idx, sampling_param in enumerate(sampling_param_values):
 
             # -------------------
             # parallel processing
@@ -86,9 +86,10 @@ class SampleSelector(Logger):
                 # parallelize over splits
                 # -----------------------
                 processes = []
-                for idx, proposals_split in enumerate(proposals_splits):
+                for return_idx, proposals_split in enumerate(proposals_splits):
                     process = Process(target=self.compute_exp_objs, args=(proposals_split, eval_acquisition,
-                                                                          batch_index, idx, return_dict))
+                                                                          sampling_param_idx,
+                                                                          return_idx, return_dict))
                     processes.append(process)
                     process.start()
 
@@ -106,7 +107,8 @@ class SampleSelector(Logger):
             # ---------------------
             else:
                 batch_exp_objs = self.compute_exp_objs(proposals=proposals, eval_acquisition=eval_acquisition,
-                                                       batch_index=batch_index, return_index=0, return_dict=None)
+                                                       sampling_param_idx=sampling_param_idx, return_index=0,
+                                                       return_dict=None)
 
             # append the proposed samples for this sampling strategy to the global list of samples
             exp_objs.append(batch_exp_objs)
@@ -124,8 +126,8 @@ class SampleSelector(Logger):
         proposals_norm = (proposals - self.config.param_lowers) / (self.config.param_uppers - self.config.param_lowers)
 
         # here we set to zero the reward if proposals are too close to previous observed params
-        for batch_index in range(len(sampling_param_values)):
-            batch_proposals = proposals_norm[batch_index, : exp_objs.shape[1]]
+        for sampling_param_idx in range(len(sampling_param_values)):
+            batch_proposals = proposals_norm[sampling_param_idx, : exp_objs.shape[1]]
 
             # compute distance to each obs_param
             distances = [np.sum((obs_params_norm - batch_proposal)**2, axis=1) for batch_proposal in batch_proposals]
@@ -135,58 +137,51 @@ class SampleSelector(Logger):
             # get indices for proposals that are basically the same as previous samples
             ident_indices = np.where(min_distances < 1e-8)[0]
             # set reward to zero for these samples since we do not want to select them
-            exp_objs[batch_index, ident_indices] = 0.
+            exp_objs[sampling_param_idx, ident_indices] = 0.
 
         # ---------------
         # collect samples
         # ---------------
         # here we add a penalty term that depends on the minimum distance between proposals and previous observations,
         # or other samples that have been selected.
-        samples = []
-        for sample_index in range(num_samples):
-            new_samples = []
-
-            for batch_index in range(len(sampling_param_values)):
-                batch_proposals = proposals[batch_index]
-                batch_proposals_norm = proposals_norm[batch_index]
+        selected_samples = []
+        for batch_idx in range(num_batches):
+            for sampling_param_idx in range(len(sampling_param_values)):
+                # proposals.shape = (# sampling params, # proposals, # param dims)
+                batch_proposals = proposals[sampling_param_idx]
 
                 # compute diversity punishments
-                div_crits = np.ones(exp_objs.shape[1])
+                num_proposals_in_batch = exp_objs.shape[1]
+                div_crits = np.ones(num_proposals_in_batch)  # exp_objs shape = (# sampling params, # proposals)
 
                 # iterate over batch proposals and compute min distance to previous observations
                 # or other proposed samples
-                for proposal_index, proposal in enumerate(batch_proposals_norm[:exp_objs.shape[1]]):
+                for proposal_index, proposal in enumerate(batch_proposals[:num_proposals_in_batch]):
                     # compute min distance to observed samples
-                    obs_min_distance = np.amin([np.abs(proposal - x) for x in obs_params_norm], axis=0)
+                    obs_min_distance = np.amin([np.abs(proposal - x) for x in obs_params], axis=0)
                     # if we already chose a new sample, compute also min distance to newly chosen samples
-                    if len(new_samples) > 0:
-                        new_samples_norm = (np.array(new_samples) - self.config.param_lowers /
-                                            (self.config.param_uppers - self.config.param_lowers))
-                        min_distance = np.amin([np.abs(proposal - x) for x in new_samples_norm], axis=0)
+                    if len(selected_samples) > 0:
+                        min_distance = np.amin([np.abs(proposal - x) for x in selected_samples], axis=0)
                         min_distance = np.minimum(min_distance, obs_min_distance)
                     else:
                         min_distance = obs_min_distance
 
                     # compute distance reward
                     div_crits[proposal_index] = np.minimum(1., np.mean(np.exp(2. * (min_distance - char_dists) / feature_ranges)))
-
                 # reweight computed based on acquisition with rewards based on distance
-                reweighted_rewards = exp_objs[batch_index] * div_crits
+                reweighted_rewards = exp_objs[sampling_param_idx] * div_crits
                 # get index of proposal with largest rewards
                 largest_reward_index = np.argmax(reweighted_rewards)
 
                 # select the sample from batch_proposals
                 # not from batch_proposals_norm that was used only for computing penalties
                 new_sample = batch_proposals[largest_reward_index]
-                new_samples.append(new_sample)
+                selected_samples.append(new_sample)
 
                 # update reward of selected sample
-                exp_objs[batch_index, largest_reward_index] = 0.
+                exp_objs[sampling_param_idx, largest_reward_index] = 0.
 
-            samples.append(new_samples)
-        samples = np.concatenate(samples)
-
-        return samples
+        return np.array(selected_samples)
 
 
 
