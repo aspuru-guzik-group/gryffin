@@ -82,13 +82,13 @@ class Acquisition(Logger):
         if dominant_samples is None:
             uniform_samples = random_sampler.draw(num=self.total_num_vars * num_samples)
             perturb_samples = random_sampler.perturb(best_params, num=self.total_num_vars * num_samples)
-            samples         = np.concatenate([uniform_samples, perturb_samples])
+            samples = np.concatenate([uniform_samples, perturb_samples])
         else:
             dominant_features = self.config.feature_process_constrained
             for batch_sample in dominant_samples:
                 uniform_samples = random_sampler.draw(num=self.total_num_vars * num_samples // len(dominant_samples))
                 perturb_samples = random_sampler.perturb(best_params, num=self.total_num_vars * num_samples)
-                samples         = np.concatenate([uniform_samples, perturb_samples])
+                samples = np.concatenate([uniform_samples, perturb_samples])
             samples[:, dominant_features] = batch_sample[dominant_features]
         return samples
 
@@ -297,9 +297,21 @@ class Acquisition(Logger):
 
     def propose(self, best_params, bayesian_network, sampling_param_values,
                 num_samples=200, dominant_samples=None, timings_dict=None):
-        """Highest-level method of this class that takes the BNN results, builds the acquisition function, optimises
-        it, and returns a number of possible parameter points. These will then be used by the SampleSelector to pick
-        the parameters to suggest."""
+        """Collect proposals by random sampling plus refinement. Highest-level method of this class that takes the BNN
+        results, builds the acquisition function, optimises it, and returns a number of possible parameter points.
+        These will then be used by the SampleSelector to pick the parameters to suggest.
+
+        Parameters
+        ----------
+        num_samples : int
+            Number of samples to randomly draw per parameter dimension. E.g. for a two-dimensional search domain,
+            we draw ``num_samples`` * 2 samples.
+
+        Returns
+        -------
+        proposals : array
+            Numpy array with the proposals, with shape (# sampling_param_values, # proposals, # dimensions).
+        """
 
         start_overall = time.time()
 
@@ -336,6 +348,10 @@ class Acquisition(Logger):
         else:
             random_proposals = self._propose_randomly(best_params, num_samples, dominant_samples=dominant_samples,
                                                       acquisition_constraints=acquisition_constraints)
+
+        # at this point, len(random_proposals) = num_samples * num_dims * 2, where the final x2 factor is because
+        # we draw random samples from the whole domain but also in the vicinity of the current best
+
         end_random = time.time()
         time_string = parse_time(start_random, end_random)
         self.log(f'{len(random_proposals)} random proposals drawn in {time_string}', message_type='INFO')

@@ -148,7 +148,7 @@ class SampleSelector(Logger):
         for batch_idx in range(num_batches):
             for sampling_param_idx in range(len(sampling_param_values)):
                 # proposals.shape = (# sampling params, # proposals, # param dims)
-                batch_proposals = proposals[sampling_param_idx]
+                batch_proposals = proposals[sampling_param_idx, :, :]
 
                 # compute diversity punishments
                 num_proposals_in_batch = exp_objs.shape[1]
@@ -156,7 +156,7 @@ class SampleSelector(Logger):
 
                 # iterate over batch proposals and compute min distance to previous observations
                 # or other proposed samples
-                for proposal_index, proposal in enumerate(batch_proposals[:num_proposals_in_batch]):
+                for proposal_index, proposal in enumerate(batch_proposals):
                     # compute min distance to observed samples
                     obs_min_distance = np.amin([np.abs(proposal - x) for x in obs_params], axis=0)
                     # if we already chose a new sample, compute also min distance to newly chosen samples
@@ -168,6 +168,7 @@ class SampleSelector(Logger):
 
                     # compute distance reward
                     div_crits[proposal_index] = np.minimum(1., np.mean(np.exp(2. * (min_distance - char_dists) / feature_ranges)))
+
                 # reweight computed based on acquisition with rewards based on distance
                 reweighted_rewards = exp_objs[sampling_param_idx] * div_crits
                 # get index of proposal with largest rewards
