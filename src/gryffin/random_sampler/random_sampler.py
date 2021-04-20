@@ -119,6 +119,7 @@ class RandomSampler(Logger):
     def _slow_perturb(self, ref_sample, num=1, scale=0.05):
         perturbed_samples = []
         counter = 0
+        new_scale = scale
 
         # keep trying random samples until we get num samples
         while len(perturbed_samples) < num:
@@ -130,7 +131,7 @@ class RandomSampler(Logger):
                 param_type = param_settings['type']
                 ref_value = ref_sample[param_index]
                 perturbed_param = self._perturb_single_parameter(ref_value=ref_value, num=1, param_type=param_type,
-                                                                 specs=specs, scale=scale)[0]
+                                                                 specs=specs, scale=new_scale)[0]
                 perturbed_sample.append(perturbed_param[0])
 
             # evaluate whether the sample violates the known constraints
@@ -142,7 +143,11 @@ class RandomSampler(Logger):
                 perturbed_samples.append(perturbed_sample)
 
             counter += 1
-            if counter > 1000 * num:
+            if counter > 100 * num:
+                # double scale is counter > 100, triple if >200, etc.
+                new_scale = ((counter // 100) + 1) * scale
+            elif counter > 1000 * num:
+                # give up
                 raise GryffinComputeError("we cannot find feasible solutions to perturbations of the incumbent - "
                                           "something is badly wrong with either the setup or the code")
 
