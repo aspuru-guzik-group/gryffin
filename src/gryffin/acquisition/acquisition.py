@@ -64,7 +64,7 @@ class Acquisition(Logger):
             if self.feas_param <= 0.0 or self.feas_param >= 1.0:
                 self.log('Config parameter `feas_param` should be between zero and one when `feas_approach` is '
                          '"fca", falling back to default of 0.5', 'WARNING')
-                self.feas_param = np.abs(self.feas_param)
+                self.feas_param = 0.5
 
     def _propose_randomly(self, best_params, num_samples, acquisition_constraints, dominant_samples=None):
         """
@@ -327,6 +327,12 @@ class Acquisition(Logger):
         # However, do not use constraints if fraction of feasible samples is zero or one, in which case we
         # we won't be needing the classification model
         if self.feas_approach == 'fca' and self.bayesian_network.prior_1 > 1e-6 and self.bayesian_network.prior_0 > 1e-6:
+            # use adaptive approach to make sure at least 10% of the domain is classified as feasible
+            # if not, we temporarily relax the feas_param until we have 10% feasibility
+            original_feas_param = self.feas_param
+            # do check and update self.feas_param if needed
+            self._update_feas_param(num=self.total_num_vars * num_samples)
+
             # if we also have already known_constraints, we need to merge them
             if self.known_constraints is not None:
                 acquisition_constraints = [self.known_constraints, self._feasibility_constraint]
@@ -379,6 +385,11 @@ class Acquisition(Logger):
             timings_dict['Acquisition']['proposals_opt'] = end_opt - start_opt
             timings_dict['Acquisition']['overall'] = end_overall - start_overall
 
+        # if we used fca feasibiluty approach, there is the chance we adapted feas_param
+        # here we reset the user choice
+        if self.feas_approach == 'fca':
+            self.feas_param = original_feas_param
+
         return combined_proposals
 
     def eval_acquisition(self, x, batch_index):
@@ -390,6 +401,32 @@ class Acquisition(Logger):
                                  param_options=self.config.param_options, param_types=self.config.param_types)
         feasible = self.bayesian_network.classification_surrogate(x, threshold=self.feas_param)
         return feasible
+
+    def _update_feas_param(self, num=1000):
+        # feas_param values to be considered
+        feas_params = np.linspace(self.feas_param, 0.0, 11)
+
+        # use known_constraints only, so that we can see how much of the remaining domain is considered feasible
+        # by the classifier
+        if self.known_constraints is not None:
+            random_sampler = RandomSampler(self.config, constraints=[self.known_constraints])
+        else:
+            random_sampler = RandomSampler(self.config, constraints=None)
+
+        # draw random samples
+        samples = random_sampler.draw(num=num)
+
+        for i, feas_param in enumerate(feas_params):
+            feasibility = [self.bayesian_network.classification_surrogate(sample, threshold=feas_param)
+                           for sample in samples]
+            fraction_feasible = sum(feasibility) / len(feasibility)
+            # if at least 10% feasible, feas_param is acceptable
+            if fraction_feasible > 0.1:
+                self.feas_param = feas_param
+                if i != 0:
+                    self.log(f'Setting "feas_param" to {feas_param} to have >10% of the optimization domain '
+                             f'classified as feasible', 'WARNING')
+                break
 
 
 class AcquisitionFunction:
