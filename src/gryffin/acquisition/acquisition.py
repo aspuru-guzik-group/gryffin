@@ -387,7 +387,7 @@ class Acquisition(Logger):
 
         # if we used fca feasibiluty approach, there is the chance we adapted feas_param
         # here we reset the user choice
-        if self.feas_approach == 'fca':
+        if self.feas_approach == 'fca' and self.bayesian_network.prior_1 > 1e-6 and self.bayesian_network.prior_0 > 1e-6:
             self.feas_param = original_feas_param
 
         return combined_proposals
