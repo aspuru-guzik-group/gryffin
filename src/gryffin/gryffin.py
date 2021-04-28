@@ -160,6 +160,9 @@ class Gryffin(Logger):
             # -----------------------------
             # Build categorical descriptors
             # -----------------------------
+            # can generate descriptors if we have:
+            # (i) at least 3 feasible observations (normal desc generation)
+            # (ii) at least 2 feasible and 1 infeasible observation (desc generation for feasibility)
             can_generate_desc = len(obs_params[mask_kwn]) > 2 or (len(obs_params) > 2 and np.sum(obs_feas) > 0.1)
             if self.config.get('auto_desc_gen') is True and can_generate_desc is True:
                 self.log_chapter('Descriptor Refinement')
@@ -172,7 +175,7 @@ class Gryffin(Logger):
                     # only if we have at least 1 infeasible point, otherwise they are all feasible and there is no point
                     # running this. Remember that feasible = 0 and infeasible = 1.
                     if len(obs_params) > 2 and np.sum(obs_feas) > 0.1:
-                        self.descriptor_generator_feas.generate_descriptors(obs_params[~mask_kwn], obs_params[~mask_kwn])
+                        self.descriptor_generator_feas.generate_descriptors(obs_params, obs_feas)
 
                 end = time.time()
                 time_string = parse_time(start, end)
