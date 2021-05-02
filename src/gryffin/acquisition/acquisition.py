@@ -408,10 +408,7 @@ class Acquisition(Logger):
 
         # use known_constraints only, so that we can see how much of the remaining domain is considered feasible
         # by the classifier
-        if self.known_constraints is not None:
-            random_sampler = RandomSampler(self.config, constraints=[self.known_constraints])
-        else:
-            random_sampler = RandomSampler(self.config, constraints=None)
+        random_sampler = RandomSampler(self.config, constraints=self.known_constraints)
 
         # draw random samples
         samples = random_sampler.draw(num=num)
@@ -427,6 +424,10 @@ class Acquisition(Logger):
                     self.log(f'Setting "feas_param" to {feas_param} to have >10% of the optimization domain '
                              f'classified as feasible', 'WARNING')
                 break
+
+            # if feas_param == 0 and fraction_feasible == 0, something is wrong
+            if feas_param < 1e-5 and fraction_feasible < 1e-5:
+                raise ValueError('** feas_param == 0 and fraction_feasible == 0 **')
 
 
 class AcquisitionFunction:

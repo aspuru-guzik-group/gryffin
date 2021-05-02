@@ -1,6 +1,6 @@
 #!/usr/bin/env python 
 
-__author__ = 'Florian Hase'
+__author__ = 'Florian Hase, Matteo Aldeghi'
 
 
 import warnings
@@ -18,22 +18,34 @@ sys.path.append(os.getcwd())
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from .numpy_graph import NumpyGraph
 from gryffin.utilities.decorators import processify
-from gryffin.utilities import GryffinUnknownSettingsError
+from gryffin.utilities import Logger, GryffinUnknownSettingsError, GryffinComputeError
 
 
-class TfprobNetwork(object):
+class TfprobNetwork(Logger):
 
     def __init__(self, config, model_details):
         self.config = config
         self.numpy_graph = NumpyGraph(self.config, model_details)
 
-        self.model_details = model_details
-        for key, value in self.model_details.items():
-            setattr(self, '_%s' % str(key), value)
+        # set logger verbosity
+        Logger.__init__(self, 'TfprobNetwork', verbosity=self.config.get('verbosity'))
+
+        # model hyperparams
+        self.num_epochs = model_details['num_epochs']
+        self.learning_rate = model_details['learning_rate']
+        self.num_draws = model_details['num_draws']
+        self.num_layers = model_details['num_layers']
+        self.hidden_shape = model_details['hidden_shape']
+        self.weight_loc = model_details['weight_loc']
+        self.weight_scale = model_details['weight_scale']
+        self.bias_loc = model_details['bias_loc']
+        self.bias_scale = model_details['bias_scale']
 
         self.feature_size = len(self.config.kernel_names)
         self.bnn_output_size = len(self.config.kernel_names)
         self.target_size = len(self.config.kernel_names)
+
+        self.trace = {}
 
         self.graph = tf.Graph()
         with self.graph.as_default():
@@ -84,7 +96,10 @@ class TfprobNetwork(object):
 
         self.numpy_graph.declare_training_data(self.rescaled_features)
 
-    def construct_model(self):
+    def construct_model(self, learning_rate=None):
+
+        if learning_rate is None:
+            learning_rate = self.learning_rate
 
         with self.graph.as_default():
 
@@ -104,47 +119,51 @@ class TfprobNetwork(object):
 
             # construct weight and bias shapes
             activations = [tf.nn.tanh]
-            weight_shapes, bias_shapes = [[self.feature_size, self._hidden_shape]], [[self._hidden_shape]]
-            for _ in range(1, self._num_layers - 1):
+            weight_shapes, bias_shapes = [[self.feature_size, self.hidden_shape]], [[self.hidden_shape]]
+            for _ in range(1, self.num_layers - 1):
                 activations.append(tf.nn.tanh)
-                weight_shapes.append([self._hidden_shape, self._hidden_shape])
-                bias_shapes.append([self._hidden_shape])
+                weight_shapes.append([self.hidden_shape, self.hidden_shape])
+                bias_shapes.append([self.hidden_shape])
             activations.append(lambda x: x)
-            weight_shapes.append([self._hidden_shape, self.bnn_output_size])
+            weight_shapes.append([self.hidden_shape, self.bnn_output_size])
             bias_shapes.append([self.bnn_output_size])
 
+            # ---------------
             # construct prior
+            # ---------------
             self.prior_layer_outputs = [self.x]
             self.priors = {}
-            for layer_index in range(self._num_layers):
+            for layer_index in range(self.num_layers):
                 weight_shape, bias_shape = weight_shapes[layer_index], bias_shapes[layer_index]
                 activation = activations[layer_index]
 
-                weight = tfd.Normal(loc=tf.zeros(weight_shape) + self._weight_loc, scale=tf.zeros(weight_shape) + self._weight_scale)
-                bias   = tfd.Normal(loc=tf.zeros(bias_shape) + self._bias_loc, scale=tf.zeros(bias_shape) + self._bias_scale)
+                weight = tfd.Normal(loc=tf.zeros(weight_shape) + self.weight_loc, scale=tf.zeros(weight_shape) + self.weight_scale)
+                bias = tfd.Normal(loc=tf.zeros(bias_shape) + self.bias_loc, scale=tf.zeros(bias_shape) + self.bias_scale)
                 self.priors['weight_%d' % layer_index] = weight
-                self.priors['bias_%d'   % layer_index] = bias
+                self.priors['bias_%d' % layer_index] = bias
 
                 prior_layer_output = activation(tf.matmul(self.prior_layer_outputs[-1], weight.sample()) + bias.sample())
                 self.prior_layer_outputs.append(prior_layer_output)
 
             self.prior_bnn_output = self.prior_layer_outputs[-1]
-            self.prior_tau_normed = tfd.Gamma( self.num_obs**2 + tf.zeros((self.num_obs, self.bnn_output_size)), tf.ones((self.num_obs, self.bnn_output_size)))
+            self.prior_tau_normed = tfd.Gamma(self.num_obs**2 + tf.zeros((self.num_obs, self.bnn_output_size)), tf.ones((self.num_obs, self.bnn_output_size)))
             self.prior_tau        = self.prior_tau_normed.sample() / self.tau_rescaling
             self.prior_scale      = tfd.Deterministic(1. / tf.sqrt(self.prior_tau))
 
+            # -------------------
             # construct posterior
+            # -------------------
             self.post_layer_outputs = [self.x]
             self.posteriors = {}
-            for layer_index in range(self._num_layers):
+            for layer_index in range(self.num_layers):
                 weight_shape, bias_shape = weight_shapes[layer_index], bias_shapes[layer_index]
                 activation = activations[layer_index]
 
                 weight = tfd.Normal(loc=tf.Variable(tf.random.normal(weight_shape)), scale=tf.nn.softplus(tf.Variable(tf.zeros(weight_shape))))
-                bias   = tfd.Normal(loc=tf.Variable(tf.random.normal(bias_shape)), scale=tf.nn.softplus(tf.Variable(tf.zeros(bias_shape))))
+                bias = tfd.Normal(loc=tf.Variable(tf.random.normal(bias_shape)), scale=tf.nn.softplus(tf.Variable(tf.zeros(bias_shape))))
 
                 self.posteriors['weight_%d' % layer_index] = weight
-                self.posteriors['bias_%d'   % layer_index] = bias
+                self.posteriors['bias_%d' % layer_index] = bias
 
                 post_layer_output = activation(tf.matmul(self.post_layer_outputs[-1], weight.sample()) + bias.sample())
                 self.post_layer_outputs.append(post_layer_output)
@@ -159,7 +178,7 @@ class TfprobNetwork(object):
             # map bnn output to prediction
             post_kernels = {}
             targets_dict = {}
-            inferences   = []
+            inferences = []
 
             target_element_index = 0
             kernel_element_index = 0
@@ -232,29 +251,28 @@ class TfprobNetwork(object):
             self.post_kernels = post_kernels
             self.targets_dict = targets_dict
 
-            loss = 0.
+            self.loss = 0.
             for inference in inferences:
-                loss += - tf.reduce_sum(inference['pred'].log_prob(inference['target']))
+                self.loss += - tf.reduce_sum(inference['pred'].log_prob(inference['target']))
 
-            self.optimizer = tf.compat.v1.train.AdamOptimizer(self._learning_rate)
-            self.train_op  = self.optimizer.minimize(loss)
+            self.optimizer = tf.compat.v1.train.AdamOptimizer(learning_rate)
+            self.train_op = self.optimizer.minimize(self.loss)
 
             tf.compat.v1.global_variables_initializer().run()
 
     def sample(self, num_epochs=None, num_draws=None):
         if num_epochs is None:
-            num_epochs = self._num_epochs
+            num_epochs = self.num_epochs
         if num_draws is None:
-            num_draws = self._num_draws
+            num_draws = self.num_draws
 
         with self.graph.as_default():
 
             # run inference
-            for _ in range(num_epochs):
+            for num_epoch in range(num_epochs):
                 self.sess.run(self.train_op)
 
             # sample posterior
-            self.trace = {}
             posterior_samples = {}
             for key, kernel_parent in self.posteriors.items():
                 parent_samples = kernel_parent.sample(num_draws).eval()
@@ -262,6 +280,7 @@ class TfprobNetwork(object):
 
             post_kernels = self.numpy_graph.compute_kernels(posterior_samples)
 
+            self.trace = {}
             for key in post_kernels.keys():
                 self.trace[key] = {}
                 kernel_dict = post_kernels[key]
@@ -273,13 +292,20 @@ class TfprobNetwork(object):
         for param_index in range(len(self.config.param_names)):
             post_kernel = self.trace['param_%d' % param_index]
 
+            # ------------------
             # continuous kernels
+            # ------------------
             if 'loc' in post_kernel and 'sqrt_prec' in post_kernel:
                 trace_kernels['locs'].append(post_kernel['loc'].astype(np.float64))
                 trace_kernels['sqrt_precs'].append(post_kernel['sqrt_prec'].astype(np.float64))
+                # for continuous variables, key "probs" contains all zeros
                 trace_kernels['probs'].append(np.zeros(post_kernel['loc'].shape, dtype=np.float64))
+
+            # ------------------
             # categorical kernels
+            # ------------------
             elif 'probs' in post_kernel:
+                # for categorical variables, keys "locs" and "precs" are all zeros
                 trace_kernels['locs'].append(np.zeros(post_kernel['probs'].shape, dtype=np.float64))
                 trace_kernels['sqrt_precs'].append(np.zeros(post_kernel['probs'].shape, dtype=np.float64))
                 trace_kernels['probs'].append(post_kernel['probs'].astype(np.float64))
@@ -292,17 +318,50 @@ class TfprobNetwork(object):
         return trace_kernels
 
 
+def _check_trace_kernels(trace_kernels):
+    # check locations
+    if np.isnan(trace_kernels['locs']).any():
+        return False
+    # check precisions
+    if np.isnan(trace_kernels['sqrt_precs']).any():
+        return False
+    # check probabilities
+    if np.isnan(trace_kernels['probs']).any():
+        return False
+    return True
+
+
 @processify
 def run_tf_network(observed_params, config, model_details):
     """Run network in a function that gets run in a temporary process. Important to keep the @processify decorator,
     otherwise TensorFlow keeps a bunch of global variables that do not get garbage collected and memory usage
     keeps increasing when Gryffin is run in a loop, until we run out of memory.
     """
-    tfprob_network = TfprobNetwork(config, model_details)
-    tfprob_network.declare_training_data(observed_params)
-    tfprob_network.construct_model()
-    tfprob_network.sample()
-    trace_kernels = tfprob_network.get_kernels()
+    check_passed = False
+    counter = 0
+    learning_rate = model_details['learning_rate']
+    # we do this because it can sometimes happen that the training does not converge and we get NaN losses, resulting
+    # in the network returning NaN for all probs. Very practically this can be fixed by reducing the learning rate.
+    while not check_passed:
+        # instantiate and sample BNN
+        tfprob_network = TfprobNetwork(config, model_details)
+        tfprob_network.declare_training_data(observed_params)
+        tfprob_network.construct_model(learning_rate=learning_rate)
+        tfprob_network.sample()
+        trace_kernels = tfprob_network.get_kernels()
+
+        # checks and logs
+        check_passed = _check_trace_kernels(trace_kernels)
+        counter += 1
+        tfprob_network.log(f'\nTfprobNetwork run attempt number {counter} '
+                           f'with learning rate {learning_rate}', 'DEBUG')
+
+        # after two failures, half learning rate at each iteration
+        if counter > 1:
+            learning_rate = learning_rate * 0.5
+        # after ten failures, give up
+        if counter > 10:
+            raise GryffinComputeError("TfprobNetwork keeps returning (at least some) NaN values")
     return trace_kernels
 
 

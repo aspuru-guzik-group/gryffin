@@ -315,7 +315,7 @@ class Gryffin(Logger):
                                    param_options=self.config.param_options, param_types=self.config.param_types)
         y_preds = []
         for x in X:
-            y_pred = self.bayesian_network.regression_surrogate(x)
+            y_pred = self.bayesian_network.regression_surrogate(x.astype(np.float64))
             y_preds.append(y_pred)
 
         # invert tranform the surrogate according to the chosen transform
@@ -397,7 +397,7 @@ class Gryffin(Logger):
                                    param_options=self.config.param_options, param_types=self.config.param_types)
         y_preds = []
         for x in X:
-            log_density_0, log_density_1 = self.bayesian_network.kernel_classification.get_binary_kernel_densities(x)
+            log_density_0, log_density_1 = self.bayesian_network.kernel_classification.get_binary_kernel_densities(x.astype(np.float64))
             density_0 = np.exp(log_density_0)
             density_1 = np.exp(log_density_1)
             if separate_kwn_ukwn is True:
