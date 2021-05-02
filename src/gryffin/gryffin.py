@@ -77,6 +77,83 @@ class Gryffin(Logger):
             from .database_handler import DatabaseHandler
             self.db_handler = DatabaseHandler(self.config)
 
+    def build_surrogate(self, observations=None):
+        """Builds surrogate models of Gryffin without proposing any new experiments.
+
+        Parameters
+        ----------
+        observations : list
+            List of dictionaries with the previous observations.
+        """
+        self.log('', 'INFO')
+        self.log_chapter("Gryffin", line='=', style='bold #d9ed92')
+
+        if observations is None or len(observations) == 0:
+            self.log('Could not find any observations, cannot build surrogate models', 'WARNING')
+            return None
+
+        self.log(f'{len(observations)} observations found', 'INFO')
+        # obs_params == all observed parameters
+        # obs_objs == all observed objective function evaluations (including NaNs)
+        # obs_feas == whether observed parameters are feasible (0) or infeasible (1)
+        # mask_kwn == mask that selects only known/feasible params/objs (including mirrored params)
+        # mask_mirror == mask that selects the parameters that have been mirrored across opt bounds
+        obs_params, obs_objs, obs_feas, mask_kwn, mask_mirror = self.obs_processor.process_observations(observations)
+
+        # keep for inspection/debugging
+        self.parsed_input_data['obs_params'] = obs_params
+        self.parsed_input_data['obs_objs'] = obs_objs
+        self.parsed_input_data['obs_feas'] = obs_feas
+        self.parsed_input_data['mask_kwn'] = mask_kwn
+        self.parsed_input_data['mask_mirror'] = mask_mirror
+
+        # -----------------------------
+        # Build categorical descriptors
+        # -----------------------------
+        # can generate descriptors if we have:
+        # (i) at least 3 feasible observations (normal desc generation)
+        # (ii) at least 2 feasible and 1 infeasible observation (desc generation for feasibility)
+        can_generate_desc = len(obs_params[mask_kwn]) > 2 or (len(obs_params) > 2 and np.sum(obs_feas) > 0.1)
+        if self.config.get('auto_desc_gen') is True and can_generate_desc is True:
+            self.log_chapter('Descriptor Refinement')
+            start = time.time()
+            with self.console.status("Refining categories descriptors..."):
+                # only feasible points with known objectives
+                if len(obs_params[mask_kwn]) > 2:
+                    self.descriptor_generator.generate_descriptors(obs_params[mask_kwn], obs_objs[mask_kwn])
+                # for feasibility descriptors, we use all data, but we run descriptor generation
+                # only if we have at least 1 infeasible point, otherwise they are all feasible and there is no point
+                # running this. Remember that feasible = 0 and infeasible = 1.
+                if len(obs_params) > 2 and np.sum(obs_feas) > 0.1:
+                    self.descriptor_generator_feas.generate_descriptors(obs_params, obs_feas)
+
+            end = time.time()
+            time_string = parse_time(start, end)
+            self.log(f"Categorical descriptors refined by [italic]Dynamic Gryffin[/italic] in {time_string}",
+                     "INFO")
+
+        # extract descriptors and build kernels
+        descriptors_kwn = self.descriptor_generator.get_descriptors()
+        descriptors_feas = self.descriptor_generator_feas.get_descriptors()
+
+        # ----------------------------------------------
+        # sample bnn to get kernels for all observations
+        # ----------------------------------------------
+        self.log_chapter('Bayesian Network')
+        self.bayesian_network.sample(obs_params)  # infer kernel densities
+        # build kernel smoothing/classification surrogates
+        self.bayesian_network.build_kernels(descriptors_kwn=descriptors_kwn, descriptors_feas=descriptors_feas,
+                                            obs_objs=obs_objs, obs_feas=obs_feas, mask_kwn=mask_kwn)
+
+        # -----------
+        # Print info
+        # -----------
+        self.log_chapter('Summary')
+        GB, MB, kB = memory_usage()
+        self.log(f'Memory usage: {GB:.0f} GB, {MB:.0f} MB, {kB:.0f} kB', 'INFO')
+        self.log_chapter("End", line='=', style='bold #d9ed92')
+        self.log('', 'INFO')
+
     def recommend(self, observations=None, sampling_strategies=None, num_batches=None, as_array=False):
         """Recommends the next set(s) of parameters based on the provided observations.
 
