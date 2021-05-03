@@ -7,6 +7,7 @@ import multiprocessing
 from multiprocessing import Manager, Process
 from gryffin.utilities import Logger, parse_time
 import time
+from contextlib import nullcontext
 
 
 class SampleSelector(Logger):
@@ -46,16 +47,17 @@ class SampleSelector(Logger):
 
         start = time.time()
 
-        if self.verbosity > 2.5:  # i.e. INFO or DEBUG
-            with self.console.status("Selecting best samples to recommend..."):
-                samples = self._select(num_batches, proposals, eval_acquisition, sampling_param_values, obs_params)
+        if self.verbosity > 3.5:  # i.e. INFO or DEBUG
+            cm = self.console.status("Selecting best samples to recommend...")
         else:
+            cm = nullcontext()
+        with cm:
             samples = self._select(num_batches, proposals, eval_acquisition, sampling_param_values, obs_params)
 
         end = time.time()
         time_string = parse_time(start, end)
         samples_str = 'samples' if len(samples) > 1 else 'sample'
-        self.log(f'{len(samples)} {samples_str} selected in {time_string}', 'INFO')
+        self.log(f'{len(samples)} {samples_str} selected in {time_string}', 'STATS')
 
         return samples
 
