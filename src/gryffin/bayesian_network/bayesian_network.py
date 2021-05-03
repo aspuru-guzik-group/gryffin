@@ -9,6 +9,7 @@ from gryffin.utilities import Logger, parse_time
 from gryffin.utilities import GryffinUnknownSettingsError
 from .kernel_evaluations import KernelEvaluator
 from .tfprob_interface import run_tf_network
+from contextlib import nullcontext
 
 
 class BayesianNetwork(Logger):
@@ -91,18 +92,20 @@ class BayesianNetwork(Logger):
     def sample(self, obs_params):
         start = time.time()
 
-        if self.verbosity > 2.5:  # i.e. INFO or DEBUG
-            with self.console.status("Training the Bayesian neural network..."):
-                trace_kernels = run_tf_network(observed_params=obs_params, config=self.config,
-                                               model_details=self.model_details)
+        if self.verbosity > 3.5:  # i.e. at INFO level
+            cm = self.console.status("Training the Bayesian neural network...")
         else:
+            cm = nullcontext()
+
+        with cm:
             trace_kernels = run_tf_network(observed_params=obs_params, config=self.config,
                                            model_details=self.model_details)
+
         self.trace_kernels = trace_kernels
 
         end = time.time()
         time_string = parse_time(start, end)
-        self.log(f"Bayesian neural network trained in {time_string}", "INFO")
+        self.log(f"Bayesian neural network trained in {time_string}", "STATS")
 
     def build_kernels(self, descriptors_kwn, descriptors_feas, obs_objs, obs_feas, mask_kwn):
 

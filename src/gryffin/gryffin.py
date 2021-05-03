@@ -15,6 +15,7 @@ import os
 import numpy as np
 import pandas as pd
 import time
+from contextlib import nullcontext
 
 
 class Gryffin(Logger):
@@ -92,7 +93,7 @@ class Gryffin(Logger):
             self.log('Could not find any observations, cannot build surrogate models', 'WARNING')
             return None
 
-        self.log(f'{len(observations)} observations found', 'INFO')
+        self.log(f'{len(observations)} observations found', 'STATS')
         # obs_params == all observed parameters
         # obs_objs == all observed objective function evaluations (including NaNs)
         # obs_feas == whether observed parameters are feasible (0) or infeasible (1)
@@ -113,24 +114,29 @@ class Gryffin(Logger):
         # can generate descriptors if we have:
         # (i) at least 3 feasible observations (normal desc generation)
         # (ii) at least 2 feasible and 1 infeasible observation (desc generation for feasibility)
-        can_generate_desc = len(obs_params[mask_kwn]) > 2 or (len(obs_params) > 2 and np.sum(obs_feas) > 0.1)
+        can_generate_desc = len(obs_params[mask_kwn]) > 3 or (len(obs_params) > 3 and np.sum(obs_feas) > 0.1)
         if self.config.get('auto_desc_gen') is True and can_generate_desc is True:
             self.log_chapter('Descriptor Refinement')
             start = time.time()
-            with self.console.status("Refining categories descriptors..."):
+            # use status context manager only at INFO verbosity level
+            if self.verbosity > 3.5:
+                cm = self.console.status("Refining categories descriptors...")
+            else:
+                cm = nullcontext()
+            with cm:
                 # only feasible points with known objectives
-                if len(obs_params[mask_kwn]) > 2:
+                if len(obs_params[mask_kwn]) > 3:
                     self.descriptor_generator.generate_descriptors(obs_params[mask_kwn], obs_objs[mask_kwn])
                 # for feasibility descriptors, we use all data, but we run descriptor generation
                 # only if we have at least 1 infeasible point, otherwise they are all feasible and there is no point
                 # running this. Remember that feasible = 0 and infeasible = 1.
-                if len(obs_params) > 2 and np.sum(obs_feas) > 0.1:
+                if len(obs_params) > 3 and np.sum(obs_feas) > 0.1:
                     self.descriptor_generator_feas.generate_descriptors(obs_params, obs_feas)
 
             end = time.time()
             time_string = parse_time(start, end)
             self.log(f"Categorical descriptors refined by [italic]Dynamic Gryffin[/italic] in {time_string}",
-                     "INFO")
+                     "STATS")
 
         # extract descriptors and build kernels
         descriptors_kwn = self.descriptor_generator.get_descriptors()
@@ -150,7 +156,7 @@ class Gryffin(Logger):
         # -----------
         self.log_chapter('Summary')
         GB, MB, kB = memory_usage()
-        self.log(f'Memory usage: {GB:.0f} GB, {MB:.0f} MB, {kB:.0f} kB', 'INFO')
+        self.log(f'Memory usage: {GB:.0f} GB, {MB:.0f} MB, {kB:.0f} kB', 'STATS')
         self.log_chapter("End", line='=', style='bold #d9ed92')
         self.log('', 'INFO')
 
@@ -219,7 +225,7 @@ class Gryffin(Logger):
         # we have observations
         # --------------------
         else:
-            self.log(f'{len(observations)} observations found', 'INFO')
+            self.log(f'{len(observations)} observations found', 'STATS')
             # obs_params == all observed parameters
             # obs_objs == all observed objective function evaluations (including NaNs)
             # obs_feas == whether observed parameters are feasible (0) or infeasible (1)
@@ -238,26 +244,26 @@ class Gryffin(Logger):
             # Build categorical descriptors
             # -----------------------------
             # can generate descriptors if we have:
-            # (i) at least 3 feasible observations (normal desc generation)
-            # (ii) at least 2 feasible and 1 infeasible observation (desc generation for feasibility)
-            can_generate_desc = len(obs_params[mask_kwn]) > 2 or (len(obs_params) > 2 and np.sum(obs_feas) > 0.1)
+            # (i) at least 4 feasible observations (normal desc generation)
+            # (ii) at least 4 feasible and 1 infeasible observation (desc generation for feasibility)
+            can_generate_desc = len(obs_params[mask_kwn]) > 3 or (len(obs_params) > 3 and np.sum(obs_feas) > 0.1)
             if self.config.get('auto_desc_gen') is True and can_generate_desc is True:
                 self.log_chapter('Descriptor Refinement')
                 start = time.time()
                 with self.console.status("Refining categories descriptors..."):
                     # only feasible points with known objectives
-                    if len(obs_params[mask_kwn]) > 2:
+                    if len(obs_params[mask_kwn]) > 3:
                         self.descriptor_generator.generate_descriptors(obs_params[mask_kwn], obs_objs[mask_kwn])
                     # for feasibility descriptors, we use all data, but we run descriptor generation
                     # only if we have at least 1 infeasible point, otherwise they are all feasible and there is no point
                     # running this. Remember that feasible = 0 and infeasible = 1.
-                    if len(obs_params) > 2 and np.sum(obs_feas) > 0.1:
+                    if len(obs_params) > 3 and np.sum(obs_feas) > 0.1:
                         self.descriptor_generator_feas.generate_descriptors(obs_params, obs_feas)
 
                 end = time.time()
                 time_string = parse_time(start, end)
                 self.log(f"Categorical descriptors refined by [italic]Dynamic Gryffin[/italic] in {time_string}",
-                         "INFO")
+                         "STATS")
 
             # extract descriptors and build kernels
             descriptors_kwn = self.descriptor_generator.get_descriptors()
@@ -326,10 +332,10 @@ class Gryffin(Logger):
         # --------------------------------
         self.log_chapter('Summary')
         GB, MB, kB = memory_usage()
-        self.log(f'Memory usage: {GB:.0f} GB, {MB:.0f} MB, {kB:.0f} kB', 'INFO')
+        self.log(f'Memory usage: {GB:.0f} GB, {MB:.0f} MB, {kB:.0f} kB', 'STATS')
         end_time = time.time()
         time_string = parse_time(start_time, end_time)
-        self.log(f'Overall time required: {time_string}', 'INFO')
+        self.log(f'Overall time required: {time_string}', 'STATS')
         self.log_chapter("End", line='=', style='bold #d9ed92')
         self.log('', 'INFO')
 

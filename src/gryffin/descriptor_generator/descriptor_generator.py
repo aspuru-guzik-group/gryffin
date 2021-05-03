@@ -3,10 +3,9 @@
 __author__ = 'Florian Hase'
 
 import copy
-import time
 import numpy as np
 import multiprocessing
-from gryffin.utilities import Logger, parse_time
+from gryffin.utilities import Logger
 from .generation_process import run_generator_network
 from multiprocessing import Process, Manager
 from copy import deepcopy
@@ -83,21 +82,8 @@ class DescriptorGenerator(Logger):
         descs = feature_descriptors[feature_index][params]
         objs = np.reshape(obs_objs, (len(obs_objs), 1))
 
-        # collect all relevant properties
-        sim_dict = {}
-        for prop in dir(self):
-            if callable(getattr(self, prop)) or prop.startswith(('__', 'W', 'config')):
-                continue
-            sim_dict[prop] = getattr(self, prop)
-
-        sim_dict['num_samples'] = descs.shape[0]
-        sim_dict['num_descs'] = descs.shape[1]
-        sim_dict['descs'] = descs
-        sim_dict['objs'] = objs
-        sim_dict['grid_descs'] = feature_descriptors[feature_index]
-
         # run the generation process
-        network_results = run_generator_network(sim_dict)
+        network_results = run_generator_network(descs=descs, objs=objs, grid_descs=feature_descriptors[feature_index])
 
         # This were saved only for later access
         #self.min_corrs[feature_index]          = network_results['min_corrs']

@@ -24,7 +24,8 @@ default_general_configuration = {
     'save_database':          False,
     'acquisition_optimizer':  'adam',  # options are "adam" or "genetic"
     'obj_transform':          'sqrt',  # options are None, "sqrt", "cbrt", "square"
-    'verbosity':               3  # verbosity level, from 0 to 4. 0: FATAL, 1: ERROR, 2: WARNING, 3: INFO, 4: DEBUG
+    # verbosity level, from 0 to 5. 0: FATAL, 1: ERROR, 2: WARNING, 3: STATS, 4: INFO, 5: DEBUG
+    'verbosity':               4
 }
 
 
