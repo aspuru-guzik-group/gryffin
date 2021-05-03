@@ -1,10 +1,10 @@
-#!/usr/bin/env python 
-  
+#!/usr/bin/env python
+
 __author__ = 'Florian Hase'
 
 #========================================================================
 
-import numpy as np 
+import numpy as np
 import multiprocessing
 from multiprocessing import Manager, Process
 
@@ -16,19 +16,36 @@ class SampleSelector(Logger):
 
 	def __init__(self, config):
 		self.config = config
-		Logger.__init__(self, 'SampleSelector', verbosity = self.config.get('verbosity'))
-		self.num_cpus = multiprocessing.cpu_count()
+		Logger.__init__(self, 'SampleSelector', verbosity=self.config.get('verbosity'))
+		# figure out how many CPUs to use
+		if self.config.get('num_cpus') == 'all':
+			self.num_cpus = multiprocessing.cpu_count()
+		else:
+			self.num_cpus = int(self.config.get('num_cpus'))
 
 
-	def compute_exp_objs(self, proposals, kernel_contribution, batch_index, return_index, result_dict = None):
+	def compute_exp_objs(self, proposals, kernel_contribution, kernel_contribution_feas, unfeas_frac, batch_index,
+						 return_index, result_dict=None):
 
 		samples  = proposals[batch_index]
 		exp_objs = np.empty(len(samples))
 
 		for sample_index, sample in enumerate(samples):
 			num, inv_den = kernel_contribution(sample)
-			kernel_contrib = (num + self.sampling_param_values[batch_index]) * inv_den
-			exp_objs[sample_index] = np.exp( - kernel_contrib)
+			num_feas, inv_den_feas = kernel_contribution_feas(sample)
+
+			# TODO: move this check to another spot
+			if self.predictive_model.is_trained:
+				features = self.training_set_gen.construct_features(sample)
+				g, _ = self.predictive_model.predict(features, return_unscaled=True)
+				pearson_coeff = self.predictive_model.get_pearson_coeff()
+				kernel_contrib_samp = (num + self.sampling_param_values[batch_index] + pearson_coeff*g*self.inverse_volume) * inv_den / (1 + self.inverse_volume*inv_den)
+			else:
+				kernel_contrib_samp = (num + self.sampling_param_values[batch_index]) * inv_den
+			kernel_contrib_feas = (num_feas + self.sampling_param_values[batch_index]) * inv_den_feas
+			kernel_contrib = unfeas_frac * kernel_contrib_feas + (1. - unfeas_frac) * kernel_contrib_samp
+
+			exp_objs[sample_index] = np.exp(-kernel_contrib)
 
 		if result_dict.__class__.__name__ == 'DictProxy':
 			result_dict[return_index] = exp_objs
@@ -36,18 +53,22 @@ class SampleSelector(Logger):
 			return exp_objs
 
 
-	
-	def select(self, num_samples, proposals, kernel_contribution, sampling_param_values, obs_params):
+	def select(self, num_samples, proposals, kernel_contribution, kernel_contribution_feas, unfeas_frac,
+			   sampling_param_values, obs_params, predictive_model, training_set_gen, inverse_volume):
 
-		num_obs = len(obs_params)	
+		self.predictive_model = predictive_model
+		self.training_set_gen = training_set_gen
+		self.inverse_volume   = inverse_volume
+
+		num_obs = len(obs_params)
 		feature_ranges = self.config.feature_ranges
 		char_dists     = feature_ranges / float(num_obs)**0.5
-		self.sampling_param_values = sampling_param_values		
-	
+		self.sampling_param_values = sampling_param_values
+
 		# compute acq func values
-		if self.config.get('parallel'):
+		if self.num_cpus > 1:
 			result_dict = Manager().dict()
-			
+
 			# get the number of splits
 			num_splits = self.num_cpus // len(sampling_param_values) + 1
 			split_size = proposals.shape[1] // num_splits
@@ -55,11 +76,13 @@ class SampleSelector(Logger):
 			processes = []
 			for batch_index in range(len(sampling_param_values)):
 				for split_index in range(num_splits):
-					
+
 					split_start = split_size * split_index
 					split_end   = split_size * (split_index + 1)
 					return_index = num_splits * batch_index + split_index
-					process = Process(target = self.compute_exp_objs, args = (proposals[:, split_start : split_end], kernel_contribution, batch_index, return_index, result_dict))
+					process = Process(target=self.compute_exp_objs, args=(proposals[:, split_start: split_end],
+																		  kernel_contribution, kernel_contribution_feas, unfeas_frac,
+																		  batch_index, return_index, result_dict))
 					processes.append(process)
 					process.start()
 				for process_index, process in enumerate(processes):
@@ -70,7 +93,9 @@ class SampleSelector(Logger):
 			result_dict = {}
 			for batch_index in range(len(sampling_param_values)):
 				return_index = batch_index
-				result_dict[return_index] = self.compute_exp_objs(proposals, kernel_contribution, batch_index, return_index)
+				result_dict[return_index] = self.compute_exp_objs(proposals, kernel_contribution,
+																  kernel_contribution_feas, unfeas_frac,
+																  batch_index, return_index)
 
 		# collect results
 		exp_objs = []
@@ -89,10 +114,10 @@ class SampleSelector(Logger):
 
 			# compute distance to each obs_param
 			distances     = [ np.sum((obs_params - batch_proposal)**2, axis = 1) for batch_proposal in batch_proposals]
-			distances     = np.array(distances)			
+			distances     = np.array(distances)
 			min_distances = np.amin(distances, axis = 1)
 			ident_indices = np.where(min_distances < 1e-8)[0]
-		
+
 			exp_objs[batch_index, ident_indices] = 0.
 
 
@@ -115,13 +140,13 @@ class SampleSelector(Logger):
 					else:
 						min_distance = obs_min_distance
 
-					div_crits[proposal_index] = np.minimum(1., np.mean( np.exp( 2. * (min_distance - char_dists) / feature_ranges) ))					
+					div_crits[proposal_index] = np.minimum(1., np.mean( np.exp( 2. * (min_distance - char_dists) / feature_ranges) ))
 
 
 				# reweight rewards
 				reweighted_rewards   = exp_objs[batch_index] * div_crits
 				largest_reward_index = np.argmax( reweighted_rewards )
-				
+
 				new_sample = batch_proposals[largest_reward_index]
 				new_samples.append(new_sample)
 
@@ -131,9 +156,3 @@ class SampleSelector(Logger):
 			samples.append(new_samples)
 		samples = np.concatenate(samples)
 		return samples
-
-
-
-
-
-

@@ -3,3 +3,4 @@ Cython
 sqlalchemy  
 tensorflow==2.*,>=2.2.0
 tensorflow-probability==0.*,>=0.10.1git
+matter-chimera

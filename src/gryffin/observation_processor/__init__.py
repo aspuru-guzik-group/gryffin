@@ -1,4 +1,3 @@
-
-from .chimera               import Chimera
+#!/usr/bin/env python
 from .observation_processor import ObservationProcessor
 
