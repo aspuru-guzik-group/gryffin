@@ -83,6 +83,8 @@ class RandomSampler(Logger):
                 samples.append(sample)
 
             counter += 1
+            if counter % num == 0:
+                self.log(f'drawn {counter} random samples', 'DEBUG')
             if counter > 1000 * num:
                 raise GryffinComputeError("the feasible region seems to be less than 1% of the optimization "
                                           "domain - consider redefining the problem")
@@ -120,6 +122,7 @@ class RandomSampler(Logger):
         perturbed_samples = []
         counter = 0
         new_scale = scale
+        perturb_categorical = False  # start perturb categories if we cannot find feasible perturbations
 
         # keep trying random samples until we get num samples
         while len(perturbed_samples) < num:
@@ -131,7 +134,8 @@ class RandomSampler(Logger):
                 param_type = param_settings['type']
                 ref_value = ref_sample[param_index]
                 perturbed_param = self._perturb_single_parameter(ref_value=ref_value, num=1, param_type=param_type,
-                                                                 specs=specs, scale=new_scale)[0]
+                                                                 specs=specs, scale=new_scale,
+                                                                 perturb_categorical=perturb_categorical)[0]
                 perturbed_sample.append(perturbed_param[0])
 
             # evaluate whether the sample violates the known constraints
@@ -146,7 +150,10 @@ class RandomSampler(Logger):
             if counter > 100 * num:
                 # double scale is counter > 100, triple if >200, etc.
                 new_scale = ((counter // 100) + 1) * scale
-            elif counter > 1000 * num:
+                perturb_categorical = True
+            if counter % num == 0:
+                self.log(f'randomly perturbed {counter} times', 'DEBUG')
+            if counter > 1000 * num:
                 # give up
                 raise GryffinComputeError("we cannot find feasible solutions to perturbations of the incumbent - "
                                           "something is badly wrong with either the setup or the code")
@@ -154,20 +161,27 @@ class RandomSampler(Logger):
         perturbed_samples = np.array(perturbed_samples)
         return perturbed_samples
 
-    def _perturb_single_parameter(self, ref_value, num, param_type, specs, scale):
-        if param_type == 'continuous':
+    def _perturb_single_parameter(self, ref_value, num, param_type, specs, scale, perturb_categorical=False):
+        if param_type in ['continuous', 'discrete']:
             # draw uniform within unit range
             sampled_values = self._draw_continuous(-scale, scale, (num, 1))
             # scale to actual range
             sampled_values *= specs['high'] - specs['low']
+            # if discrete, we round to nearest integer
+            if param_type == 'discrete':
+                sampled_values = np.around(sampled_values, decimals=0)
             # add +/- 5% perturbation to sample
             perturbed_sample = ref_value + sampled_values
             # make sure we do not cross optimization boundaries
             perturbed_sample = np.where(perturbed_sample < specs['low'], specs['low'], perturbed_sample)
             perturbed_sample = np.where(perturbed_sample > specs['high'], specs['high'], perturbed_sample)
-        elif param_type in ['categorical', 'discrete']:
-            # i.e. not perturbing these variables
-            perturbed_sample = ref_value * np.ones((num, 1)).astype(np.float32)
+        elif param_type == 'categorical':
+            # i.e. do not perturb
+            if perturb_categorical is False:
+                perturbed_sample = ref_value * np.ones((num, 1)).astype(np.float32)
+            # i.e. random draw
+            else:
+                perturbed_sample = self._draw_categorical(num_options=len(specs['options']), size=(num, 1))
         else:
             GryffinUnknownSettingsError('did not understand settings')
         return perturbed_sample

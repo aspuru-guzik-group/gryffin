@@ -419,6 +419,7 @@ class Acquisition(Logger):
             feasibility = [self.bayesian_network.classification_surrogate(sample, threshold=feas_param)
                            for sample in samples]
             fraction_feasible = sum(feasibility) / len(feasibility)
+            self.log(f'feas_param: {feas_param},  fraction_feasible: {fraction_feasible}', 'DEBUG')
             # if at least 10% feasible, feas_param is acceptable
             if fraction_feasible > 0.1:
                 self.feas_param = feas_param
