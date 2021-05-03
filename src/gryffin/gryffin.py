@@ -297,11 +297,11 @@ class Gryffin(Logger):
             # ----------------------------------------------
             # optimize acquisition and select samples
             # ----------------------------------------------
-
+            num_samples = self.config.get('num_random_samples')
             # if there are process constraining parameters, run those first
             if self.config.process_constrained:
                 self.proposals = self.acquisition.propose(best_params, self.bayesian_network,
-                                                          self.sampling_param_values, num_samples=200,
+                                                          self.sampling_param_values, num_samples=num_samples,
                                                           dominant_samples=None)
                 constraining_samples = self.sample_selector.select(num_batches=self.num_batches,
                                                                    proposals=self.proposals,
@@ -317,7 +317,7 @@ class Gryffin(Logger):
             self.proposals = self.acquisition.propose(best_params=best_params,
                                                       bayesian_network=self.bayesian_network,
                                                       sampling_param_values=self.sampling_param_values,
-                                                      num_samples=200, dominant_samples=constraining_samples,
+                                                      num_samples=num_samples, dominant_samples=constraining_samples,
                                                       timings_dict=self.timings)
 
             self.log_chapter('Sample Selector')

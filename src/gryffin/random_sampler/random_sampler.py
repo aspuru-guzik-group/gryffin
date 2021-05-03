@@ -1,6 +1,6 @@
 #!/usr/bin/env python 
 
-__author__ = 'Florian Hase'
+__author__ = 'Florian Hase, Matteo Aldeghi'
 
 
 import numpy as np
@@ -21,6 +21,7 @@ class RandomSampler(Logger):
 
         # register attributes
         self.config = config
+        self.reject_tol = self.config.get('reject_tol')
 
         # if constraints not None, and not a list, put into a list
         if constraints is not None and isinstance(constraints, list) is False:
@@ -85,9 +86,10 @@ class RandomSampler(Logger):
             counter += 1
             if counter % num == 0:
                 self.log(f'drawn {counter} random samples', 'DEBUG')
-            if counter > 1000 * num:
-                raise GryffinComputeError("the feasible region seems to be less than 1% of the optimization "
-                                          "domain - consider redefining the problem")
+            if counter > self.reject_tol * num:
+                p = 100. / self.reject_tol
+                raise GryffinComputeError(f"the feasible region seems to be less than {p}% of the optimization "
+                                          f"domain. Consider redefining the problem or increasing 'reject_tol'.")
 
         samples = np.array(samples)
         return samples
@@ -153,10 +155,10 @@ class RandomSampler(Logger):
                 perturb_categorical = True
             if counter % num == 0:
                 self.log(f'randomly perturbed {counter} times', 'DEBUG')
-            if counter > 1000 * num:
+            if counter > self.reject_tol * num:
                 # give up
                 raise GryffinComputeError("we cannot find feasible solutions to perturbations of the incumbent - "
-                                          "something is badly wrong with either the setup or the code")
+                                          "something is wrong with either the setup or the code")
 
         perturbed_samples = np.array(perturbed_samples)
         return perturbed_samples
