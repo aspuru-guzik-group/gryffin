@@ -15,8 +15,9 @@ class Logger:
     VERBOSITY_LEVELS = {0: ['FATAL'],
                         1: ['FATAL', 'ERROR'],
                         2: ['FATAL', 'ERROR', 'WARNING'],
-                        3: ['FATAL', 'ERROR', 'WARNING', 'INFO'],
-                        4: ['FATAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG']}
+                        3: ['FATAL', 'ERROR', 'WARNING', 'STATS'],          # minimal info
+                        4: ['FATAL', 'ERROR', 'WARNING', 'STATS', 'INFO'],  # richer info
+                        5: ['FATAL', 'ERROR', 'WARNING', 'STATS', 'INFO', 'DEBUG']}
 
     WRITER = {'DEBUG': sys.stdout, 'INFO': sys.stdout,
               'WARNING': sys.stderr, 'ERROR': sys.stderr, 'FATAL': sys.stderr}
@@ -34,9 +35,9 @@ class Logger:
     RED = '#e5383b'
     PURPLE = '#9d4edd'
 
-    COLORS = {'DEBUG': GRAY, 'INFO': NONE, 'WARNING': ORANGE, 'ERROR': RED, 'FATAL': PURPLE}
+    COLORS = {'DEBUG': GRAY, 'INFO': NONE, 'STATS': NONE, 'WARNING': ORANGE, 'ERROR': RED, 'FATAL': PURPLE}
 
-    def __init__(self, name, verbosity=3):
+    def __init__(self, name, verbosity=4):
         """
         name : str
             name to give this logger.
@@ -70,7 +71,7 @@ class Logger:
             return error_message, message
 
     def log_chapter(self, title, line='─', style='#34a0a4'):
-        if self.verbosity >= 3:
+        if self.verbosity >= 4:
             title = ' ' + title + ' '
             self.console.print(f'{title:{line}^80}', style=style)
 
