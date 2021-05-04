@@ -6,6 +6,7 @@ import numpy as np
 import time
 import multiprocessing
 from multiprocessing import Process, Manager
+from contextlib import nullcontext
 
 from .gradient_optimizer import GradientOptimizer
 from gryffin.random_sampler import RandomSampler
@@ -66,7 +67,7 @@ class Acquisition(Logger):
                          '"fca", falling back to default of 0.5', 'WARNING')
                 self.feas_param = 0.5
 
-    def _propose_randomly(self, best_params, num_samples, acquisition_constraints, dominant_samples=None):
+    def _propose_randomly(self, best_params, num_samples_per_dim, acquisition_constraints, dominant_samples=None):
         """
 
         Parameters
@@ -81,6 +82,9 @@ class Acquisition(Logger):
         random_samples : ndarray
             array with random samples in the optimization domain.
         """
+
+        # number of random samples grows linearly with domain dimensionality
+        num_samples = num_samples_per_dim * self.total_num_vars
 
         # -------------------
         # parallel processing
@@ -135,14 +139,14 @@ class Acquisition(Logger):
         # get uniform samples
         # -------------------
         if dominant_samples is None:
-            uniform_samples = random_sampler.draw(num=self.total_num_vars * num_samples)
-            perturb_samples = random_sampler.perturb(best_params, num=self.total_num_vars * num_samples)
+            uniform_samples = random_sampler.draw(num=num_samples)
+            perturb_samples = random_sampler.perturb(best_params, num=num_samples)
             samples = np.concatenate([uniform_samples, perturb_samples])
         else:
             dominant_features = self.config.feature_process_constrained
             for batch_sample in dominant_samples:
-                uniform_samples = random_sampler.draw(num=self.total_num_vars * num_samples // len(dominant_samples))
-                perturb_samples = random_sampler.perturb(best_params, num=self.total_num_vars * num_samples)
+                uniform_samples = random_sampler.draw(num=num_samples // len(dominant_samples))
+                perturb_samples = random_sampler.perturb(best_params, num=num_samples)
                 samples = np.concatenate([uniform_samples, perturb_samples])
             samples[:, dominant_features] = batch_sample[dominant_features]
 
@@ -357,16 +361,21 @@ class Acquisition(Logger):
         return local_optimizer
 
     def propose(self, best_params, bayesian_network, sampling_param_values,
-                num_samples=200, dominant_samples=None, timings_dict=None):
+                num_samples_per_dim=200, dominant_samples=None, timings_dict=None):
         """Collect proposals by random sampling plus refinement. Highest-level method of this class that takes the BNN
         results, builds the acquisition function, optimises it, and returns a number of possible parameter points.
         These will then be used by the SampleSelector to pick the parameters to suggest.
 
         Parameters
         ----------
-        num_samples : int
+        best_params : array
+        bayesian_network :
+        sampling_param_values : list
+        num_samples_per_dim : int
             Number of samples to randomly draw per parameter dimension. E.g. for a two-dimensional search domain,
             we draw ``num_samples`` * 2 samples.
+        dominant_samples : array
+        timings_dict : dict
 
         Returns
         -------
@@ -392,7 +401,7 @@ class Acquisition(Logger):
             # if not, we temporarily relax the feas_param until we have 10% feasibility
             original_feas_param = self.feas_param
             # do check and update self.feas_param if needed
-            self._update_feas_param(num=self.total_num_vars * num_samples)
+            self._update_feas_param(num=self.total_num_vars * num_samples_per_dim)
 
             # if we also have already known_constraints, we need to merge them
             if self.known_constraints is not None:
@@ -409,11 +418,12 @@ class Acquisition(Logger):
         # ------------------
         start_random = time.time()
         if self.verbosity > 3.5:
-            with self.console.status("Drawing random samples..."):
-                random_proposals = self._propose_randomly(best_params, num_samples, dominant_samples=dominant_samples,
-                                                          acquisition_constraints=acquisition_constraints)
+            cm = self.console.status("Drawing random samples...")
         else:
-            random_proposals = self._propose_randomly(best_params, num_samples, dominant_samples=dominant_samples,
+            cm = nullcontext()
+        with cm:
+            random_proposals = self._propose_randomly(best_params, num_samples_per_dim,
+                                                      dominant_samples=dominant_samples,
                                                       acquisition_constraints=acquisition_constraints)
 
         # at this point, len(random_proposals) = num_samples * num_dims * 2, where the final x2 factor is because

@@ -24,7 +24,7 @@ default_general_configuration = {
     'save_database':          False,
     'acquisition_optimizer':  'adam',  # options are "adam" or "genetic"
     'obj_transform':          'sqrt',  # options are None, "sqrt", "cbrt", "square"
-    'num_random_samples':        200,
+    'num_random_samples':        200,  # num of samples per dimensions to sample when optimizing acquisition
     'reject_tol':               1000,  # tolerance in rejection sampling, relevant when known constraints or fca used
     # verbosity level, from 0 to 5. 0: FATAL, 1: ERROR, 2: WARNING, 3: STATS, 4: INFO, 5: DEBUG
     'verbosity':               4
