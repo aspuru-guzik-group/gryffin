@@ -68,6 +68,61 @@ class Acquisition(Logger):
 
     def _propose_randomly(self, best_params, num_samples, acquisition_constraints, dominant_samples=None):
         """
+
+        Parameters
+        ----------
+        acquisition_constraints : list
+            list of constraints functions.
+        dominant_samples :
+            dominant samples for batch constraints.
+
+        Returns
+        -------
+        random_samples : ndarray
+            array with random samples in the optimization domain.
+        """
+
+        # -------------------
+        # parallel processing
+        # -------------------
+        if self.num_cpus > 1:
+            # create shared memory dict
+            return_list = Manager().list()
+
+            # request num_sample/num_cpus random proposals from each process
+            num_samples_batch = int(np.round(num_samples / self.num_cpus, decimals=0))
+
+            # parallelize over batches of random samples
+            processes = []  # store parallel processes here
+            for idx in range(self.num_cpus):
+                # run optimization
+                process = Process(target=self._propose_randomly_thread, args=(best_params, num_samples_batch,
+                                                                              acquisition_constraints,
+                                                                              dominant_samples, return_list))
+                processes.append(process)
+                process.start()
+
+            # wait until all processes finished
+            for process in processes:
+                process.join()
+
+            # concatenate all random samples into the same array
+            random_samples = np.concatenate(return_list)
+
+        # ---------------------
+        # sequential processing
+        # ---------------------
+        else:
+            # optimized samples for this batch/sampling strategy
+            random_samples = self._propose_randomly_thread(best_params=best_params, num_samples=num_samples,
+                                                           acquisition_constraints=acquisition_constraints,
+                                                           dominant_samples=dominant_samples, return_list=None)
+
+        return random_samples
+
+    def _propose_randomly_thread(self, best_params, num_samples, acquisition_constraints, dominant_samples=None,
+                                 return_list=None):
+        """
         acquisition_constraints : list
             list of constraints functions.
         dominant_samples :
@@ -90,6 +145,11 @@ class Acquisition(Logger):
                 perturb_samples = random_sampler.perturb(best_params, num=self.total_num_vars * num_samples)
                 samples = np.concatenate([uniform_samples, perturb_samples])
             samples[:, dominant_features] = batch_sample[dominant_features]
+
+        # append to shared memory list if present
+        if return_list is not None:
+            return_list.append(samples)
+
         return samples
 
     def _proposal_optimization_thread(self, proposals, acquisition, acquisition_constraints,
