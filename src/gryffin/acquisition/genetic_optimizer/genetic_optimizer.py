@@ -251,7 +251,7 @@ class GeneticOptimizer(Logger):
 
     def _apply_feasibility_constraint(self, child, parent):
 
-        child_vector = np.array(child)
+        child_vector = np.array(child, dtype=object)  # object needed to allow strings of different lengths
         feasible = self._evaluate_feasibility(child_vector)
         # if feasible, stop, no need to project the mutant
         if feasible is True:
@@ -266,7 +266,7 @@ class GeneticOptimizer(Logger):
         #   and discrete, we reset the child. If feasible, we keep the child's categories, if still infeasible,
         #   we keep the parent's categories.
 
-        parent_vector = np.array(parent)
+        parent_vector = np.array(parent, dtype=object)  # object needed to allow strings of different lengths
         new_vector = child_vector
 
         child_continuous = child_vector[self.config.continuous_mask]
