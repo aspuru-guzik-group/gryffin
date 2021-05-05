@@ -10,34 +10,36 @@ class NaiveCategoricalOptimizer:
 
     def __init__(self, func=None):
         self.func = func
+        self.feature_sizes = None
+        self.select_bool = None
+        self.num_dims = None
 
-    def _set_func(self, func, pos=None):
-        self.func = func
-        if pos is not None:
-            self.pos = pos
-            self.num_pos = len(pos)
-
-    def set_func(self, func, pos=None, highest=None):
+    def set_func(self, func, select=None, feature_sizes=None):
         # set function
-        self.highest = highest
-        self._set_func(func, pos)
+        self.func = func
+        self.feature_sizes = feature_sizes
+        if select is not None:
+            self.select_bool = np.array(select)
+            self.num_dims = len(self.select_bool)
 
     def get_update(self, vector):
-        func_best = self.func(vector)
-        for pos_index, pos in enumerate(self.pos):
-            if pos is None:
+        current_merit = self.func(vector)
+        for i, select in enumerate(self.select_bool):
+            if select is False:
                 continue
 
-            current = vector[pos]
-            perturb = np.random.choice(self.highest[pos_index])
-            vector[pos] = perturb
+            current_category = vector[i]
+            new_category = np.random.choice(self.feature_sizes[i])
+            vector[i] = new_category
 
-            func_cand = self.func(vector)
+            new_merit = self.func(vector)
 
-            if func_cand < func_best:
-                func_best = func_cand
+            # if new merit is better, keep change and update best merit...
+            if new_merit < current_merit:
+                current_merit = new_merit
+            # else throw change away
             else:
-                vector[pos] = current
+                vector[i] = current_category
         return vector
 
 
