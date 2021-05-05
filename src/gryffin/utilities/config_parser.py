@@ -267,20 +267,25 @@ class ConfigParser(Logger):
     def param_lowers(self):
         lowers = []
         for spec in self.features.specifics:
+            # if low in spec ==> continuous or discrete
             if 'low' in spec:
                 lowers.append(spec['low'])
-            else:
-                lowers.append(0)
+            # otherwise it's categorical
+            elif 'options' in spec:
+                lowers.append(0.)
         return np.array(lowers)
 
     @property
     def param_uppers(self):
         uppers = []
         for spec in self.features.specifics:
+            # if low in spec ==> continuous or discrete
             if 'high' in spec:
                 uppers.append(spec['high'])
-            else:
-                uppers.append(1.)
+            # otherwise it's categorical
+            elif 'options' in spec:
+                num_options = len(spec['options'])
+                uppers.append(num_options - 1.)
         return np.array(uppers)
 
     @property
