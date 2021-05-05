@@ -1,6 +1,6 @@
 #!/usr/bin/env python 
 
-__author__ = 'Florian Hase'
+__author__ = 'Matteo Aldeghi'
 
 
 import numpy as np
@@ -235,7 +235,6 @@ class GeneticOptimizer(Logger):
                 self._apply_feasibility_constraint(mutant, parent)
                 # clear fitness values
                 del mutant.fitness.values
-
         return offspring
 
     def _evaluate_feasibility(self, param_vector):
@@ -293,7 +292,7 @@ class GeneticOptimizer(Logger):
         # -----------------------------------------------------------------------
         # (2) follow stick breaking/tree search procedure for continuous/discrete
         # -----------------------------------------------------------------------
-        if any(self.config.categorical_mask) or any(self.config.discrete_mask) is True:
+        if any(self.config.continuous_mask) or any(self.config.discrete_mask) is True:
             # data needed to normalize continuous values
             lowers = self.config.feature_lowers[self.config.continuous_mask]
             uppers = self.config.feature_uppers[self.config.continuous_mask]
