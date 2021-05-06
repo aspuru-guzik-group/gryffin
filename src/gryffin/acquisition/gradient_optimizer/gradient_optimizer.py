@@ -152,6 +152,7 @@ class GradientOptimizer(Logger):
 
     def _constrained_optimize_sample(self, sample, max_iter=10, convergence_dx=1e-7):
 
+        # use copy to create a new object, otherwise we have mutable np arrays that keep getting updated
         prev_optimized = sample.copy()
         optimized = sample.copy()
 
@@ -160,7 +161,7 @@ class GradientOptimizer(Logger):
         # --------
         for num_iter in range(max_iter):
             # one step of optimization
-            optimized = self._single_opt_iteration(prev_optimized)
+            optimized = self._single_opt_iteration(optimized)
             # make sure we're still within the domain
             optimized = self._project_sample_onto_bounds(optimized)
 
@@ -178,6 +179,5 @@ class GradientOptimizer(Logger):
                 break
             else:
                 prev_optimized = optimized.copy()
-
         return optimized
 
