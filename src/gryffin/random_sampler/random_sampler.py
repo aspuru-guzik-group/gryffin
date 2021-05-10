@@ -156,9 +156,10 @@ class RandomSampler(Logger):
             if counter % num == 0:
                 self.log(f'randomly perturbed {counter} times', 'DEBUG')
             if counter > self.reject_tol * num:
-                # give up
-                raise GryffinComputeError("we cannot find feasible solutions to perturbations of the incumbent - "
-                                          "something is wrong with either the setup or the code")
+                # be forgiving here: if we cannot find enough feasible perturbations, just return what we have
+                self.log(f"we cannot find enough feasible solutions to perturbations of the incumbent. "
+                         f"Only {len(perturbed_samples)} perturbed samples have been identified. This may "
+                         "indicate a problem with either the setup or the code.", "WARNING")
 
         perturbed_samples = np.array(perturbed_samples)
         return perturbed_samples
