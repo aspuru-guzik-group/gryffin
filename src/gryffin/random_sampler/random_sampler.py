@@ -150,7 +150,7 @@ class RandomSampler(Logger):
 
             counter += 1
             if counter > 100 * num:
-                # double scale is counter > 100, triple if >200, etc.
+                # double scale if counter > 100, triple if >200, etc.
                 new_scale = ((counter // 100) + 1) * scale
                 perturb_categorical = True
             if counter % num == 0:
@@ -160,6 +160,7 @@ class RandomSampler(Logger):
                 self.log(f"we cannot find enough feasible solutions to perturbations of the incumbent. "
                          f"Only {len(perturbed_samples)} perturbed samples have been identified. This may "
                          "indicate a problem with either the setup or the code.", "WARNING")
+                break
 
         perturbed_samples = np.array(perturbed_samples)
         return perturbed_samples
