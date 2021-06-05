@@ -13,7 +13,6 @@ import tensorflow             as tf
 import tensorflow_probability as tfp
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
-from tensorflow_probability import edward2 as ed
 from tensorflow_probability import distributions as tfd
 
 import os, sys
