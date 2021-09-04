@@ -9,7 +9,7 @@ from .observation_processor import ObservationProcessor, param_vectors_to_dicts,
 from .random_sampler import RandomSampler
 from .sample_selector import SampleSelector
 from .utilities import ConfigParser, Logger, GryffinNotFoundError
-from .utilities import parse_time, memory_usage
+from .utilities import parse_time, memory_usage, estimate_feas_fraction
 
 import os
 import numpy as np
@@ -20,7 +20,13 @@ from contextlib import nullcontext
 
 class Gryffin(Logger):
 
-    def __init__(self, config_file=None, config_dict=None, known_constraints=None, silent=False):
+    def __init__(
+        self,
+        config_file=None,
+        config_dict=None,
+        known_constraints=None,
+        silent=False,
+    ):
         """
         silent : bool
             whether to suppress all standard output. If True, the ``verbosity`` settings in ``config`` will be
@@ -43,6 +49,14 @@ class Gryffin(Logger):
 
         # parse constraints function
         self.known_constraints = known_constraints
+        if self.known_constraints:
+            # if we have known constraints, estimate the feasible fraction
+            # of the domain
+            self.frac_feas = estimate_feas_fraction(self.known_constraints, self.config)
+        else:
+            self.frac_feas = 1.
+
+        print('FRAC FEAS : ', self.frac_feas)
 
         # store timings for possible analysis
         self.timings = {}
@@ -55,7 +69,7 @@ class Gryffin(Logger):
         self.obs_processor = ObservationProcessor(self.config)
         self.descriptor_generator = DescriptorGenerator(self.config)
         self.descriptor_generator_feas = DescriptorGenerator(self.config)
-        self.bayesian_network = BayesianNetwork(config=self.config)
+        self.bayesian_network = BayesianNetwork(config=self.config, frac_feas=self.frac_feas)
         self.acquisition = Acquisition(self.config, known_constraints=self.known_constraints)
         self.sample_selector = SampleSelector(self.config)
 

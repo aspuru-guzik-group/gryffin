@@ -14,9 +14,10 @@ from contextlib import nullcontext
 
 class BayesianNetwork(Logger):
 
-    def __init__(self, config, model_details=None):
+    def __init__(self, config, frac_feas, model_details=None):
 
         self.config = config
+        self.frac_feas = frac_feas
 
         # get domain volume
         self.volume = None
@@ -100,8 +101,12 @@ class BayesianNetwork(Logger):
             cm = nullcontext()
 
         with cm:
-            trace_kernels = run_tf_network(observed_params=obs_params, config=self.config,
-                                           model_details=self.model_details)
+            trace_kernels = run_tf_network(
+                    observed_params=obs_params,
+                    frac_feas=self.frac_feas,
+                    config=self.config,
+                    model_details=self.model_details,
+                    )
 
 
         self.trace_kernels = trace_kernels
