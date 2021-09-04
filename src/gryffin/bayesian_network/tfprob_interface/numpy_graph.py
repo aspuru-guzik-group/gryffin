@@ -1,9 +1,9 @@
-#!/usr/bin/env 
+#!/usr/bin/env
 
 __author__ = 'Florian Hase'
 
 
-import numpy as np 
+import numpy as np
 
 
 def sigmoid(x):
@@ -28,6 +28,7 @@ class NumpyGraph:
         self.features = features
 
     def compute_kernels(self, posteriors):
+
 
         tau_rescaling = np.zeros((self.num_obs, self.bnn_output_size))
         kernel_ranges = self.config.kernel_ranges
@@ -60,7 +61,7 @@ class NumpyGraph:
         post_bnn_output = post_layer_outputs[-1]
 
         # note: np.random.gamma is parametrized with k and theta, while ed.models.Gamma is parametrized with alpha and beta
-        post_tau_normed = np.random.gamma( self.num_obs**2 + np.zeros(post_bnn_output.shape), np.ones(post_bnn_output.shape))
+        post_tau_normed = posteriors['gamma']   # shape = (1000, num_obs, 1)
         post_tau        = post_tau_normed / tau_rescaling
         post_sqrt_tau   = np.sqrt(post_tau)
         post_scale      = 1. / post_sqrt_tau
@@ -137,7 +138,3 @@ class NumpyGraph:
             kernel_element_index += kernel_size
 
         return post_kernels
-
-
-
-

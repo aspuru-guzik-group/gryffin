@@ -1,13 +1,13 @@
-#!/usr/bin/env python 
+#!/usr/bin/env python
 
 # cython: language_level=3
 # cython: profile=True
 
 __author__ = 'Florian Hase, Matteo Aldeghi'
 
-import  cython 
+import  cython
 cimport cython
-import  numpy as np 
+import  numpy as np
 cimport numpy as np
 from libc.math cimport exp, round
 
@@ -122,8 +122,10 @@ cdef class KernelEvaluator:
                     # -----------------
                     if kernel_types[kernel_index] == 0:
                         # get product of inverse standard deviations
+                        # this is the product of each dimension's contribution
                         prec_prod = prec_prod * sqrt_precs[sample_index, obs_index, kernel_index]
                         # get sum of the exponent argument
+                        # (x_k - \phi_3(\theta, x_k))^2
                         exp_arg_sum = exp_arg_sum + (sqrt_precs[sample_index, obs_index, kernel_index] * (sample[feature_index] - locs[sample_index, obs_index, kernel_index]))**2
 
                     # --------------------------

@@ -42,6 +42,7 @@ class BayesianNetwork(Logger):
         # get kernel types and sizes
         self.kernel_types, self.kernel_sizes, self.kernel_ranges = self._get_kernel_types_and_sizes(self.config)
 
+
         # verbosity settings
         self.verbosity = self.config.get('verbosity')
         Logger.__init__(self, 'BayesianNetwork', verbosity=self.verbosity)
@@ -76,6 +77,7 @@ class BayesianNetwork(Logger):
         self.volume = 1.
         feature_lengths = self.config.feature_lengths
         feature_ranges = self.config.feature_ranges
+
         for feature_index, feature_type in enumerate(self.config.feature_types):
             if feature_type == 'continuous':
                 self.volume *= feature_ranges[feature_index]
@@ -101,6 +103,7 @@ class BayesianNetwork(Logger):
             trace_kernels = run_tf_network(observed_params=obs_params, config=self.config,
                                            model_details=self.model_details)
 
+
         self.trace_kernels = trace_kernels
 
         end = time.time()
@@ -115,13 +118,14 @@ class BayesianNetwork(Logger):
         self.obs_objs_feas = obs_feas
 
         # get prior probabilities (feasible = 0 and infeasible = 1)
+        # prior_0 is essentially the fraction of feasible points
+        # prior_1 is essentially the fraction of infeasible points
         self.prior_0 = sum([xi < 0.5 for xi in self.obs_objs_feas]) / len(self.obs_objs_feas)
         self.prior_1 = sum([xi > 0.5 for xi in self.obs_objs_feas]) / len(self.obs_objs_feas)
         assert np.abs((self.prior_0 + self.prior_1) - 1.0) < 10e-5
 
         self.log_prior_0 = np.log(self.prior_0) if self.prior_0 > 0. else -np.inf
         self.log_prior_1 = np.log(self.prior_1) if self.prior_1 > 0. else -np.inf
-
         # retrieve kernels densities
         # all kernels - shape of the tensors below: (# samples, # obs, # kernels)
         locs_all = self.trace_kernels['locs']
@@ -132,6 +136,7 @@ class BayesianNetwork(Logger):
         locs_kwn = locs_all[:, mask_kwn, :]
         sqrt_precs_kwn = sqrt_precs_all[:, mask_kwn, :]
         probs_kwn = probs_all[:, mask_kwn, :]
+
 
         assert locs_kwn.shape[1] == len(self.obs_objs_kwn)
         assert locs_all.shape[1] == len(self.obs_objs_feas)
@@ -246,14 +251,3 @@ class BayesianNetwork(Logger):
         kernel_sizes = config.kernel_sizes.astype(np.int32)
         kernel_ranges = config.kernel_ranges.astype(np.float64)
         return kernel_types, kernel_sizes, kernel_ranges
-
-
-
-
-
-
-
-
-
-
-

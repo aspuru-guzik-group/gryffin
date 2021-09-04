@@ -1,4 +1,4 @@
-#!/usr/bin/env python 
+#!/usr/bin/env python
 
 __author__ = 'Florian Hase, Matteo Aldeghi'
 
@@ -285,6 +285,7 @@ class Gryffin(Logger):
             self.bayesian_network.build_kernels(descriptors_kwn=descriptors_kwn, descriptors_feas=descriptors_feas,
                                                 obs_objs=obs_objs, obs_feas=obs_feas, mask_kwn=mask_kwn)
 
+
             # get incumbent
             if len(obs_params[mask_kwn]) > 0:
                 # if we have kwn samples ==> pick params with best merit
@@ -404,7 +405,7 @@ class Gryffin(Logger):
             y_pred = self.bayesian_network.regression_surrogate(x.astype(np.float64))
             y_preds.append(y_pred)
 
-        # invert tranform the surrogate according to the chosen transform
+        # invert transform the surrogate according to the chosen transform
         y_preds = np.array(y_preds)
         transform = self.config.get('obj_transform')
         if transform is None:
@@ -515,4 +516,3 @@ class Gryffin(Logger):
             acquisition_values[lambda_value] = np.array(acquisition_values_at_l)
 
         return acquisition_values
-

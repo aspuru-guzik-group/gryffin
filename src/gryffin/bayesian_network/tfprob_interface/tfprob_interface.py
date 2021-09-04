@@ -1,11 +1,9 @@
-#!/usr/bin/env python 
+#!/usr/bin/env python
 
 __author__ = 'Florian Hase, Matteo Aldeghi'
 
-
 import warnings
 warnings.filterwarnings('ignore')
-
 import os
 import sys
 import numpy as np
@@ -146,7 +144,11 @@ class TfprobNetwork(Logger):
                 self.prior_layer_outputs.append(prior_layer_output)
 
             self.prior_bnn_output = self.prior_layer_outputs[-1]
-            self.prior_tau_normed = tfd.Gamma(self.num_obs**2 + tf.zeros((self.num_obs, self.bnn_output_size)), tf.ones((self.num_obs, self.bnn_output_size)))
+            # draw precisions from gamma distribution
+            self.prior_tau_normed = tfd.Gamma(
+                            self.num_obs**2 + tf.zeros((self.num_obs, self.bnn_output_size)),
+                            tf.ones((self.num_obs, self.bnn_output_size)),
+                        )
             self.prior_tau        = self.prior_tau_normed.sample() / self.tau_rescaling
             self.prior_scale      = tfd.Deterministic(1. / tf.sqrt(self.prior_tau))
 
@@ -169,8 +171,10 @@ class TfprobNetwork(Logger):
                 self.post_layer_outputs.append(post_layer_output)
 
             self.post_bnn_output = self.post_layer_outputs[-1]
-            self.post_tau_normed = tfd.Gamma(self.num_obs**2 + tf.Variable(tf.zeros((self.num_obs, self.bnn_output_size))),
-                                             tf.nn.softplus(tf.Variable(tf.ones((self.num_obs, self.bnn_output_size)))))
+            self.post_tau_normed = tfd.Gamma(
+                                self.num_obs**2 + tf.Variable(tf.zeros((self.num_obs, self.bnn_output_size))),
+                                tf.nn.softplus(tf.Variable(tf.ones((self.num_obs, self.bnn_output_size)))),
+                            )
             self.post_tau        = self.post_tau_normed.sample() / self.tau_rescaling
             self.post_sqrt_tau   = tf.sqrt(self.post_tau)
             self.post_scale	     = tfd.Deterministic(1. / self.post_sqrt_tau)
@@ -195,6 +199,7 @@ class TfprobNetwork(Logger):
                 post_relevant  = self.post_bnn_output[:,  kernel_begin: kernel_end]
 
                 if kernel_type == 'continuous':
+
                     target = self.y[:, kernel_begin: kernel_end]
                     lowers, uppers = self.config.kernel_lowers[kernel_begin: kernel_end], self.config.kernel_uppers[kernel_begin : kernel_end]
 
@@ -217,6 +222,7 @@ class TfprobNetwork(Logger):
                     target = tf.cast(self.y[:, kernel_begin: kernel_end], tf.int32)
 
                     prior_temperature = 0.5 + 10.0 / self.num_obs
+                    #prior_temperature = 1.0
                     post_temperature = prior_temperature
 
                     prior_support = prior_relevant
@@ -278,6 +284,11 @@ class TfprobNetwork(Logger):
                 parent_samples = kernel_parent.sample(num_draws).eval()
                 posterior_samples[key] = parent_samples
 
+            # sample the posterior of the Gamma distribution
+            gamma_posterior_samples = self.post_tau_normed.sample(num_draws).eval()
+            posterior_samples['gamma'] = gamma_posterior_samples
+
+
             post_kernels = self.numpy_graph.compute_kernels(posterior_samples)
 
             self.trace = {}
@@ -286,6 +297,7 @@ class TfprobNetwork(Logger):
                 kernel_dict = post_kernels[key]
                 for kernel_name, kernel_values in kernel_dict.items():
                     self.trace[key][kernel_name] = kernel_values
+
 
     def get_kernels(self):
         trace_kernels = {'locs': [], 'sqrt_precs': [], 'probs': []}
@@ -349,7 +361,6 @@ def run_tf_network(observed_params, config, model_details):
         tfprob_network.construct_model(learning_rate=learning_rate)
         tfprob_network.sample()
         trace_kernels = tfprob_network.get_kernels()
-
         # checks and logs
         check_passed = _check_trace_kernels(trace_kernels)
         counter += 1
@@ -363,5 +374,3 @@ def run_tf_network(observed_params, config, model_details):
         if counter > 10:
             raise GryffinComputeError("TfprobNetwork keeps returning (at least some) NaN values")
     return trace_kernels
-
-
