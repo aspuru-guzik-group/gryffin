@@ -25,6 +25,9 @@ class Gryffin(Logger):
         config_file=None,
         config_dict=None,
         known_constraints=None,
+        use_prior=False,
+        frac_feas=None,
+        omit_penalties=False,
         silent=False,
     ):
         """
@@ -50,13 +53,23 @@ class Gryffin(Logger):
         # parse constraints function
         self.known_constraints = known_constraints
         if self.known_constraints:
-            # if we have known constraints, estimate the feasible fraction
-            # of the domain
-            self.frac_feas = estimate_feas_fraction(self.known_constraints, self.config)
+
+            if frac_feas is not None:
+                # override the feasible fractions - for testing only
+                self.frac_feas = frac_feas
+            else:
+
+                # if we have known constraints, estimate the feasible fraction
+                # of the domain
+                self.frac_feas = estimate_feas_fraction(self.known_constraints, self.config)
         else:
+            # no known constraints, assume the entire domain is feasible
             self.frac_feas = 1.
 
-        print('FRAC FEAS : ', self.frac_feas)
+        # if set to True, samples precisions for continuous kerenls from the
+        # prior and not the posterior
+        self.use_prior = use_prior
+        self.omit_penalties = omit_penalties
 
         # store timings for possible analysis
         self.timings = {}
@@ -160,7 +173,7 @@ class Gryffin(Logger):
         # sample bnn to get kernels for all observations
         # ----------------------------------------------
         self.log_chapter('Bayesian Network')
-        self.bayesian_network.sample(obs_params)  # infer kernel densities
+        self.bayesian_network.sample(obs_params, use_prior=self.use_prior)  # infer kernel densities
         # build kernel smoothing/classification surrogates
         self.bayesian_network.build_kernels(descriptors_kwn=descriptors_kwn, descriptors_feas=descriptors_feas,
                                             obs_objs=obs_objs, obs_feas=obs_feas, mask_kwn=mask_kwn)
@@ -294,7 +307,7 @@ class Gryffin(Logger):
             # sample bnn to get kernels for all observations
             # ----------------------------------------------
             self.log_chapter('Bayesian Network')
-            self.bayesian_network.sample(obs_params)  # infer kernel densities
+            self.bayesian_network.sample(obs_params, use_prior=self.use_prior)  # infer kernel densities
             # build kernel smoothing/classification surrogates
             self.bayesian_network.build_kernels(descriptors_kwn=descriptors_kwn, descriptors_feas=descriptors_feas,
                                                 obs_objs=obs_objs, obs_feas=obs_feas, mask_kwn=mask_kwn)
@@ -324,7 +337,10 @@ class Gryffin(Logger):
                                                                    proposals=self.proposals,
                                                                    eval_acquisition=self.acquisition.eval_acquisition,
                                                                    sampling_param_values=dominant_strategy_value,
-                                                                   obs_params=obs_params)
+                                                                   obs_params=obs_params,
+                                                                   frac_feas=self.frac_feas,
+                                                                   omit_penalties=self.omit_penalties,
+                                                            )
             else:
                 constraining_samples = None
 
@@ -343,7 +359,10 @@ class Gryffin(Logger):
             samples = self.sample_selector.select(num_batches=self.num_batches, proposals=self.proposals,
                                                   eval_acquisition=self.acquisition.eval_acquisition,
                                                   sampling_param_values=self.sampling_param_values,
-                                                  obs_params=obs_params)
+                                                  obs_params=obs_params,
+                                                  frac_feas=self.frac_feas,
+                                                  omit_penalties=self.omit_penalties,
+                                            )
 
         # --------------------------------
         # Print overall info for recommend
@@ -393,6 +412,29 @@ class Gryffin(Logger):
                 d[col] = row[col]
             list_of_dicts.append(d)
         return list_of_dicts
+
+    def get_trace_kernels(self):
+        """
+        Retrieve the trace kernels, averaged over the BNN samples
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
+        """
+        # all kernels (# samples, # obs, # kernels)
+        trace_kernels = self.bayesian_network.trace_kernels
+        locs_all = trace_kernels['locs']
+        sqrt_precs_all = trace_kernels['sqrt_precs']
+        probs_all = trace_kernels['probs']
+        # average over the bnn samples (# obs, # kernels)
+        locs_all = np.mean(locs_all, axis=0)
+        sqrt_precs_all = np.mean(sqrt_precs_all, axis=0)
+        probs_all = np.mean(probs_all, axis=0)
+
+        return locs_all, sqrt_precs_all, probs_all
 
     def get_regression_surrogate(self, params):
         """

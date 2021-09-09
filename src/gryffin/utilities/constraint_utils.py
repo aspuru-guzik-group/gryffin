@@ -4,7 +4,7 @@ import numpy as np
 import sobol_seq
 
 
-def estimate_feas_fraction(known_constraints, config, resolution=50):
+def estimate_feas_fraction(known_constraints, config, resolution=100):
     ''' Produces an estimate of the fraction of the domain which
     is feasible. For continuous valued parameters, we build a grid with
     "resolution" number of points in each dimensions. We measure each of
@@ -24,7 +24,7 @@ def estimate_feas_fraction(known_constraints, config, resolution=50):
             num_options = int((param['specifics']['low']-param['specifics']['high'])/param['specific']['stride']+1)
             sample = np.linspace(param['specifics']['low'], param['specifics']['high'], num_options)
         elif param['type'] == 'categorical':
-            sample = param['options']
+            sample = param['specifics']['options']
         else:
             quit()
         samples.append(sample)

@@ -92,7 +92,7 @@ class BayesianNetwork(Logger):
                     feature_type, self.config.feature_names[feature_index], self.template))
         self.inverse_volume = 1 / self.volume
 
-    def sample(self, obs_params):
+    def sample(self, obs_params, use_prior):
         start = time.time()
 
         if self.verbosity > 3.5:  # i.e. at INFO level
@@ -106,7 +106,8 @@ class BayesianNetwork(Logger):
                     frac_feas=self.frac_feas,
                     config=self.config,
                     model_details=self.model_details,
-                    )
+                    use_prior=use_prior,
+            )
 
 
         self.trace_kernels = trace_kernels

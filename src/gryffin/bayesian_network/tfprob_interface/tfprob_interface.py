@@ -147,7 +147,7 @@ class TfprobNetwork(Logger):
             self.prior_bnn_output = self.prior_layer_outputs[-1]
             # draw precisions from gamma distribution
             self.prior_tau_normed = tfd.Gamma(
-                            (self.num_obs/self.frac_feas)**2 + tf.zeros((self.num_obs, self.bnn_output_size)),
+                            12*(self.num_obs/self.frac_feas)**2 + tf.zeros((self.num_obs, self.bnn_output_size)),
                             tf.ones((self.num_obs, self.bnn_output_size)),
                         )
             self.prior_tau        = self.prior_tau_normed.sample() / self.tau_rescaling
@@ -173,7 +173,7 @@ class TfprobNetwork(Logger):
 
             self.post_bnn_output = self.post_layer_outputs[-1]
             self.post_tau_normed = tfd.Gamma(
-                                (self.num_obs/self.frac_feas)**2+ tf.Variable(tf.zeros((self.num_obs, self.bnn_output_size))),
+                                12*(self.num_obs/self.frac_feas)**2+ tf.Variable(tf.zeros((self.num_obs, self.bnn_output_size))),
                                 tf.nn.softplus(tf.Variable(tf.ones((self.num_obs, self.bnn_output_size)))),
                             )
             self.post_tau        = self.post_tau_normed.sample() / self.tau_rescaling
@@ -222,7 +222,7 @@ class TfprobNetwork(Logger):
                 elif kernel_type in ['categorical', 'discrete']:
                     target = tf.cast(self.y[:, kernel_begin: kernel_end], tf.int32)
 
-                    prior_temperature = 0.5 + 10.0 / self.num_obs
+                    prior_temperature = 0.5 + 10.0 / (self.num_obs / self.frac_feas)
                     #prior_temperature = 1.0
                     post_temperature = prior_temperature
 
@@ -267,7 +267,7 @@ class TfprobNetwork(Logger):
 
             tf.compat.v1.global_variables_initializer().run()
 
-    def sample(self, num_epochs=None, num_draws=None):
+    def sample(self, num_epochs=None, num_draws=None, use_prior=False):
         if num_epochs is None:
             num_epochs = self.num_epochs
         if num_draws is None:
@@ -290,7 +290,11 @@ class TfprobNetwork(Logger):
             posterior_samples['gamma'] = gamma_posterior_samples
 
 
-            post_kernels = self.numpy_graph.compute_kernels(posterior_samples)
+            post_kernels = self.numpy_graph.compute_kernels(
+                posterior_samples,
+                self.frac_feas,
+                use_prior=use_prior,
+            )
 
             self.trace = {}
             for key in post_kernels.keys():
@@ -345,7 +349,7 @@ def _check_trace_kernels(trace_kernels):
 
 
 @processify
-def run_tf_network(observed_params, frac_feas, config, model_details):
+def run_tf_network(observed_params, frac_feas, config, model_details, use_prior):
     """Run network in a function that gets run in a temporary process. Important to keep the @processify decorator,
     otherwise TensorFlow keeps a bunch of global variables that do not get garbage collected and memory usage
     keeps increasing when Gryffin is run in a loop, until we run out of memory.
@@ -360,7 +364,7 @@ def run_tf_network(observed_params, frac_feas, config, model_details):
         tfprob_network = TfprobNetwork(config, model_details, frac_feas)
         tfprob_network.declare_training_data(observed_params)
         tfprob_network.construct_model(learning_rate=learning_rate)
-        tfprob_network.sample()
+        tfprob_network.sample(use_prior=use_prior)
         trace_kernels = tfprob_network.get_kernels()
         # checks and logs
         check_passed = _check_trace_kernels(trace_kernels)

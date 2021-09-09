@@ -1,4 +1,4 @@
-#!/usr/bin/env python 
+#!/usr/bin/env python
 
 __author__ = 'Florian Hase, Matteo Aldeghi'
 
@@ -37,12 +37,25 @@ class SampleSelector(Logger):
 
         return exp_objs
 
-    def select(self, num_batches, proposals, eval_acquisition, sampling_param_values, obs_params):
+    def select(
+        self,
+        num_batches,
+        proposals,
+        eval_acquisition,
+        sampling_param_values,
+        obs_params,
+        frac_feas,
+        omit_penalties,
+    ):
         """
         num_samples : int
             number of samples to select per sampling strategy (i.e. the ``batches`` argument in the configuration)
         proposals : ndarray
             shape of proposals is (num strategies, num samples, num dimensions).
+        frac_feas : float
+            the fraction of the search space that is feasible
+        omit_penalties : bool
+            if False, we fix the char_dists to the value given if there was 1000 observations
         """
 
         start = time.time()
@@ -52,7 +65,15 @@ class SampleSelector(Logger):
         else:
             cm = nullcontext()
         with cm:
-            samples = self._select(num_batches, proposals, eval_acquisition, sampling_param_values, obs_params)
+            samples = self._select(
+                num_batches,
+                proposals,
+                eval_acquisition,
+                sampling_param_values,
+                obs_params,
+                frac_feas,
+                omit_penalties,
+            )
 
         end = time.time()
         time_string = parse_time(start, end)
@@ -61,14 +82,25 @@ class SampleSelector(Logger):
 
         return samples
 
-    def _select(self, num_batches, proposals, eval_acquisition, sampling_param_values, obs_params):
-
+    def _select(
+        self,
+        num_batches,
+        proposals,
+        eval_acquisition,
+        sampling_param_values,
+        obs_params,
+        frac_feas,
+        omit_penalties,
+    ):
         num_obs = len(obs_params)
         feature_ranges = self.config.feature_ranges
-        char_dists = feature_ranges / float(num_obs)**0.5
-
+        if omit_penalties:
+            char_dists = feature_ranges / 1000**0.5
+        else:
+            char_dists = feature_ranges / float(num_obs/frac_feas)**0.5
         # save all objective values here
         exp_objs = []
+
 
         # -----------------------------------------
         # compute exponential of acquisition values
@@ -185,9 +217,3 @@ class SampleSelector(Logger):
                 exp_objs[sampling_param_idx, largest_reward_index] = 0.
 
         return np.array(selected_samples)
-
-
-
-
-
-
