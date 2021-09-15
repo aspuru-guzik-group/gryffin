@@ -1,4 +1,4 @@
-#!/usr/bin/env python 
+#!/usr/bin/env python
 
 __author__ = 'Florian Hase, Matteo Aldeghi'
 
@@ -192,7 +192,7 @@ class RandomSampler(Logger):
 
     @staticmethod
     def _draw_categorical(num_options, size):
-        return np.random.choice(num_options, size=size).astype(np.float32)
+        return np.random.choice(num_options, size=size, replace=False).astype(np.float32)
 
     @staticmethod
     def _draw_continuous(low, high, size):
