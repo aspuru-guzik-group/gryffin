@@ -192,7 +192,11 @@ class RandomSampler(Logger):
 
     @staticmethod
     def _draw_categorical(num_options, size):
-        return np.random.choice(num_options, size=size, replace=False).astype(np.float32)
+        if size[0] > num_options:
+            replace = True
+        else:
+            replace = False
+        return np.random.choice(num_options, size=size, replace=replace).astype(np.float32)
 
     @staticmethod
     def _draw_continuous(low, high, size):
