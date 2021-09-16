@@ -1,4 +1,4 @@
-#!/usr/bin/env python 
+#!/usr/bin/env python
 from gryffin import Gryffin
 import shutil
 import numpy as np
@@ -49,4 +49,3 @@ def test_multiobjective():
 
     gryffin = Gryffin(config_dict=config)
     _ = gryffin.recommend(observations=observations)
-
