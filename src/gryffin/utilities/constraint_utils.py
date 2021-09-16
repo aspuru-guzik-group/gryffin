@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import numpy as np
-import sobol_seq
 
 
 def estimate_feas_fraction(known_constraints, config, resolution=100):
