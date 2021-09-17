@@ -249,6 +249,15 @@ class Gryffin(Logger):
                 dominant_features = self.config.feature_process_constrained
                 samples[:, dominant_features] = samples[0, dominant_features]
 
+            # if fully categorical, remove random samples from list of available options
+            if np.all([p['type']=='categorical' for p in self.config.parameters]):
+                for sample in samples:
+                    sample_ix = np.where(np.all(self.all_options==sample, axis=1))[0]
+                    self.all_options = np.delete(self.all_options, sample_ix, axis=0)
+                # update sample selector attribute
+                setattr(self.sample_selector, 'all_options', self.all_options)
+
+
         # --------------------
         # we have observations
         # --------------------

@@ -110,9 +110,6 @@ class SampleSelector(Logger):
         return exp_objs
 
     def _select_full_cat(self, num_batches, proposals, eval_acquisition, sampling_param_values, obs_params):
-        num_obs = len(obs_params)
-        feature_ranges = self.config.feature_ranges
-        char_dists = feature_ranges / float(num_obs)**0.5
 
         exp_objs = self._compute_exp_objs(proposals, eval_acquisition, sampling_param_values)
 
@@ -142,14 +139,23 @@ class SampleSelector(Logger):
 
                 # check to see if we have any rewards > 0.
                 if np.logical_and(np.amax(masked_rewards)==0., np.amin(masked_rewards)==0.):
-                    # if not sample from reserve samples to avoid duplicates
-                    quit()
+                    # if not sample randomly from remaining samples to avoid duplication
+                    if len(self.all_options)>0:
+                        new_sample = self.all_options[np.random.choice(np.arange(len(self.all_options)), size=None)]
+                    else:
+                        # there are no more samples, last batch, return the final sample
+                        new_sample = selected_samples[-1]
                 else:
                     largest_reward_index = np.argmax(masked_rewards)
                     # select the sample from batch_proposals
-                    # not from batch_proposals_norm that was used only for computing penalties
+                    # not from batch_proposals_norm thats was used only for computing penalties
                     new_sample = batch_proposals[largest_reward_index]
-                    selected_samples.append(new_sample)
+                selected_samples.append(new_sample)
+
+                # remove the selected sample from options
+                if len(self.all_options) > 0:
+                    new_sample_ix = np.where(np.all(self.all_options==new_sample, axis=1))[0][0]
+                    self.all_options = np.delete(self.all_options, new_sample_ix, axis=0)
 
         return np.array(selected_samples)
 

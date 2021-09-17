@@ -188,9 +188,5 @@ def test_moo():
 
 
 
-
-
-
-
-# if __name__ == '__main__':
-# 	test_naive()
+if __name__ == '__main__':
+	test_naive()
