@@ -62,8 +62,8 @@ class Gryffin(Logger):
             else:
                 # if we have known constraints, estimate the feasible fraction
                 self.frac_feas = estimate_feas_fraction(self.known_constraints, self.config)
-
         else:
+            # no known constriants, assume full domain is feasibile
             self.frac_feas = 1.
 
         # if param space is fully categorical, maintain list of all options
@@ -83,7 +83,7 @@ class Gryffin(Logger):
         self.obs_processor = ObservationProcessor(self.config)
         self.descriptor_generator = DescriptorGenerator(self.config)
         self.descriptor_generator_feas = DescriptorGenerator(self.config)
-        self.bayesian_network = BayesianNetwork(config=self.config)
+        self.bayesian_network = BayesianNetwork(config=self.config, frac_feas=self.frac_feas)
         self.acquisition = Acquisition(self.config, known_constraints=self.known_constraints)
         self.sample_selector = SampleSelector(self.config, self.all_options)
 

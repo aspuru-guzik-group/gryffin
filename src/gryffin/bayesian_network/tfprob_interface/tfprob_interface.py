@@ -21,10 +21,10 @@ from gryffin.utilities import Logger, GryffinUnknownSettingsError, GryffinComput
 
 class TfprobNetwork(Logger):
 
-    def __init__(self, config, model_details):
+    def __init__(self, config, model_details, frac_feas):
         self.config = config
         self.numpy_graph = NumpyGraph(self.config, model_details)
-
+        self.frac_feas = frac_feas
         # set logger verbosity
         Logger.__init__(self, 'TfprobNetwork', verbosity=self.config.get('verbosity'))
 
@@ -146,7 +146,7 @@ class TfprobNetwork(Logger):
             self.prior_bnn_output = self.prior_layer_outputs[-1]
             # draw precisions from gamma distribution
             self.prior_tau_normed = tfd.Gamma(
-                            self.num_obs**2 + tf.zeros((self.num_obs, self.bnn_output_size)),
+                            12*(self.num_obs/self.frac_feas)**2 + tf.zeros((self.num_obs, self.bnn_output_size)),
                             tf.ones((self.num_obs, self.bnn_output_size)),
                         )
             self.prior_tau        = self.prior_tau_normed.sample() / self.tau_rescaling
@@ -172,7 +172,7 @@ class TfprobNetwork(Logger):
 
             self.post_bnn_output = self.post_layer_outputs[-1]
             self.post_tau_normed = tfd.Gamma(
-                                self.num_obs**2 + tf.Variable(tf.zeros((self.num_obs, self.bnn_output_size))),
+                                12*(self.num_obs/self.frac_feas)**2+ tf.Variable(tf.zeros((self.num_obs, self.bnn_output_size))),
                                 tf.nn.softplus(tf.Variable(tf.ones((self.num_obs, self.bnn_output_size)))),
                             )
             self.post_tau        = self.post_tau_normed.sample() / self.tau_rescaling
@@ -221,7 +221,7 @@ class TfprobNetwork(Logger):
                 elif kernel_type in ['categorical', 'discrete']:
                     target = tf.cast(self.y[:, kernel_begin: kernel_end], tf.int32)
 
-                    prior_temperature = 0.5 + 10.0 / self.num_obs
+                    prior_temperature = 0.5 + 10.0 / (self.num_obs / self.frac_feas)
                     #prior_temperature = 1.0
                     post_temperature = prior_temperature
 
@@ -288,8 +288,7 @@ class TfprobNetwork(Logger):
             gamma_posterior_samples = self.post_tau_normed.sample(num_draws).eval()
             posterior_samples['gamma'] = gamma_posterior_samples
 
-
-            post_kernels = self.numpy_graph.compute_kernels(posterior_samples)
+            post_kernels = self.numpy_graph.compute_kernels(posterior_samples, self.frac_feas)
 
             self.trace = {}
             for key in post_kernels.keys():
@@ -344,7 +343,7 @@ def _check_trace_kernels(trace_kernels):
 
 
 @processify
-def run_tf_network(observed_params, config, model_details):
+def run_tf_network(observed_params, frac_feas, config, model_details):
     """Run network in a function that gets run in a temporary process. Important to keep the @processify decorator,
     otherwise TensorFlow keeps a bunch of global variables that do not get garbage collected and memory usage
     keeps increasing when Gryffin is run in a loop, until we run out of memory.
@@ -356,7 +355,7 @@ def run_tf_network(observed_params, config, model_details):
     # in the network returning NaN for all probs. Very practically this can be fixed by reducing the learning rate.
     while not check_passed:
         # instantiate and sample BNN
-        tfprob_network = TfprobNetwork(config, model_details)
+        tfprob_network = TfprobNetwork(config, model_details, frac_feas)
         tfprob_network.declare_training_data(observed_params)
         tfprob_network.construct_model(learning_rate=learning_rate)
         tfprob_network.sample()

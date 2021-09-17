@@ -27,8 +27,7 @@ class NumpyGraph:
         self.num_obs = len(features)
         self.features = features
 
-    def compute_kernels(self, posteriors):
-
+    def compute_kernels(self, posteriors, frac_feas):
 
         tau_rescaling = np.zeros((self.num_obs, self.bnn_output_size))
         kernel_ranges = self.config.kernel_ranges
@@ -91,7 +90,7 @@ class NumpyGraph:
                                                                    'scale': post_scale[:, :, kernel_begin: kernel_end]}
 
             elif kernel_type == 'categorical':
-                post_temperature = 0.5 + 10.0 / self.num_obs
+                post_temperature = 0.5 + 10.0 / (self.num_obs/frac_feas)
                 #post_temperature = 0.4
                 post_support = post_relevant
 
@@ -112,7 +111,7 @@ class NumpyGraph:
                 post_kernels['param_%d' % target_element_index] = {'probs': post_predict_relaxed}
 
             elif kernel_type == 'discrete':
-                post_temperature = 0.5 + 1.0 / self.num_obs
+                post_temperature = 0.5 + 1.0 / (self.num_obs/frac_feas)
                 #post_temperature = 0.4
                 post_support     = post_relevant
 
