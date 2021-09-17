@@ -22,3 +22,5 @@ from .category_parser import CategoryParser
 from .config_parser   import ConfigParser
 
 from .infos import parse_time, memory_usage, print_memory_usage
+
+from .constraint_utils import estimate_feas_fraction, compute_constrained_cartesian

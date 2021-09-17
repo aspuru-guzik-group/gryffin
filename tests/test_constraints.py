@@ -50,6 +50,7 @@ def str2array(sample):
 	return np.array([round(float(entry[2:])) for entry in np.squeeze(sample)])
 
 def test_constraints_cont():
+	# frac_feas roughly 0.5552
 	config = {
 		"general": {
 			"num_cpus": 4,
@@ -74,7 +75,9 @@ def test_constraints_cont():
 	gryffin = Gryffin(
 		config_dict=config, known_constraints=known_constraints_cont,
 	)
-	# TODO: check if the estimated feasible reagion is reasonably accurate
+	# check if the estimated feasible reagion is reasonably accurate
+	delta = 1.e-3
+	assert 0.5552-delta <= gryffin.frac_feas <= 0.5552+delta
 	observations = []
 	for iter_ in range(BUDGET):
 		select_ix = iter_ % len(SAMPLING_STRATEGIES)
@@ -94,7 +97,7 @@ def test_constraints_cont():
 
 
 def test_constraints_cat():
-
+	# frac_feas = FRAC FEAS :  0.7324263038548753
 	param_0_details = {f'x_{i}': [i] for i in range(NUM_OPTS)}
 	param_1_details  = {f'x_{i}': [i] for i in range(NUM_OPTS)}
 
@@ -122,6 +125,9 @@ def test_constraints_cat():
 	gryffin = Gryffin(
 		config_dict=config, known_constraints=known_constraints_cat
 	)
+	# check if the estimated feasible reagion is reasonably accurate
+	delta = 1.e-6
+	assert 0.7324263038548753-delta <= gryffin.frac_feas <= 0.7324263038548753+delta
 	observations = []
 	for iter_ in range(BUDGET):
 		select_ix = iter_ % len(SAMPLING_STRATEGIES)
@@ -138,3 +144,7 @@ def test_constraints_cat():
 	# check to see if all the resulting observations are indeed feasible
 	for obs in observations:
 		assert known_constraints_cat(obs)
+
+
+if __name__ == '__main__':
+	test_constraints_cat()

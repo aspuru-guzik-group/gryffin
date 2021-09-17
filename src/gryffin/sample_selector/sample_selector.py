@@ -1,4 +1,4 @@
-#!/usr/bin/env python 
+#!/usr/bin/env python
 
 __author__ = 'Florian Hase, Matteo Aldeghi'
 
@@ -12,8 +12,9 @@ from contextlib import nullcontext
 
 class SampleSelector(Logger):
 
-    def __init__(self, config):
+    def __init__(self, config, all_options=None):
         self.config = config
+        self.all_options = all_options
         self.verbosity = self.config.get('verbosity')
         Logger.__init__(self, 'SampleSelector', verbosity=self.verbosity)
         # figure out how many CPUs to use
@@ -44,15 +45,17 @@ class SampleSelector(Logger):
         proposals : ndarray
             shape of proposals is (num strategies, num samples, num dimensions).
         """
-
         start = time.time()
-
         if self.verbosity > 3.5:  # i.e. INFO or DEBUG
             cm = self.console.status("Selecting best samples to recommend...")
         else:
             cm = nullcontext()
         with cm:
-            samples = self._select(num_batches, proposals, eval_acquisition, sampling_param_values, obs_params)
+            if np.all([p['type']=='categorical' for p in self.config.parameters]):
+                # fully categorical space
+                samples = self._select_full_cat(num_batches, proposals, eval_acquisition, sampling_param_values, obs_params)
+            else:
+                samples = self._select(num_batches, proposals, eval_acquisition, sampling_param_values, obs_params)
 
         end = time.time()
         time_string = parse_time(start, end)
@@ -61,30 +64,21 @@ class SampleSelector(Logger):
 
         return samples
 
-    def _select(self, num_batches, proposals, eval_acquisition, sampling_param_values, obs_params):
+    def _compute_exp_objs(self, proposals, eval_acquisition, sampling_param_values):
 
-        num_obs = len(obs_params)
-        feature_ranges = self.config.feature_ranges
-        char_dists = feature_ranges / float(num_obs)**0.5
-
-        # save all objective values here
         exp_objs = []
-
         # -----------------------------------------
         # compute exponential of acquisition values
         # -----------------------------------------
         # TODO: this is slightly redundant as we have computed acquisition values already in Acquisition
         for sampling_param_idx, sampling_param in enumerate(sampling_param_values):
-
             # -------------------
             # parallel processing
             # -------------------
             if self.num_cpus > 1:
                 return_dict = Manager().dict()
-
                 # split proposals into approx equal chunks based on how many CPUs we're using
                 proposals_splits = np.array_split(proposals, self.num_cpus, axis=1)
-
                 # parallelize over splits
                 # -----------------------
                 processes = []
@@ -94,16 +88,13 @@ class SampleSelector(Logger):
                                                                           return_idx, return_dict))
                     processes.append(process)
                     process.start()
-
                 # wait until all processes finished
                 for process in processes:
                     process.join()
-
                 # sort results in return_dict to create batch_exp_objs list with correct sample order
                 batch_exp_objs = []
                 for idx in range(len(proposals_splits)):
                     batch_exp_objs.extend(return_dict[idx])
-
             # ---------------------
             # sequential processing
             # ---------------------
@@ -111,12 +102,64 @@ class SampleSelector(Logger):
                 batch_exp_objs = self.compute_exp_objs(proposals=proposals, eval_acquisition=eval_acquisition,
                                                        sampling_param_idx=sampling_param_idx, return_index=0,
                                                        return_dict=None)
-
             # append the proposed samples for this sampling strategy to the global list of samples
             exp_objs.append(batch_exp_objs)
-
         # cast to np.array
         exp_objs = np.array(exp_objs)
+
+        return exp_objs
+
+    def _select_full_cat(self, num_batches, proposals, eval_acquisition, sampling_param_values, obs_params):
+        num_obs = len(obs_params)
+        feature_ranges = self.config.feature_ranges
+        char_dists = feature_ranges / float(num_obs)**0.5
+
+        exp_objs = self._compute_exp_objs(proposals, eval_acquisition, sampling_param_values)
+
+        #----------------
+        # collect samples
+        #----------------
+        backup_samples = []
+        selected_samples = []
+        for batch_idx in range(num_batches):
+            for sampling_param_idx in range(len(sampling_param_values)):
+                # poposals shape = (# sampling params, # proposals, # param dims)
+                batch_proposals = proposals[sampling_param_idx, :, :]
+
+                mask = []
+                for proposal in batch_proposals:
+                    mask_val_obs = np.any(np.all(np.isin(obs_params, proposal), axis=1)) # true if exists, false if not
+                    # check if the batch proposals are in the selected samples, if they exist
+                    if len(selected_samples) >= 1:
+                        mask_val_sel = np.any(np.all(np.isin(np.array(selected_samples), proposal), axis=1))
+                        mask_val = np.logical_or(mask_val_obs, mask_val_sel)
+                    else:
+                        mask_val = mask_val_obs
+                    mask.append(mask_val)
+                # apply mask to batch proposals
+                mask_bin = np.abs(1*np.array(mask) - 1)
+                masked_rewards = exp_objs[sampling_param_idx] * mask_bin
+
+                # check to see if we have any rewards > 0.
+                if np.logical_and(np.amax(masked_rewards)==0., np.amin(masked_rewards)==0.):
+                    # if not sample from reserve samples to avoid duplicates
+                    quit()
+                else:
+                    largest_reward_index = np.argmax(masked_rewards)
+                    # select the sample from batch_proposals
+                    # not from batch_proposals_norm that was used only for computing penalties
+                    new_sample = batch_proposals[largest_reward_index]
+                    selected_samples.append(new_sample)
+
+        return np.array(selected_samples)
+
+
+    def _select(self, num_batches, proposals, eval_acquisition, sampling_param_values, obs_params):
+        num_obs = len(obs_params)
+        feature_ranges = self.config.feature_ranges
+        char_dists = feature_ranges / float(num_obs)**0.5
+
+        exp_objs = self._compute_exp_objs(proposals, eval_acquisition, sampling_param_values)
 
         # ----------------------------------------
         # compute prior recommendation punishments
@@ -185,9 +228,3 @@ class SampleSelector(Logger):
                 exp_objs[sampling_param_idx, largest_reward_index] = 0.
 
         return np.array(selected_samples)
-
-
-
-
-
-
