@@ -110,9 +110,7 @@ class SampleSelector(Logger):
         return exp_objs
 
     def _select_full_cat(self, num_batches, proposals, eval_acquisition, sampling_param_values, obs_params):
-
         exp_objs = self._compute_exp_objs(proposals, eval_acquisition, sampling_param_values)
-
         #----------------
         # collect samples
         #----------------
@@ -162,8 +160,15 @@ class SampleSelector(Logger):
 
     def _select(self, num_batches, proposals, eval_acquisition, sampling_param_values, obs_params):
         num_obs = len(obs_params)
-        feature_ranges = self.config.feature_ranges
+        # compute penalities only in non-categorical dimensions
+        param_types = [p['type'] for p in self.config.parameters]
+        non_cat_idx = [i for i in range(len(param_types)) if not param_types[i]=='categorical']
+        feature_ranges = self.config.feature_ranges[non_cat_idx]
         char_dists = feature_ranges / float(num_obs)**0.5
+        char_dists = char_dists[non_cat_idx]
+
+        proposals_non_cat = proposals[:, :, non_cat_idx]
+        obs_params_non_cat = obs_params[:, non_cat_idx]
 
         exp_objs = self._compute_exp_objs(proposals, eval_acquisition, sampling_param_values)
 
@@ -173,12 +178,13 @@ class SampleSelector(Logger):
 
         # compute normalised obs_params. In this way, we can rely on normalized distance thresholds, otherwise
         # if obs_params has very small range, sample selector is messed up
-        obs_params_norm = (obs_params - self.config.param_lowers) / (self.config.param_uppers - self.config.param_lowers)
-        proposals_norm = (proposals - self.config.param_lowers) / (self.config.param_uppers - self.config.param_lowers)
+        obs_params_norm = (obs_params_non_cat - self.config.param_lowers[non_cat_idx]) / (self.config.param_uppers[non_cat_idx] - self.config.param_lowers[non_cat_idx])
+        proposals_norm = (proposals_non_cat - self.config.param_lowers[non_cat_idx]) / (self.config.param_uppers[non_cat_idx] - self.config.param_lowers[non_cat_idx])
 
         # here we set to zero the reward if proposals are too close to previous observed params
         for sampling_param_idx in range(len(sampling_param_values)):
             batch_proposals = proposals_norm[sampling_param_idx, : exp_objs.shape[1]]
+
 
             # compute distance to each obs_param
             distances = [np.sum((obs_params_norm - batch_proposal)**2, axis=1) for batch_proposal in batch_proposals]
@@ -199,7 +205,8 @@ class SampleSelector(Logger):
         for batch_idx in range(num_batches):
             for sampling_param_idx in range(len(sampling_param_values)):
                 # proposals.shape = (# sampling params, # proposals, # param dims)
-                batch_proposals = proposals[sampling_param_idx, :, :]
+                batch_proposals = proposals_non_cat[sampling_param_idx, :, :]
+                batch_proposals_full = proposals[sampling_param_idx, :, :]
 
                 # compute diversity punishments
                 num_proposals_in_batch = exp_objs.shape[1]
@@ -209,7 +216,7 @@ class SampleSelector(Logger):
                 # or other proposed samples
                 for proposal_index, proposal in enumerate(batch_proposals):
                     # compute min distance to observed samples
-                    obs_min_distance = np.amin([np.abs(proposal - x) for x in obs_params], axis=0)
+                    obs_min_distance = np.amin([np.abs(proposal - x) for x in obs_params_non_cat], axis=0)
                     # if we already chose a new sample, compute also min distance to newly chosen samples
                     if len(selected_samples) > 0:
                         min_distance = np.amin([np.abs(proposal - x) for x in selected_samples], axis=0)
@@ -227,7 +234,9 @@ class SampleSelector(Logger):
 
                 # select the sample from batch_proposals
                 # not from batch_proposals_norm that was used only for computing penalties
-                new_sample = batch_proposals[largest_reward_index]
+                # TODO: make sure this is sampled from the proposals will ALL
+                # param dimensions
+                new_sample = batch_proposals_full[largest_reward_index]
                 selected_samples.append(new_sample)
 
                 # update reward of selected sample
