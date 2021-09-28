@@ -4,7 +4,7 @@ import pytest
 import numpy as np
 from gryffin import Gryffin
 
-from benchmark_functions.benchmark_functions_cat import Camel, Ackley
+from gryffin.benchmark_functions import CatCamel, CatAckley
 
 
 PARAM_DIM = 2
@@ -12,8 +12,8 @@ NUM_OPTS = 21
 BUDGET = 3
 SAMPLING_STRATEGIES = np.array([-1, 1])
 
-surface = Camel(num_dims=PARAM_DIM, num_opts=NUM_OPTS)
-surface_moo = Ackley(num_dims=PARAM_DIM, num_opts=NUM_OPTS)
+surface = CatCamel(num_dims=PARAM_DIM, num_opts=NUM_OPTS)
+surface_moo = CatAckley(num_dims=PARAM_DIM, num_opts=NUM_OPTS)
 
 
 def test_naive():

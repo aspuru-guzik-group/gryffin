@@ -4,8 +4,7 @@ import pytest
 import numpy as np
 from gryffin import Gryffin
 
-from benchmark_functions.benchmark_functions_cont import dejong
-from benchmark_functions.benchmark_functions_cat import Michalewicz
+from gryffin.benchmark_functions import dejong, CatMichalewicz
 
 PARAM_DIM = 2
 NUM_OPTS = 21
@@ -13,7 +12,7 @@ BUDGET = 3
 SAMPLING_STRATEGIES = np.array([-1, 1])
 
 surface_cont = dejong
-surface_cat  = Michalewicz(num_dims=2, num_opts=NUM_OPTS)
+surface_cat  = CatMichalewicz(num_dims=2, num_opts=NUM_OPTS)
 
 def known_constraints_cont(params):
 	x0 = params['param_0']

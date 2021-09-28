@@ -6,16 +6,37 @@ import numpy as np
 
 class CategoricalEvaluator(object):
 
-	def __init__(self, num_dims = 2, num_opts = 10):
+	def __init__(self, num_dims = 2, num_opts = 10, permut_seed=None):
 		self.num_dims = num_dims
 		self.num_opts = num_opts
+		self.permut_seed = permut_seed
+		if self.permut_seed:
+			# generate the permutation map
+			self.permut_map = self._gen_permutation()
+
+	def _gen_permutation(self):
+		opts = np.arange(self.num_opts)
+		shuffle_opts = opts.copy()
+		np.random.seed(self.permut_seed)
+		np.random.shuffle(shuffle_opts)
+		return {f'x_{o}': f'x_{s}' for o, s in zip(opts, shuffle_opts)}
 
 	def __call__(self, *args, **kwargs):
+		''' expects input as 'x_{int}', where `int` is the integer representation
+		of the cateforical variable option
+		'''
 		if 'sample' in kwargs:
 			sample = kwargs['sample']
 		else:
 			sample = args[0]
-		vector = np.array([round(float(entry[2:])) for entry in np.squeeze(sample)])
+		vector = []
+		for entry in np.squeeze(sample):
+			# lookup permutation
+			if self.permut_seed:
+				entry = self.permut_map[entry]
+			vector.append(round(float(entry[2:])))
+		vector = np.array(vector)
+		#vector = np.array([round(float(entry[2:])) for entry in np.squeeze(sample)])
 		return self.evaluate(sample = vector)
 
 #=========================================================================

@@ -4,13 +4,13 @@ import pytest
 import numpy as np
 from gryffin import Gryffin
 
-from benchmark_functions.benchmark_functions_cont import dejong, rosenbrock_function
+from gryffin.benchmark_functions import dejong, rosenbrock
 
 BUDGET = 3
 SAMPLING_STRATEGIES = np.array([-1, 1])
 
 surface = dejong
-surface_moo = rosenbrock_function
+surface_moo = rosenbrock
 
 
 def test_cont():
