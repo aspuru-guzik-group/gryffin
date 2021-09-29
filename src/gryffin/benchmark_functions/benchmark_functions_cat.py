@@ -39,6 +39,34 @@ class CategoricalEvaluator(object):
 		#vector = np.array([round(float(entry[2:])) for entry in np.squeeze(sample)])
 		return self.evaluate(sample = vector)
 
+
+	def get_best(self):
+		''' get the location and value of the optimum (minimum) point on the
+		surfaces
+		'''
+		domain = [f'x_{i}' for i in range(self.num_opts)]
+		params = []
+		values = []
+		for x in domain:
+			for y in domain:
+				values.append(self.__call__([x, y]))
+				params.append([x, y])
+		values = np.array(values)
+		params = np.array(params)
+		# get the indices that sort values in ascending order
+		ind = np.argsort(values)
+		sort_values = values[ind]
+		sort_params = params[ind]
+		if np.abs(sort_values[0]-sort_values[1]) < 1e-6:
+			# double degenrate camel
+			min_params = [list(sort_params[0]), list(sort_params[1])]
+		else:
+			# single best
+			min_params = list(sort_params[0])
+		min_value = sort_values[0]
+
+		return min_params, min_value
+
 #=========================================================================
 
 class Ackley(CategoricalEvaluator):
@@ -56,6 +84,10 @@ class Ackley(CategoricalEvaluator):
 		for index, element in enumerate(sample):
 			vector[index] = 65.536 * ( element / float(self.num_opts - 1) ) - 32.768
 		return self.ackley(vector)
+
+	def best(self):
+		print(self.permut_seed)
+		print(self.permut_map)
 
 #=========================================================================
 
