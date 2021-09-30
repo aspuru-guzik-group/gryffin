@@ -172,7 +172,7 @@ class TfprobNetwork(Logger):
 
             self.post_bnn_output = self.post_layer_outputs[-1]
             self.post_tau_normed = tfd.Gamma(
-                                12*(self.num_obs/self.frac_feas)**2+ tf.Variable(tf.zeros((self.num_obs, self.bnn_output_size))),
+                                12*(self.num_obs/self.frac_feas)**2 + tf.Variable(tf.zeros((self.num_obs, self.bnn_output_size))),
                                 tf.nn.softplus(tf.Variable(tf.ones((self.num_obs, self.bnn_output_size)))),
                             )
             self.post_tau        = self.post_tau_normed.sample() / self.tau_rescaling

@@ -105,54 +105,6 @@ class SampleSelector(Logger):
 
         return exp_objs
 
-    def _select_full_cat(self, num_batches, proposals, eval_acquisition, sampling_param_values, obs_params):
-        exp_objs = self._compute_exp_objs(proposals, eval_acquisition, sampling_param_values)
-        #----------------
-        # collect samples
-        #----------------
-        backup_samples = []
-        selected_samples = []
-        for batch_idx in range(num_batches):
-            for sampling_param_idx in range(len(sampling_param_values)):
-                # poposals shape = (# sampling params, # proposals, # param dims)
-                batch_proposals = proposals[sampling_param_idx, :, :]
-
-                mask = []
-                for proposal in batch_proposals:
-                    mask_val_obs = np.any(np.all(np.isin(obs_params, proposal), axis=1)) # true if exists, false if not
-                    # check if the batch proposals are in the selected samples, if they exist
-                    if len(selected_samples) >= 1:
-                        mask_val_sel = np.any(np.all(np.isin(np.array(selected_samples), proposal), axis=1))
-                        mask_val = np.logical_or(mask_val_obs, mask_val_sel)
-                    else:
-                        mask_val = mask_val_obs
-                    mask.append(mask_val)
-                # apply mask to batch proposals
-                mask_bin = np.abs(1*np.array(mask) - 1)
-                masked_rewards = exp_objs[sampling_param_idx] * mask_bin
-
-                # check to see if we have any rewards > 0.
-                if np.logical_and(np.amax(masked_rewards)==0., np.amin(masked_rewards)==0.):
-                    # if not sample randomly from remaining samples to avoid duplication
-                    if len(self.all_options)>0:
-                        new_sample = self.all_options[np.random.choice(np.arange(len(self.all_options)), size=None)]
-                    else:
-                        # there are no more samples, last batch, return the final sample
-                        new_sample = selected_samples[-1]
-                else:
-                    largest_reward_index = np.argmax(masked_rewards)
-                    # select the sample from batch_proposals
-                    # not from batch_proposals_norm thats was used only for computing penalties
-                    new_sample = batch_proposals[largest_reward_index]
-                selected_samples.append(new_sample)
-
-                # remove the selected sample from options
-                if len(self.all_options) > 0:
-                    new_sample_ix = np.where(np.all(self.all_options==new_sample, axis=1))[0][0]
-                    self.all_options = np.delete(self.all_options, new_sample_ix, axis=0)
-
-        return np.array(selected_samples)
-
 
     def _select(self, num_batches, proposals, eval_acquisition, sampling_param_values, obs_params):
         num_obs = len(obs_params)
