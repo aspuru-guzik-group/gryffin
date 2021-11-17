@@ -53,6 +53,49 @@ class SampleSelector(Logger):
         with cm:
             samples = self._select(num_batches, proposals, eval_acquisition, sampling_param_values, obs_params)
 
+        # check to see if we have duplicates within in the batch
+        #print('SAMPLES : ', samples)
+
+        # NOTE: this is just a patch for the dyeopt project
+        if self.all_options.shape[0]<sampling_param_values.shape[0]:
+            #pprint('HERE!!')
+            # accept duplicates on the final batch, this is fine for now
+            is_batch_duplicate = False
+            unique_samples = samples
+        else:
+
+            unique_samples = np.unique(samples, axis=0)
+            is_batch_duplicate = unique_samples.shape[0]!=sampling_param_values.shape[0]
+
+
+        # print('IS BATCH DUPLICATE : ', is_batch_duplicate)
+        # print('LEN UNIQUE SAMPLES : ', len(unique_samples))
+
+        # if we have fully categorical space, remove the unique samples from the full option list
+        if np.all([p['type']=='categorical' for p in self.config.parameters]):
+            for sample in unique_samples:
+                sample_ix = np.where(np.all(self.all_options==sample, axis=1))[0]
+                self.all_options = np.delete(self.all_options, sample_ix, axis=0)
+
+        if is_batch_duplicate:
+            # get the missing samples from a random sample of the remaining options
+            missing_size = sampling_param_values.shape[0] - unique_samples.shape[0]
+            indices = np.random.choice(self.all_options.shape[0], size=missing_size, replace=False)
+            missing_samples = self.all_options[indices, :]
+
+            # remove new samples from all options
+            for sample in missing_samples:
+                sample_ix = np.where(np.all(self.all_options==sample, axis=1))[0]
+                self.all_options = np.delete(self.all_options, sample_ix, axis=0)
+
+            samples = np.concatenate((unique_samples, missing_samples), axis=0)
+        else:
+            samples = unique_samples
+
+        # print('POST SAMPLES : ', samples)
+        # print('LEN POST SAMPLES : ', len(samples))
+        # print('LEN ALL OPTIONS : ', len(self.all_options))
+
         end = time.time()
         time_string = parse_time(start, end)
         samples_str = 'samples' if len(samples) > 1 else 'sample'
