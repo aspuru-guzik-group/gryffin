@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import numpy as np 
+import numpy as np
 
 #=========================================================================
 
@@ -15,6 +15,7 @@ class CategoricalEvaluator(object):
 			sample = kwargs['sample']
 		else:
 			sample = args[0]
+		# print([entry for entry in np.squeeze(sample)])
 		vector = np.array([round(float(entry[2:])) for entry in np.squeeze(sample)])
 		return self.evaluate(sample = vector)
 
@@ -22,16 +23,16 @@ class CategoricalEvaluator(object):
 
 class Ackley(CategoricalEvaluator):
 	'''
-		Ackley is to be evaluated on the hypercube 
+		Ackley is to be evaluated on the hypercube
 		x_i in [-32.768, 32.768] for i = 1, ..., d
 	'''
 	def ackley(self, vector, a = 20., b = 0.2, c = 2. * np.pi):
 		result = - a * np.exp( - b * np.sqrt( np.sum(vector**2) / self.num_dims ) ) - np.exp( np.sum(np.cos(c * vector)) ) + a + np.exp(1)
 		return result
 
-	def evaluate(self, sample):	
+	def evaluate(self, sample):
 		# map sample onto hypercube
-		vector = np.zeros(self.num_dims)	
+		vector = np.zeros(self.num_dims)
 		for index, element in enumerate(sample):
 			vector[index] = 65.536 * ( element / float(self.num_opts - 1) ) - 32.768
 		return self.ackley(vector)
@@ -40,7 +41,7 @@ class Ackley(CategoricalEvaluator):
 
 class Camel(CategoricalEvaluator):
 	'''
-		Camel is to be evaluated on the hypercube 
+		Camel is to be evaluated on the hypercube
 		x_i in [-3, 3] for i = 1, ..., d
 	'''
 	def camel(self, vector):
@@ -48,7 +49,7 @@ class Camel(CategoricalEvaluator):
 
 		# global minima
 		loc_0 = np.array([-1., 0.])
-		loc_1 = np.array([ 1., 0.])		
+		loc_1 = np.array([ 1., 0.])
 		weight_0 = np.array([4., 1.])
 		weight_1 = np.array([4., 1.])
 
@@ -66,7 +67,7 @@ class Camel(CategoricalEvaluator):
 		result = loss_0 * loss_1 * loss_2 * loss_3 + loss_5 + loss_6
 		return result
 
-	def evaluate(self, sample):	
+	def evaluate(self, sample):
 		# map sample onto hypercube
 		vector = np.zeros(self.num_dims)
 		for index, element in enumerate(sample):
@@ -77,7 +78,7 @@ class Camel(CategoricalEvaluator):
 
 class Dejong(CategoricalEvaluator):
 	'''
-		Dejong is to be evaluated on the hypercube 
+		Dejong is to be evaluated on the hypercube
 		x_i in [-5.12, 5.12] for i = 1, ..., d
 	'''
 	def dejong(self, vector):
@@ -85,7 +86,7 @@ class Dejong(CategoricalEvaluator):
 		return result
 
 
-	def evaluate(self, sample):	
+	def evaluate(self, sample):
 		# map sample onto hypercube
 		vector = np.zeros(self.num_dims)
 		for index, element in enumerate(sample):
@@ -96,7 +97,7 @@ class Dejong(CategoricalEvaluator):
 
 class Michalewicz(CategoricalEvaluator):
 	'''
-		Michalewicz is to be evaluated on the hypercube 
+		Michalewicz is to be evaluated on the hypercube
 		x_i in [0, pi] for i = 1, ..., d
 	'''
 
@@ -106,7 +107,7 @@ class Michalewicz(CategoricalEvaluator):
 			result += - np.sin(element) * np.sin( (index + 1) * element**2 / np.pi)**(2 * m)
 		return result
 
-	def evaluate(self, sample):	
+	def evaluate(self, sample):
 		# map sample onto hypercube
 		vector = np.zeros(self.num_dims)
 		for index, element in enumerate(sample):
@@ -118,7 +119,7 @@ class Michalewicz(CategoricalEvaluator):
 
 class Slope(CategoricalEvaluator):
 	'''
-		Response sampled from standard normal distribution 
+		Response sampled from standard normal distribution
 		with correlation
 	'''
 	def random_correlated(self, vector):
@@ -136,7 +137,7 @@ class Slope(CategoricalEvaluator):
 
 class RandomCorrelated(CategoricalEvaluator):
 	'''
-		Response sampled from standard normal distribution 
+		Response sampled from standard normal distribution
 		with correlation
 	'''
 
@@ -157,7 +158,7 @@ class RandomCorrelated(CategoricalEvaluator):
 
 class RandomUncorrelated(CategoricalEvaluator):
 	'''
-		Response sampled from standard normal distribution 
+		Response sampled from standard normal distribution
 		without correlation
 	'''
 	def random_uncorrelated(self, vector):
@@ -175,7 +176,7 @@ class RandomUncorrelated(CategoricalEvaluator):
 
 if __name__ == '__main__':
 
-	import matplotlib.pyplot as plt 
+	import matplotlib.pyplot as plt
 	import seaborn as sns
 
 	# choose your favorite benchmark function
@@ -202,5 +203,3 @@ if __name__ == '__main__':
 	plt.xlabel('x0')
 	plt.ylabel('x1')
 	plt.show()
-
-

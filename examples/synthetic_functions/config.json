@@ -10,6 +10,6 @@
 			{"name": "param_1", "type": "categorical", "size": 1, "category_details": "CatDetails/cat_details_param_0.pkl"}
 	],
 	"objectives": [
-			{"name": "obj", "goal": "minimize"}
+			{"name": "obj", "goal": "min"}
 		]
 }
