@@ -57,7 +57,8 @@ class SampleSelector(Logger):
         #print('SAMPLES : ', samples)
 
         # NOTE: this is just a patch for the dyeopt project
-        if self.all_options.shape[0]<sampling_param_values.shape[0]:
+
+        if len(self.all_options)<len(sampling_param_values):
             #pprint('HERE!!')
             # accept duplicates on the final batch, this is fine for now
             is_batch_duplicate = False
