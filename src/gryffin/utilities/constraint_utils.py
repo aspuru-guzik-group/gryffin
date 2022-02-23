@@ -46,8 +46,9 @@ def estimate_feas_fraction(known_constraints, config, resolution=100):
         if param['type'] == 'continuous':
             sample = np.linspace(param['specifics']['low'], param['specifics']['high'], resolution)
         elif param['type'] == 'discrete':
-            num_options = int((param['specifics']['low']-param['specifics']['high'])/param['specific']['stride']+1)
-            sample = np.linspace(param['specifics']['low'], param['specifics']['high'], num_options)
+            # num_options = int((param['specifics']['low']-param['specifics']['high'])/param['specific']['stride']+1)
+            # sample = np.linspace(param['specifics']['low'], param['specifics']['high'], num_options)
+            sample = param['specifics']['options']
         elif param['type'] == 'categorical':
             sample = param['specifics']['options']
         else:
