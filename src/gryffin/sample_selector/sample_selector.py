@@ -14,6 +14,8 @@ class SampleSelector(Logger):
 
     def __init__(self, config, all_options=None):
         self.config = config
+        # factor modulating the density-based penalty in sample selector
+        self.dist_param = self.config.get('dist_param')
         self.all_options = all_options
         self.verbosity = self.config.get('verbosity')
         Logger.__init__(self, 'SampleSelector', verbosity=self.verbosity)
@@ -109,7 +111,7 @@ class SampleSelector(Logger):
     def _select(self, num_batches, proposals, eval_acquisition, sampling_param_values, obs_params):
         num_obs = len(obs_params)
         feature_ranges = self.config.feature_ranges
-        char_dists = feature_ranges / float(num_obs)**0.5
+        char_dists = feature_ranges / float(num_obs)**self.dist_param
 
         exp_objs = self._compute_exp_objs(proposals, eval_acquisition, sampling_param_values)
 

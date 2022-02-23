@@ -20,6 +20,7 @@ default_general_configuration = {
     # fca = feasibility-constrained acquisition
     'feas_approach':          'fwa',
     'feas_param':             1,  # sensitivity to feasibility constraints
+    'dist_param':             0.5,   # factor modulating density-based penalty in sample selector
     'random_seed':            None,  # None for random, or set random seed to a value
     'save_database':          False,
     'acquisition_optimizer':  'adam',  # options are "adam" or "genetic"
