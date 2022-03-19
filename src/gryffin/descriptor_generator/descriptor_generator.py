@@ -1,4 +1,4 @@
-#!/usr/bin/env python 
+#!/usr/bin/env python
 
 __author__ = 'Florian Hase'
 
@@ -20,15 +20,6 @@ class DescriptorGenerator(Logger):
         self.config        = config
         self.is_generating = False
 
-        # define registers
-        self.auto_gen_descs     = {}
-        self.comp_corr_coeffs   = {}
-        self.gen_descs_cov      = {}
-        self.min_corrs          = {}
-        self.reduced_gen_descs  = {}
-        self.weights            = {}
-        self.sufficient_indices = {}
-
         self.obs_params = None
         self.obs_objs = None
         self.gen_feature_descriptors = None
@@ -41,7 +32,7 @@ class DescriptorGenerator(Logger):
         else:
             self.num_cpus = int(self.config.get('num_cpus'))
 
-    def _generate_single_descriptors(self, feature_index, result_dict=None):
+    def _generate_single_descriptors(self, feature_index, result_dict=None, weights_dict=None, sufficient_indices_dict=None):
         """Parse description generation for a specific parameter, ad indicated by the feature_index"""
 
         self.log('running one optimization process', 'DEBUG')
@@ -85,21 +76,30 @@ class DescriptorGenerator(Logger):
         # run the generation process
         network_results = run_generator_network(descs=descs, objs=objs, grid_descs=feature_descriptors[feature_index])
 
-        # This were saved only for later access
-        #self.min_corrs[feature_index]          = network_results['min_corrs']
-        #self.auto_gen_descs[feature_index]     = network_results['auto_gen_descs']
-        #self.comp_corr_coeffs[feature_index]   = network_results['comp_corr_coeffs']
-        #self.gen_descs_cov[feature_index]      = network_results['gen_descs_cov']
-        #self.reduced_gen_descs[feature_index]  = network_results['reduced_gen_descs']
-        #self.weights[feature_index]            = network_results['weights']
-        #self.sufficient_indices[feature_index] = network_results['sufficient_indices']
+        # for key in network_results.keys():
+        #     print(key, network_results[key].shape)
+
+        # network_results consists of  -->
+        # min_corrs: 1. / np.sqrt(self.num_samples - 2) SHAPE: (1,)
+        # comp_corr_coeffs : correlations between the generated descriptors and the observed objectives SHAPE: (num_desc,)
+        # gen_descs_cov: covariance of the generated descritptors SHAPE: (num_desc, num_desc)
+        # weights: weights of the preceptron model SHAPE: (num_desc, num_desc)
+        # auto_gen_descs: generated descriptors for each categorical option SHAPE (num_options, num_desc)
+        # sufficient_indices: the descriptor indices for which the absolute value of the correlation is larger than the minimium correlation  (num_sufficient_indices,)
+        # reduced_gen_descs: auto_gen_descs with only the sufficient_indices kept SHAPE (num_options, num_sufficient_indices)
+
 
         if result_dict is not None:
             result_dict[feature_index] = deepcopy(network_results['reduced_gen_descs'])
+        if weights_dict is not None:
+            weights_dict[feature_index] = deepcopy(network_results['weights'])
+        if sufficient_indices_dict is not None:
+            sufficient_indices_dict[feature_index] = deepcopy(network_results['sufficient_indices'])
 
         return network_results['reduced_gen_descs']
 
-    def _generate_some_descriptors(self, feature_indices, result_dict):
+
+    def _generate_some_descriptors(self, feature_indices, result_dict, weights_dict, sufficient_indices_dict):
         """Used by generate_descriptors when running in parallel"""
 
         # print some info
@@ -109,7 +109,9 @@ class DescriptorGenerator(Logger):
 
         # run
         for feature_index in feature_indices:
-            _ = self._generate_single_descriptors(feature_index=feature_index, result_dict=result_dict)
+            _ = self._generate_single_descriptors(
+                feature_index=feature_index, result_dict=result_dict, weights_dict=weights_dict, sufficient_indices_dict=sufficient_indices_dict,
+            )
 
     @staticmethod
     def _custom_array_split(feature_types, feature_indices, num_splits):
@@ -152,12 +154,18 @@ class DescriptorGenerator(Logger):
             # splits indices in such a way to evenly distribute categorical vars across processes
             feature_indices_splits = self._custom_array_split(feature_types, feature_indices, num_splits)
 
-            result_dict = Manager().dict()  # store results in share memory dict
+            # store results in share memory dict
+            self.weights = Manager().dict()
+            self.sufficient_indices = Manager().dict()
+            result_dict = Manager().dict()
             processes = []  # store parallel processes here
 
             for feature_indices_split in feature_indices_splits:
                 # run optimization
-                process = Process(target=self._generate_some_descriptors, args=(feature_indices_split, result_dict))
+                process = Process(
+                    target=self._generate_some_descriptors,
+                    args=(feature_indices_split, result_dict, self.weights, self.sufficient_indices),
+                )
                 processes.append(process)
                 process.start()
 
@@ -169,6 +177,8 @@ class DescriptorGenerator(Logger):
         # Serial descriptor generation
         # ----------------------------
         else:
+            self.weights = {}
+            self.sufficient_indices = {}
             result_dict = {}
             for feature_index in feature_indices:
                 gen_descriptor = self._generate_single_descriptors(feature_index=feature_index, result_dict=None)
@@ -209,6 +219,7 @@ class DescriptorGenerator(Logger):
             return summary
 
         # If we have generated new descriptors
+
         for feature_index in range(len(self.config.feature_options)):
 
             if feature_types[feature_index] == 'continuous':
@@ -220,6 +231,7 @@ class DescriptorGenerator(Logger):
             if weights is None:
                 continue
             if len(sufficient_indices) == 0:
+                # we have no descriptors for which the correlations exceed the minimum correlation
                 continue
 
             # normalize weights
@@ -240,9 +252,7 @@ class DescriptorGenerator(Logger):
                 relevant_given_descriptors = sorting_indices[include_indices]
                 desc_summary_dict['relevant_given_descriptors']     = relevant_given_descriptors
                 desc_summary_dict['given_descriptor_contributions'] = weights[new_desc_index]
-                contribs['descriptor_%d' % new_desc_index] = copy.deepcopy(desc_summary_dict)
-            summary['feature_%d' % feature_index] = copy.deepcopy(contribs)
+                contribs[f'descriptor_{new_desc_index}'] = copy.deepcopy(desc_summary_dict)
+            summary[f'feature_{feature_index}'] = copy.deepcopy(contribs)
 
         return summary
-
-
