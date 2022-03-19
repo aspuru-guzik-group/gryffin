@@ -553,3 +553,15 @@ class Gryffin(Logger):
             acquisition_values[lambda_value] = np.array(acquisition_values_at_l)
 
         return acquisition_values
+
+
+    def get_descriptor_summary_regression(self):
+        ''' Retrieve a summary of descriptor relavances for the regression surrogate
+        '''
+        return self.descriptor_generator.get_summary()
+
+
+    def get_descriptor_summary_feasibility(self):
+        ''' Retrieve a summary of the descriptor relavances for the feasibility surrogate
+        '''
+        return self.descriptor_generator_feas.get_summary()
