@@ -1,14 +1,14 @@
-#!/usr/bin/env python 
+#!/usr/bin/env python
 
 #==========================================================================
 
-import numpy as np 
+import numpy as np
 
 from gryffin import Gryffin
 
-# choose the synthetic function from 
-# ... Dejong: 
-# ... 
+# choose the synthetic function from
+# ... Dejong:
+# ...
 from benchmark_functions import Dejong as Benchmark
 from category_writer     import CategoryWriter
 
@@ -36,8 +36,8 @@ gryffin = Gryffin(CONFIG_FILE)
 #==========================================================================
 # plotting instructions (optional)
 
-import matplotlib.pyplot as plt 
-import seaborn as sns 
+import matplotlib.pyplot as plt
+import seaborn as sns
 sns.set_context('paper', font_scale = 1.5)
 
 colors = sns.color_palette('RdYlBu', 8)
@@ -83,7 +83,7 @@ for _ in range(BUDGET):
 	levels = np.linspace(np.amin(Z), np.amax(Z), 256)
 	ax0.imshow(Z, plt.cm.bone_r, origin = 'lower', aspect = 'auto')
 
-	# plotting surrogates	
+	# plotting surrogates
 	kernel              = gryffin.bayesian_network.kernel_contribution
 	sampling_parameters = gryffin.bayesian_network.sampling_param_values
 
@@ -101,7 +101,7 @@ for _ in range(BUDGET):
 #	ax1.contourf(X, Y, Z, cmap = plt.cm.bone_r, levels = levels)
 	ax1.imshow(Z, plt.cm.bone_r, origin = 'lower', aspect = 'auto')
 
-	# plotting surrogates	
+	# plotting surrogates
 	Z    = np.zeros((len(x_domain), len(y_domain)))
 	for x_index, x_element in enumerate(x_domain):
 		for y_index, y_element in enumerate(y_domain):
@@ -117,7 +117,7 @@ for _ in range(BUDGET):
 		ax0.plot(int(obs['param_0'][0][2:]), int(obs['param_1'][0][2:]), marker = 'o', color = colors[obs_index % len(colors)], markersize = 5)
 		ax1.plot(int(obs['param_0'][0][2:]), int(obs['param_1'][0][2:]), marker = 'o', color = colors[obs_index % len(colors)], markersize = 5)
 		ax2.plot(int(obs['param_0'][0][2:]), int(obs['param_1'][0][2:]), marker = 'o', color = colors[obs_index % len(colors)], markersize = 5)
-	
+
 	for obs_index, obs in enumerate(new_observations):
 		ax0.plot(int(obs['param_0'][0][2:]), int(obs['param_1'][0][2:]), marker = 'D', color = colors[obs_index % len(colors)], markersize = 8)
 		ax1.plot(int(obs['param_0'][0][2:]), int(obs['param_1'][0][2:]), marker = 'D', color = colors[obs_index % len(colors)], markersize = 8)

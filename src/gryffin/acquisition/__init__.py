@@ -1,5 +1,4 @@
+#!/usr/bin/env python
 
-
-from .parameter_optimizer import ParameterOptimizer
-from .acquisition         import Acquisition
+from .acquisition import Acquisition
 
