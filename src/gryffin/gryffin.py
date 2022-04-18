@@ -66,8 +66,9 @@ class Gryffin(Logger):
             # no known constriants, assume full domain is feasibile
             self.frac_feas = 1.
 
+
         # if param space is fully categorical, maintain list of all options
-        if np.all([p['type']=='categorical' for p in self.config.parameters]):
+        if np.all([p['type'] in ['categorical', 'discrete'] for p in self.config.parameters]):
             self.all_options = compute_constrained_cartesian(self.known_constraints, self.config)
         else:
             self.all_options = None
