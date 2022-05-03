@@ -1,36 +1,53 @@
+# This workflow will install Python dependencies and run tests
 
-name: continuous_integration
+name: build
 
-on: [pull_request]
+on:
+  push:
+    branches:
+    - master
+    - feas
+  pull_request:
+    branches:
+    - master
+    - feas
 
 jobs:
-  build: 
+  build:
 
-    runs-on: ubuntu-latest 
-
-    strategy: 
-      matrix: 
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         python-version: [3.7]
 
-    steps: 
-      - uses: actions/checkout@v2
-   
-      - name: setting up python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
-        with: 
-          python-version: ${{ matrix.python-version }}
+    steps:
+    - uses: actions/checkout@v2
 
-      - name: install required packages (python ${{ matrix.python-version }})
-        run: | 
-          pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install -e .
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
 
-      - name: run unit tests (python ${{ matrix.python-version }})
-        run: |
-          pip install pytest
-          pip install pytest-cov
-          pip install pytest-randomly
-          pytest --cov=gryffin --cov-fail-under=5
+    - name: Install dependencies
+      run: |
+        pip install --upgrade pip setuptools wheel
+        pip install --upgrade pytest
+        pip install codecov
+        pip install pytest
+        pip install pytest-cov
+    - name: Install package
+      run: |
+        pip install -e .
 
+    - name: Test with pytest
+      run: |
+        pytest --cov=gryffin --cov-fail-under=5 --cov-report=xml
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v1
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        file: ./coverage.xml
+        flags: unittests
+        fail_ci_if_error: false
+        verbose: true
