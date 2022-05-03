@@ -1,3 +1,6 @@
+[![build](https://github.com/aspuru-guzik-group/gryffin/actions/workflows/continuous-integration.yml/badge.svg)](https://github.com/aspuru-guzik-group/gryffin/actions/workflows/continuous-integration.yml)
+
+
 ## Gryffin: An algorithm for Bayesian optimization for categorical variables informed by physical intuition with applications to chemistry
 
 Gryffin is an open source algorithm which implements Bayesian optimization for categorical variables and mixed categorical-continuous parameter domains [1].
