@@ -4,7 +4,7 @@
 __author__ = 'Florian Hase, Matteo Aldeghi'
 
 import versioneer
-from setuptools import setup
+from setuptools import setup, find_packages
 from distutils.extension import Extension
 import numpy as np
 
@@ -45,7 +45,7 @@ setup(name='matter-gryffin',
       author='Florian Hase, Matteo Aldeghi',
       author_email='matteo.aldeghi@vectorinstitute.ai',
       license='Apache License 2.0',
-      packages=['gryffin'],
+      packages=find_packages('./src'),
       package_dir={'': 'src'},
       zip_safe=False,
       tests_require=['pytest'],
