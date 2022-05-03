@@ -13,7 +13,7 @@ Gryffin can be installed from source.
 ```
 git clone https://github.com/aspuru-guzik-group/gryffin.git
 cd gryffin 
-python setup.py install
+pip install .
 ```
 
 ### Reference 
