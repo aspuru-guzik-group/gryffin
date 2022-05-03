@@ -8,7 +8,7 @@ on:
     - master
     - feas
     - develop
-    - bugfix/missing_dependencies
+    - bugfix/missing-dependencies
   pull_request:
     branches:
     - master
