@@ -21,22 +21,30 @@ import numpy as np
 import pandas as pd
 import time
 from contextlib import nullcontext
+from typing import Callable
 
 
 class Gryffin(Logger):
 
     def __init__(
         self,
-        config_file=None,
-        config_dict=None,
-        known_constraints=None,
-        frac_feas=None,
-        silent=False,
+        config_file: str = None,
+        config_dict: dict = None,
+        known_constraints: Callable[[], bool] = None,
+        frac_feas = None,
+        silent: bool = False,
     ):
-        """
-        silent : bool
-            whether to suppress all standard output. If True, the ``verbosity`` settings in ``config`` will be
-            overwritten. Default is False.
+        """ Initialize Gryffin from a config dict or file.
+
+        A config file or dict must be provided. If both a config file and a config dict
+        are provided, the file will be ignored. 
+
+        :param config_file: Gryffin config filepath
+        :param config_dict: Gryffin config dict
+        :param known_constraints: Function imposing contraints on the Gryffin search space.
+        :param frac_feas: Feasability fraction TODO: Not sure what this is for
+        :param silent: Suppress all standard output. If True, the ``verbosity`` settings 
+            in ``config`` will be overwritten. Default is False.
         """
 
         # parse configuration
