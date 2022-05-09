@@ -21,7 +21,7 @@ import numpy as np
 import pandas as pd
 import time
 from contextlib import nullcontext
-from typing import Callable
+from typing import Callable, Union, List, Dict
 
 
 class Gryffin(Logger):
@@ -29,11 +29,11 @@ class Gryffin(Logger):
     def __init__(
         self,
         config_file: str = None,
-        config_dict: dict = None,
-        known_constraints: Callable[[], bool] = None,
+        config_dict: Dict = None,
+        known_constraints: Callable[[Dict], bool] = None,
         frac_feas = None,
         silent: bool = False,
-    ):
+    ) -> None:
         """ Initialize Gryffin from a config dict or file.
 
         A config file or dict must be provided. If both a config file and a config dict
@@ -115,13 +115,10 @@ class Gryffin(Logger):
             from .database_handler import DatabaseHandler
             self.db_handler = DatabaseHandler(self.config)
 
-    def build_surrogate(self, observations=None):
+    def build_surrogate(self, observations: List = None) -> None:
         """Builds surrogate models of Gryffin without proposing any new experiments.
 
-        Parameters
-        ----------
-        observations : list
-            List of dictionaries with the previous observations.
+        :param observations: List of dictionaries with the previous observations
         """
         self.log('', 'INFO')
         self.log_chapter("Gryffin", line='=', style='bold #d9ed92')
@@ -197,26 +194,18 @@ class Gryffin(Logger):
         self.log_chapter("End", line='=', style='bold #d9ed92')
         self.log('', 'INFO')
 
-    def recommend(self, observations=None, sampling_strategies=None, num_batches=None, as_array=False):
+    def recommend(self, observations: List = None, sampling_strategies: List = None, num_batches: int = None, as_array: bool = False) -> List:
         """Recommends the next set(s) of parameters based on the provided observations.
 
-        Parameters
-        ----------
-        observations : list
-            List of dictionaries with the previous observations.
-        sampling_strategies : list
-            List of the chosen sampling strategies. When providing this argument, the config setting ``strategies``
-            will be ignored.
-        num_batches : int
-            Number of parameter batches requested. When providing this argument, the config setting ``batches`` will
-            be ignored.
-        as_array : bool
-            Whether to return suggested samples as numpy arrays instead of a list of dictionaries. Default is False.
+        :param observations: List of dictionaries with the previous observations.
+        :param sampling_strategies: List of the chosen sampling strategies. When providing 
+            this argument, the config setting ``strategies`` will be ignored.
+        :param num_batches: Number of parameter batches requested. When providing this argument, 
+            the config setting ``batches`` will be ignored.
+        :param as_array: Whether to return suggested samples as numpy arrays instead of a list 
+            of dictionaries. Default is False.
 
-        Returns
-        -------
-        params : list
-            List of dictionaries with the suggested parameters.
+        :return params: List of dictionaries with the suggested parameters.
         """
         self.log('', 'INFO')
         self.log_chapter("Gryffin", line='=', style='bold #d9ed92')
@@ -426,20 +415,14 @@ class Gryffin(Logger):
             list_of_dicts.append(d)
         return list_of_dicts
 
-    def get_regression_surrogate(self, params):
-        """
-        Retrieve the surrogate model.
+    def get_regression_surrogate(self, params: Union[List, pd.DataFrame]):
+        """Retrieve the surrogate model.
 
-        Parameters
-        ----------
-        params : list or DataFrame
-            list of dicts with input parameters to evaluate. Alternatively it can also be a pandas DataFrame where
-            each column name corresponds to one of the input parameters in Gryffin.
-
-        Returns
-        -------
-        y_pred : list
-            surrogate model evaluated at the locations defined in params.
+        :param params: List of dicts with input parameters to evaluate. Alternatively it 
+            can also be a pandas DataFrame where each column name corresponds to one of 
+            the input parameters in Gryffin.
+        
+        :return y_pred: Surrigate model evaluated at the locations defined in params.
         """
         if isinstance(params, pd.DataFrame):
             params = self._df_to_list_of_dicts(params)
@@ -474,23 +457,18 @@ class Gryffin(Logger):
 
         return y_preds
 
-    def get_feasibility_surrogate(self, params, threshold=None):
-        """
-        Retrieve the feasibility surrogate model.
+    def get_feasibility_surrogate(self, params: Union[List, pd.DataFrame], threshold: float = None) -> List:
+        """Retrieve the feasibility surrogate model.
 
-        Parameters
-        ----------
-        params : list or DataFrame
-            list of dicts with input parameters to evaluate. Alternatively it can also be a pandas DataFrame where
-            each column name corresponds to one of the input parameters in Gryffin.
-        threshold : float
-            the threshold used to classify whether a set of parameters is feasible or not. If ``None``, the probability
-            of feasibility is returned instead of a binary True/False (feasible/infeasible) output. Default is None.
+        :param params: List of dicts with input parameters to evaluate. Alternatively it 
+            can also be a pandas DataFrame where each column name corresponds to one of 
+            the input parameters in Gryffin.
+        :param threshold: Threshold used to classify whether a set of parameters is feasible or not. 
+            If ``None``, the probability of feasibility is returned instead of a binary True/False 
+            (feasible/infeasible) output. Default is None.
 
-        Returns
-        -------
-        y_pred : list
-            surrogate model evaluated at the locations defined in params.
+        :return y_pred: Surrogate model evaluated at the locations defined in params.
+
         """
         if isinstance(params, pd.DataFrame):
             params = self._df_to_list_of_dicts(params)
@@ -506,22 +484,16 @@ class Gryffin(Logger):
             y_preds.append(y_pred)
         return np.array(y_preds)
 
-    def get_kernel_density_estimate(self, params, separate_kwn_ukwn=False):
-        """
-        Retrieve the feasibility surrogate model.
+    def get_kernel_density_estimate(self, params: Union[List, pd.DataFrame], separate_kwn_ukwn: bool = False) -> List:
+        """Retrieve the feasibility surrogate model.
+        
+        :param params: List of dicts with input parameters to evaluate. Alternatively it 
+            can also be a pandas DataFrame where each column name corresponds to one of 
+            the input parameters in Gryffin.
+        :param separate_kwn_ukwn:  Return the density for all samples, or separate the density for feasible/infeasible samples.
+            
+        :return y_pred: Kernel density estimates.
 
-        Parameters
-        ----------
-        params : list or DataFrame
-            list of dicts with input parameters to evaluate. Alternatively it can also be a pandas DataFrame where
-            each column name corresponds to one of the input parameters in Gryffin.
-        separate_kwn_ukwn : bool
-            whether to return the density for all samples, or to separate the density for feasible/infeasible samples.
-
-        Returns
-        -------
-        y_pred : list
-            kernel density estimates.
         """
         if isinstance(params, pd.DataFrame):
             params = self._df_to_list_of_dicts(params)
@@ -541,8 +513,7 @@ class Gryffin(Logger):
         return np.array(y_preds)
 
     def get_acquisition(self, X):
-        """
-        Retrieve the last acquisition functions for a specific lambda value.
+        """Retrieve the last acquisition functions for a specific lambda value.
         """
         if isinstance(X, pd.DataFrame):
             X = self._df_to_list_of_dicts(X)
