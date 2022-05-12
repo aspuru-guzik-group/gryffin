@@ -1,8 +1,9 @@
 API Reference
 ==================
 
-.. currentmodule:: src/gryffin
+.. currentmodule:: gryffin
 
-Core Functions
+Gryffin Object
 ------------------------
-.. autofunction:: gryffin.recommend
+.. autoclass:: Gryffin
+    :members:
