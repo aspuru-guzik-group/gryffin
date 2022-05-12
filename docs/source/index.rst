@@ -17,6 +17,7 @@ Gryffin: Bayesian Optimization of Continuous and Categorical Variables
 
 Installation
 --------
+hello world
 
 Citation
 --------
