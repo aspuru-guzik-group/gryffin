@@ -9,17 +9,6 @@ Gryffin: Bayesian Optimization of Continuous and Categorical Variables
 **Gryffin** is a Python tool that ...
 
 
-.. toctree::
-   :maxdepth: 1
-
-   install
-   configuration
-   parameters
-   objectives
-   cli
-   examples/index
-
-
 Citation
 --------
 If you use **Gryffin** in scientific publications, please cite the following papers depending on which aspects of the
