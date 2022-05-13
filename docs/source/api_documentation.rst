@@ -1,7 +1,7 @@
 API Reference
 ==================
 
-.. currentmodule:: gryffin
+
 
 Gryffin
 -------
