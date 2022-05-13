@@ -13,7 +13,7 @@ Requirements
 Installation
 ------------
 
-To install ``gryffin`` from `PyPI <https://pypi.org/project/gryffin/>`:
+To install ``gryffin`` from `PyPI <https://pypi.org/project/gryffin/>`_:
 
 .. code-block:: console
 
