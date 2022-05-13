@@ -61,8 +61,6 @@ This is a minimalist example of Gryffin in action.
         observations.append(hyper_parameters)
 
 
-Descriptors
------------
 
 
 

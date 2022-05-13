@@ -10,7 +10,9 @@ Welcome to **Gryffin**!
 
 Designing functional molecules and advanced materials requires complex design choices: tuning
 continuous process parameters such as temperatures or flow rates, while simultaneously selecting
-catalysts or solvents. To date, the development of data-driven experiment planning strategies for
+catalysts or solvents. 
+
+To date, the development of data-driven experiment planning strategies for
 autonomous experimentation has largely focused on continuous process parameters despite the urge
 to devise efficient strategies for the selection of categorical variables. Here, we introduce Gryffin,
 a general purpose optimization framework for the autonomous selection of categorical variables
@@ -29,6 +31,7 @@ Features
    :caption: Contents
 
    getting_started
+   configuration
    tutorial
    api_documentation
    cli_documentation
