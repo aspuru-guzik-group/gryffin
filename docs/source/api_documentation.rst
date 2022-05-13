@@ -3,7 +3,8 @@ API Reference
 
 .. currentmodule:: gryffin
 
-Gryffin Object
+Gryffin
 ------------------------
 .. autoclass:: Gryffin
     :members:
+

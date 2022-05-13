@@ -6,14 +6,23 @@ Gryffin: Bayesian Optimization of Continuous and Categorical Variables
 .. image:: https://codecov.io/gh/aspuru-guzik-group/gryffin/branch/master/graph/badge.svg?token=pHQ8Z50qf8
     :target: https://codecov.io/gh/aspuru-guzik-group/gryffin
 
-**Gryffin** is a Python tool that ...
+**Gryffin** is a Python tool that 
 
 .. toctree::
    :maxdepth: 2
    :caption: Contents
 
-   gryffin_api
+   getting_started
    tutorial
+   api_documentation
+   cli_documentation
+
+Indices and tables
+==================
+
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`
 
 Installation
 --------
