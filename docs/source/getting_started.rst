@@ -21,7 +21,7 @@ To install ``gryffin`` from `PyPI <https://pypi.org/project/gryffin/>`:
 
 To install ``gryffin`` from source:
 
-.. code-block::
+.. code-block:: console
 
     $ git clone git@github.com:aspuru-guzik-group/gryffin.git
     $ cd gryffin
@@ -34,6 +34,7 @@ This is a minimalist example of Gryffin in action.
 
 
 .. code-block:: python
+
     from gryffin import Gryffin
     import experiment
 
@@ -58,6 +59,13 @@ This is a minimalist example of Gryffin in action.
 	    hyper_parameters['obj'] = merit
 
         observations.append(hyper_parameters)
+
+
+Descriptors
+-----------
+
+
+
 
 
 
