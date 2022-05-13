@@ -4,25 +4,68 @@ Getting Started
 Integrate Gryffin into your project quickly!
 
 
+Requirements
+------------
+
+* Python version >= 3.7
+
+
 Installation
 ------------
 
-Install Gryffin via pip with the command:
+To install ``gryffin`` from `PyPI <https://pypi.org/project/gryffin/>`:
 
 .. code-block:: console
 
     $ pip install gryffin
 
-If you are installing from source, simply run pip install from the root directory:
+To install ``gryffin`` from source:
 
 .. code-block::
 
-    /path/to/gryffin/$  pip install .
+    $ git clone git@github.com:aspuru-guzik-group/gryffin.git
+    $ cd gryffin
+    $ pip install .
 
-
+Example Usage 
 -------------
 
-Gryffin is configured by pro
+This is a minimalist example of Gryffin in action.
+
+
+.. code-block:: python
+    from gryffin import Gryffin
+    import experiment
+
+    # load config
+    config = {
+    
+    }
+
+    # initialize gryffin
+    gryffin = Gryffin(
+        config_dict=config
+    )
+
+    observations = [] 
+    for iter in range(ITER_BUDGET):
+
+        # query gryffin for new hyper-parameters
+    	hyper_parameters  = gryffin.recommend(observations=observations)
+
+        # evaluate the proposed parameters
+        merit = experiment.run(hyper_paramters)
+	    hyper_parameters['obj'] = merit
+
+        observations.append(hyper_parameters)
+
+
+
+
+
+
+
+
 
 
 
