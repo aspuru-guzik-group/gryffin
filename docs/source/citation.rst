@@ -1,5 +1,6 @@
 Citation
 --------
+
 If you use **Gryffin** in scientific publications, please cite the following papers depending on which aspects of the
 code you used.
 
