@@ -52,11 +52,11 @@ This is a minimalist example of Gryffin in action.
     for iter in range(ITER_BUDGET):
 
         # query gryffin for new hyper-parameters
-    	hyper_parameters  = gryffin.recommend(observations=observations)
+        hyper_parameters  = gryffin.recommend(observations=observations)
 
         # evaluate the proposed parameters
         merit = experiment.run(hyper_paramters)
-	    hyper_parameters['obj'] = merit
+        hyper_parameters['obj'] = merit
 
         observations.append(hyper_parameters)
 

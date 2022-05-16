@@ -32,7 +32,91 @@ Gryffin exposes 5 configurable modules, `general`, `database`, `model`, `paramet
     .. code-block:: python
 
         config = {
+            "general": {},
+            "database": {},
+            "model": {},
+            "parameters": [],
+            "objectives": []  
             
         }
+
+General Configuration
+---------------------
+
+.. list-table::
+
+    * - Parameter
+      - Example
+
+Database Configuration
+----------------------
+
+.. list-table::
+
+    * - Parameter
+      - Example
+
+Model Configuration
+-------------------
+
+.. list-table::
+
+    * - Parameter
+      - Example
+
+Parameters Configuration
+------------------------
+
+Gryffin supports 3 parameter types, `continuous`, `discrete` and `categorical`. Each parameters is configured as elements of the root level parameters list:
+
+.. code-example:: JSON
+    {
+        "parameters": [
+                {},      
+        ]
+    }
+
+Continuous Parameters:
+
+.. list-table::
+
+    * - Parameter
+      - Example
+    * - name
+      - Explanation and example
+    * - type 
+      - Enum, categorical, continuous, 
+
+Discrete Parameters:
+
+.. list-table::
+
+    * - Parameter
+      - Example
+    * - name
+      - Explanation and example
+    * - type 
+      - Enum, categorical, continuous, 
+
+Categorical Parameters:
+
+.. list-table::
+
+    * - Parameter
+      - Example
+    * - name
+      - Explanation and example
+    * - type 
+      - Enum, categorical, continuous, 
+
+
+Objective Configuration
+-----------------------
+
+.. list-table::
+
+    * - Parameter
+      - Example
+
 
 

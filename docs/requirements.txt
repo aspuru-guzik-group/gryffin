@@ -1,4 +1,3 @@
 nbsphinx
 sphinx-autodoc-typehints
 sphinx-rtd-theme
-sphinxcontrib-osexample
