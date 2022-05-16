@@ -38,7 +38,8 @@ extensions = [
     "sphinx_rtd_theme",
     "nbsphinx",
     "sphinx.ext.mathjax",
-    "sphinx.ext.viewcode"
+    "sphinx.ext.viewcode",
+    "sphinxcontrib.osexample"
 ]
 autodoc_mock_imports = ["gryffin.bayesian_network"]
 
