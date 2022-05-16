@@ -3,15 +3,14 @@ Configuration
 
 Gryffin provides a flexible configuration interface, it accepts either a path to a config.json file or a python dict. 
 
-.. example-code::
 
-    .. code-block:: python
-        
-        gryffin = Gryffin(config_file='/path/to/your/config.json')
+.. code-block:: python
+    
+    gryffin = Gryffin(config_file='/path/to/your/config.json')
 
-    .. code-block:: python
+.. code-block:: python
 
-        gryffin = Gryffin(config_dict={})
+    gryffin = Gryffin(config_dict={})
 
 
 Gryffin exposes 5 configurable modules, `general`, `database`, `model`, `parameters` and `objectives`.
@@ -66,9 +65,9 @@ Model Configuration
 Parameters Configuration
 ------------------------
 
-Gryffin supports 3 parameter types, `continuous`, `discrete` and `categorical`. Each parameters is configured as elements of the root level parameters list:
+Gryffin supports 3 parameter types, `continuous`, `discrete` and `categorical`. Each parameter is configured as elements of the root level parameters list:
 
-.. code-black:: JSON
+.. code-block:: JSON
     {
         "parameters": [
                 {},      
@@ -135,7 +134,7 @@ Categorical Parameters:
       - Definition
       - Example [type]
     * - name 
-      - Human-readable parmater name 
+      - Human-readable parameter name 
       - "Your-parameter-name" [string]
     * - type 
       - Selects parameter type, either 'continuous', 'discrete' or 'categorical'
@@ -146,16 +145,35 @@ Categorical Parameters:
     * - descriptors 
       - ToDo: Need explanation of descriptors
       - [List[]]
+    * - category_details
+      - ToDo: Need explanation of category_details
+      - [List[]]
 
 
 Objective Configuration
 -----------------------
 
+Gryffin supports 3 parameter types, `continuous`, `discrete` and `categorical`. Each parameter is configured as elements of the root level parameters list:
+
+.. code-black:: JSON
+    {
+        "parameters": [
+                {},      
+        ]
+    }
+
 .. list-table::
     :header-rows: 1
 
     * - Parameter
-      - Example
+      - Definition
+      - Example [type]
+    * - name 
+      - Human-readable objective name 
+      - "Your-parameter-name" [string]
+    * - goal 
+      - Optimization objective
+      - 
 
 
 
