@@ -78,41 +78,81 @@ Gryffin supports 3 parameter types, `continuous`, `discrete` and `categorical`. 
 Continuous Parameters:
 
 .. list-table::
+    :header-rows: 1
 
     * - Parameter
-      - Example
-    * - name
-      - Explanation and example
+      - Definition
+      - Example [type]
+    * - name 
+      - Human-readable parameter name 
+      - "Your-parameter-name" [string]
     * - type 
-      - Enum, categorical, continuous, 
+      - Selects parameter type, either 'continuous', 'discrete' or 'categorical'
+      - "continuous" [string]
+    * - low
+      - Lower bound of continuous parameter
+      - [float]
+    * - high
+      - Upper bound of continuous parameter. Note: high must be larger than low.
+      - [float]
+    * - periodic 
+      - Boolean flag indicating that the parameter is periodic
+      - [bool]
 
 Discrete Parameters:
 
 .. list-table::
+    :header-rows: 1
 
     * - Parameter
-      - Example
-    * - name
-      - Explanation and example
+      - Definition
+      - Example [type]
+    * - name 
+      - Human-readable parameter name 
+      - "Your-parameter-name" [string]
     * - type 
-      - Enum, categorical, continuous, 
+      - Selects parameter type, either 'continuous', 'discrete' or 'categorical'
+      - "discrete" [string]
+    * - low
+      - Lower bound of discrete parameter
+      - [float]
+    * - high
+      - Upper bound of discrete parameter. Note: high must be larger than low.
+      - [float]
+    * - options 
+      - ToDo: Need explanation of options
+      - [List[]]
+    * - descriptors 
+      - ToDo: Need explanation of descriptors
+      - [List[]]
 
 Categorical Parameters:
 
 .. list-table::
+    :header-rows: 1
 
     * - Parameter
-      - Example
-    * - name
-      - Explanation and example
+      - Definition
+      - Example [type]
+    * - name 
+      - Human-readable parmater name 
+      - "Your-parameter-name" [string]
     * - type 
-      - Enum, categorical, continuous, 
+      - Selects parameter type, either 'continuous', 'discrete' or 'categorical'
+      - "categorical" [string]
+    * - options 
+      - ToDo: Need explanation of options
+      - [List[]]
+    * - descriptors 
+      - ToDo: Need explanation of descriptors
+      - [List[]]
 
 
 Objective Configuration
 -----------------------
 
 .. list-table::
+    :header-rows: 1
 
     * - Parameter
       - Example
