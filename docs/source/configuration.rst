@@ -15,16 +15,14 @@ Gryffin provides a flexible configuration interface, it accepts either a path to
 
 Gryffin exposes 5 configurable modules, `general`, `database`, `model`, `parameters` and `objectives`.
 
-
-
 .. code-block:: JSON   
 
     {
         "general": {},
         "database": {},
         "model": {},
-        "parameters": {},
-        "objectives": {}
+        "parameters": [],
+        "objectives": []
     }
 
 .. code-block:: python
@@ -44,7 +42,59 @@ General Configuration
 .. list-table::
 
     * - Parameter
+      - Definition
       - Example
+    * - format
+      - 
+      - 
+    * - format
+      - 
+      - 
+    * - format
+      - 
+      - 
+    * - format
+      - 
+      - 
+    * - format
+      - 
+      - 
+    * - format
+      - 
+      - 
+    * - format
+      - 
+      - 
+    * - format
+      - 
+      - 
+    * - format
+      - 
+      - 
+    * - format
+      - 
+      - 
+    * - format
+      - 
+      - 
+    * - format
+      - 
+      - 
+    * - format
+      - 
+      - 
+    * - format
+      - 
+      - 
+    * - format
+      - 
+      - 
+    * - format
+      - 
+      - 
+    * - format
+      - 
+      - 
 
 Database Configuration
 ----------------------
@@ -52,15 +102,58 @@ Database Configuration
 .. list-table::
 
     * - Parameter
+      - Definition
       - Example
+    * - format
+      - 
+      - 
+    * - path
+      - 
+      - 
+    * - log_observations
+      - 
+      - 
+    * - log_runtimes
+      - 
+      - 
 
 Model Configuration
 -------------------
 
 .. list-table::
+    :header-rows: 1
 
     * - Parameter
+      - Definition
       - Example
+    * - num_epochs
+      - 
+      - 
+    * - learning_rate
+      - 
+      - 
+    * - num_draws
+      - 
+      - 
+    * - num_layers
+      - 
+      - 
+    * - hidden_shape
+      - 
+      - 
+    * - weight_loc
+      - 
+      - 
+    * - weight_scale
+      - 
+      - 
+    * - bias_loc
+      - 
+      - 
+    * - bias_scale
+      - 
+      -    
+    
 
 Parameters Configuration
 ------------------------
@@ -153,11 +246,11 @@ Categorical Parameters:
 Objective Configuration
 -----------------------
 
-Gryffin supports 3 parameter types, `continuous`, `discrete` and `categorical`. Each parameter is configured as elements of the root level parameters list:
+Each objective is configured as elements of the root level objective list:
 
-.. code-black:: JSON
+.. code-block:: JSON
     {
-        "parameters": [
+        "objectives": [
                 {},      
         ]
     }
@@ -173,7 +266,13 @@ Gryffin supports 3 parameter types, `continuous`, `discrete` and `categorical`. 
       - "Your-parameter-name" [string]
     * - goal 
       - Optimization objective
-      - 
+      - min/max [string]
+    * - tolerance
+      - Termination tolerance on parameter changes
+      - [float]
+    * - absolute
+      - Boolean flag indicating if objective is absolute
+      - [bool]
 
 
 
