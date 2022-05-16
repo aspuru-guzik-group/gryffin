@@ -17,28 +17,27 @@ Gryffin provides a flexible configuration interface, it accepts either a path to
 Gryffin exposes 5 configurable modules, `general`, `database`, `model`, `parameters` and `objectives`.
 
 
-.. example-code:: 
 
-    .. code-block:: JSON   
+.. code-block:: JSON   
 
-        {
-            "general": {},
-            "database": {},
-            "model": {},
-            "parameters": {},
-            "objectives": {}
-        }
+    {
+        "general": {},
+        "database": {},
+        "model": {},
+        "parameters": {},
+        "objectives": {}
+    }
 
-    .. code-block:: python
+.. code-block:: python
 
-        config = {
-            "general": {},
-            "database": {},
-            "model": {},
-            "parameters": [],
-            "objectives": []  
-            
-        }
+    config = {
+        "general": {},
+        "database": {},
+        "model": {},
+        "parameters": [],
+        "objectives": []  
+        
+    }
 
 General Configuration
 ---------------------
@@ -69,7 +68,7 @@ Parameters Configuration
 
 Gryffin supports 3 parameter types, `continuous`, `discrete` and `categorical`. Each parameters is configured as elements of the root level parameters list:
 
-.. code-example:: JSON
+.. code-black:: JSON
     {
         "parameters": [
                 {},      
