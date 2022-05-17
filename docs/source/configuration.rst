@@ -130,9 +130,10 @@ Parameters Configuration
 Gryffin supports 3 parameter types, `continuous`, `discrete` and `categorical`. Each parameter is configured as elements of the root level parameters list:
 
 .. code-block:: JSON
+
     {
         "parameters": [
-                {},      
+                {}   
         ]
     }
 
@@ -218,6 +219,7 @@ Objective Configuration
 Each objective is configured as elements of the root level objective list:
 
 .. code-block:: JSON
+  
     {
         "objectives": [
                 {},      
