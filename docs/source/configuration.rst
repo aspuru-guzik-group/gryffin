@@ -41,60 +41,42 @@ General Configuration
 
 .. list-table::
 
-    * - Parameter
+    * - Parameter [type]
       - Definition
-      - Example
-    * - format
-      - 
-      - 
-    * - format
-      - 
-      - 
-    * - format
-      - 
-      - 
-    * - format
-      - 
-      - 
-    * - format
-      - 
-      - 
-    * - format
-      - 
-      - 
-    * - format
-      - 
-      - 
-    * - format
-      - 
-      - 
-    * - format
-      - 
-      - 
-    * - format
-      - 
-      - 
-    * - format
-      - 
-      - 
-    * - format
-      - 
-      - 
-    * - format
-      - 
-      - 
-    * - format
-      - 
-      - 
-    * - format
-      - 
-      - 
-    * - format
-      - 
-      - 
-    * - format
-      - 
-      - 
+    * - num_cpus [int | string]
+      - Number of CPUs to use, options are a number or 'all' (default: 1)
+    * - boosted [bool]
+      - (default: True)
+    * - caching [bool]
+      - (default: True)
+    * - auto_desc_gen [bool]
+      - (default: False)
+    * - batches [int]
+      - (default: 1)
+    * - sampling_strategies [int]
+      - (default: 2)
+    * - softness [float]
+      - Softness of Chimera for multiobj optimizations (default: 0.001)
+    * - feas_approach [string]
+      - (default: 'fwa')
+    * - feas_param [int]
+      - Sensitivity to feasibility constraints (default: 1)
+    * - dist_param [float]
+      - Factor modulating density-based penalty in sample selector(default: 0.5)
+    * - random_seed [int]
+      - Set random seed (default: None)
+    * - save_database [bool]
+      - (default: False)
+    * - aquisition_optimizer [string]
+      - Set aquisition optimization method, options are 'adam' or 'genetic' (default: 'adam')
+    * - obj_transform [string]
+      - Options are None, 'sqrt', 'cbrt' or 'square' (default: 'sqrt')
+    * - num_random_samples [int]
+      - Number of samples per dimension to sample when optimizing acquisition function (default: 200)
+    * - reject_tol [int]
+      - Tolerance in rejection sampling, relevant when known constraints or fca used (default: 1000)
+    * - vebosity [int]
+      - Set verbosity level, from 0 to 5. 0: FATAL, 1: ERROR, 2: WARNING, 3: STATS, 4: INFO, 5: DEBUG (default: 4)
 
 Database Configuration
 ----------------------
@@ -129,12 +111,12 @@ Model Configuration
     * - num_epochs
       - 
       - 
-    * - learning_rate
-      - 
-      - 
+    * - learning_rate 
+      - BNN learning rate (default: 5e-2)
+      - [float]
     * - num_draws
       - 
-      - 
+      - [int]
     * - num_layers
       - 
       - 
@@ -223,9 +205,9 @@ Categorical Parameters:
 .. list-table::
     :header-rows: 1
 
-    * - Parameter
+    * - Parameter [type]
       - Definition
-      - Example [type]
+      - Example 
     * - name 
       - Human-readable parameter name 
       - "Your-parameter-name" [string]
