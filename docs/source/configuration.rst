@@ -40,6 +40,7 @@ General Configuration
 ---------------------
 
 .. list-table::
+    :header-rows: 1
 
     * - Parameter [type]
       - Definition
@@ -62,7 +63,7 @@ General Configuration
     * - feas_param [int]
       - Sensitivity to feasibility constraints (default: 1)
     * - dist_param [float]
-      - Factor modulating density-based penalty in sample selector(default: 0.5)
+      - Factor modulating density-based penalty in sample selector (default: 0.5)
     * - random_seed [int]
       - Set random seed (default: None)
     * - save_database [bool]
@@ -82,6 +83,7 @@ Database Configuration
 ----------------------
 
 .. list-table::
+    :header-rows: 1
 
     * - Parameter [type]
       - Definition
@@ -102,34 +104,24 @@ Model Configuration
 
     * - Parameter
       - Definition
-      - Example
-    * - num_epochs
-      - 
-      - 
-    * - learning_rate 
-      - BNN learning rate (default: 5e-2)
-      - [float]
-    * - num_draws
-      - 
-      - [int]
-    * - num_layers
-      - 
-      - 
-    * - hidden_shape
-      - 
-      - 
-    * - weight_loc
-      - 
-      - 
-    * - weight_scale
-      - 
-      - 
-    * - bias_loc
-      - 
-      - 
-    * - bias_scale
-      - 
-      -    
+    * - num_epochs [int]
+      - Number of training epochs (default: 2e3)
+    * - learning_rate [float]
+      - Model learning rate (default: 5e-2)
+    * - num_draws [int]
+      - (default: 1e3)
+    * - num_layers [int]
+      - Set the number of hidden layers in the model (default: 3)
+    * - hidden_shape [int]
+      - Set the dimensionality of the hidden layers (default: 6)
+    * - weight_loc [float]
+      - (default: 0.0)
+    * - weight_scale [float]
+      - (default: 1.0)
+    * - bias_loc [float]
+      - (default: 0.0)
+    * - bias_scale [float]
+      - (default: 1.0)
     
 
 Parameters Configuration
