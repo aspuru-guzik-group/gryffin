@@ -83,21 +83,16 @@ Database Configuration
 
 .. list-table::
 
-    * - Parameter
+    * - Parameter [type]
       - Definition
-      - Example
-    * - format
-      - 
-      - 
-    * - path
-      - 
-      - 
-    * - log_observations
-      - 
-      - 
-    * - log_runtimes
-      - 
-      - 
+    * - format [string]
+      - (default: 'sqlite')
+    * - path [int]
+      - (default: './SearchProgress')
+    * - log_observations [bool]
+      - (default: True)
+    * - log_runtimes [bool]
+      - (default: True)
 
 Model Configuration
 -------------------
