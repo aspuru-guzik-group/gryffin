@@ -186,7 +186,6 @@ Categorical Parameters:
       - Human-readable parameter name 
     * - type [string]
       - Selects parameter type, either 'continuous', 'discrete' or 'categorical'
-      - "categorical" [string]
     * - options [List[]]
       - ToDo: Need explanation of options
     * - descriptors [List[]]
