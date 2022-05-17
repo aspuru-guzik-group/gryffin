@@ -1,4 +1,7 @@
 Tutorials
 =========
 
-tutorials/perovskites.ipynb
+.. toctree::
+   :maxdepth: 1
+
+   tutorials/perovskites.ipynb
