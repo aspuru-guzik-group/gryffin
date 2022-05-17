@@ -142,51 +142,38 @@ Continuous Parameters:
 .. list-table::
     :header-rows: 1
 
-    * - Parameter
+    * - Parameter [type]
       - Definition
-      - Example [type]
-    * - name 
+    * - name [string]
       - Human-readable parameter name 
-      - "Your-parameter-name" [string]
-    * - type 
+    * - type [string]
       - Selects parameter type, either 'continuous', 'discrete' or 'categorical'
-      - "continuous" [string]
-    * - low
+    * - low [float]
       - Lower bound of continuous parameter
-      - [float]
-    * - high
+    * - high [float]
       - Upper bound of continuous parameter. Note: high must be larger than low.
-      - [float]
-    * - periodic 
+    * - periodic [bool]
       - Boolean flag indicating that the parameter is periodic
-      - [bool]
 
 Discrete Parameters:
 
 .. list-table::
     :header-rows: 1
 
-    * - Parameter
+    * - Parameter [type]
       - Definition
-      - Example [type]
-    * - name 
+    * - name [string]
       - Human-readable parameter name 
-      - "Your-parameter-name" [string]
-    * - type 
+    * - type [string]
       - Selects parameter type, either 'continuous', 'discrete' or 'categorical'
-      - "discrete" [string]
-    * - low
+    * - low [float]
       - Lower bound of discrete parameter
-      - [float]
-    * - high
-      - Upper bound of discrete parameter. Note: high must be larger than low.
-      - [float]
-    * - options 
+    * - high [float]
+      - Upper bound of continuous parameter. Note: high must be larger than low.
+    * - options [List[]]
       - ToDo: Need explanation of options
-      - [List[]]
-    * - descriptors 
+    * - descriptors [List[]]
       - ToDo: Need explanation of descriptors
-      - [List[]]
 
 Categorical Parameters:
 
@@ -195,22 +182,17 @@ Categorical Parameters:
 
     * - Parameter [type]
       - Definition
-      - Example 
-    * - name 
+    * - name [string]
       - Human-readable parameter name 
-      - "Your-parameter-name" [string]
-    * - type 
+    * - type [string]
       - Selects parameter type, either 'continuous', 'discrete' or 'categorical'
       - "categorical" [string]
-    * - options 
+    * - options [List[]]
       - ToDo: Need explanation of options
-      - [List[]]
-    * - descriptors 
+    * - descriptors [List[]]
       - ToDo: Need explanation of descriptors
-      - [List[]]
-    * - category_details
+    * - category_details [List[]]
       - ToDo: Need explanation of category_details
-      - [List[]]
 
 
 Objective Configuration
@@ -219,7 +201,7 @@ Objective Configuration
 Each objective is configured as elements of the root level objective list:
 
 .. code-block:: JSON
-  
+
     {
         "objectives": [
                 {},      
@@ -229,21 +211,16 @@ Each objective is configured as elements of the root level objective list:
 .. list-table::
     :header-rows: 1
 
-    * - Parameter
+    * - Parameter [type]
       - Definition
-      - Example [type]
-    * - name 
-      - Human-readable objective name 
-      - "Your-parameter-name" [string]
-    * - goal 
-      - Optimization objective
-      - min/max [string]
-    * - tolerance
+    * - name [string]
+      - Human-readable parameter name 
+    * - goal [string]
+      - Optimization objective, options are 'min' or 'max'
+    * - tolerance [float]
       - Termination tolerance on parameter changes
-      - [float]
-    * - absolute
+    * - absolute [bool]
       - Boolean flag indicating if objective is absolute
-      - [bool]
 
 
 
