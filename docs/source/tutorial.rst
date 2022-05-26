@@ -5,4 +5,4 @@ Tutorials
    :maxdepth: 1
 
    tutorials/perovskites
-   tutorials/known_constrainsts
+   tutorials/known_constraints
