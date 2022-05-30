@@ -40,7 +40,13 @@ This is a minimalist example of Gryffin in action.
 
     # load config
     config = {
-    
+        "parameters": [
+            {"name": "param_0", "type": "continuous", "low": 0.0, "high": 1.0},
+            {"name": "param_1", "type": "continuous", "low": 0.0, "high": 1.0}
+        ],
+        objectives: [
+            {"name": "obj", "goal": "min"},
+        ]
     }
 
     # initialize gryffin

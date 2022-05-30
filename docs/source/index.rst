@@ -28,9 +28,14 @@ Features
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents
+   :caption: Getting Started
 
    getting_started
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Contents
+
    configuration
    tutorial
    api_documentation
