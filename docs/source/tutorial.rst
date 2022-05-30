@@ -4,5 +4,7 @@ Tutorials
 .. toctree::
    :maxdepth: 1
 
-   tutorials/perovskites
+   tutorials/basic_usage
    tutorials/known_constraints
+   tutorials/perovskites
+   
