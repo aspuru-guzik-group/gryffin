@@ -25,17 +25,11 @@ Features
 * Highlighted Feature 2
 * Highlighted Feature 3
 
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Getting Started
-
-   getting_started
-
 .. toctree::
    :maxdepth: 2
    :caption: Contents
 
+   getting_started
    configuration
    tutorial
    api_documentation
