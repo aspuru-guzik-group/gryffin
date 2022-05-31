@@ -42,7 +42,6 @@ This is a minimalist example of Gryffin in action.
     config = {
         "parameters": [
             {"name": "param_0", "type": "continuous", "low": 0.0, "high": 1.0},
-            {"name": "param_1", "type": "continuous", "low": 0.0, "high": 1.0}
         ],
         objectives: [
             {"name": "obj", "goal": "min"},
@@ -57,14 +56,14 @@ This is a minimalist example of Gryffin in action.
     observations = [] 
     for iter in range(ITER_BUDGET):
 
-        # query gryffin for new hyper-parameters
-        hyper_parameters  = gryffin.recommend(observations=observations)
+        # query gryffin for new params
+        params  = gryffin.recommend(observations=observations)
 
         # evaluate the proposed parameters
-        merit = experiment.run(hyper_paramters)
-        hyper_parameters['obj'] = merit
+        merit = experiment.run(params)
+        params['obj'] = merit
 
-        observations.append(hyper_parameters)
+        observations.append(params)
 
 
 

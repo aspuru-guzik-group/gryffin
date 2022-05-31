@@ -47,11 +47,11 @@ General Configuration
     * - num_cpus [int | string]
       - Number of CPUs to use, options are a number or 'all' (default: 1)
     * - boosted [bool]
-      - (default: True)
+      - Use kernel boosting (default: True)
     * - caching [bool]
-      - (default: True)
+      - Use kernel caching (default: True)
     * - auto_desc_gen [bool]
-      - (default: False)
+      - Use automatic descriptor generation (default: False)
     * - batches [int]
       - (default: 1)
     * - sampling_strategies [int]
@@ -59,19 +59,19 @@ General Configuration
     * - softness [float]
       - Softness of Chimera for multiobj optimizations (default: 0.001)
     * - feas_approach [string]
-      - (default: 'fwa')
+      - Approach to unknown feasibility constraints, options are 'fwa' (feasibility-weighted acquisition), 'fca' (feasibility-constrained acquisition) or 'fia' (feasibility-interpolated acquisition). (default: 'fwa')
     * - feas_param [int]
       - Sensitivity to feasibility constraints (default: 1)
     * - dist_param [float]
       - Factor modulating density-based penalty in sample selector (default: 0.5)
-    * - random_seed [int]
+    * - random_seed [None | int]
       - Set random seed (default: None)
     * - save_database [bool]
       - (default: False)
     * - aquisition_optimizer [string]
       - Set aquisition optimization method, options are 'adam' or 'genetic' (default: 'adam')
-    * - obj_transform [string]
-      - Options are None, 'sqrt', 'cbrt' or 'square' (default: 'sqrt')
+    * - obj_transform [None | string]
+      - Set objective transform, options are None, 'sqrt', 'cbrt' or 'square' (default: 'sqrt')
     * - num_random_samples [int]
       - Number of samples per dimension to sample when optimizing acquisition function (default: 200)
     * - reject_tol [int]
