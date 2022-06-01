@@ -19,18 +19,17 @@ If you optimized **continuous variables**, please cite `this publication <https:
       }
 
 
-If you optimized **categorical variables**, please cite `this publication <link URL>`_:
+If you optimized **categorical variables**, please cite `this publication <https://aip.scitation.org/doi/full/10.1063/5.0048164>`_:
 
 ::
 
     @article{gryffin,
-      title = {Gryffin},
-      author = {},
+      title = {Gryffin: An algorithm for Bayesian optimization of categorical variables informed by expert knowledge},
+      author = {Florian Häse and Matteo Aldeghi and Riley J. Hickman and Loïc M. Roch and Alán Aspuru-Guzik},
       year = {2021},
-      journal = {2103.03716},
-      number = {arXiv},
-      volume = {math.OC}.
-      pages = {1134--1145}
+      journal = {Applied Physics Reviews},
+      number = {8},
+      pages = {031406}
       }
 
 If you performed a **multi-objective optimization**, or used **periodic variables**, please cite
@@ -48,15 +47,13 @@ If you performed a **multi-objective optimization**, or used **periodic variable
       }
 
 If you performed an optimization with **known or unknown feasibility constraints**, or used ``genetic`` as the
-optimization algorithm for the acquisition, please cite `this publication <link URL>`_:
+optimization algorithm for the acquisition, please cite `this publication <https://arxiv.org/abs/2203.17241>`_:
 
 ::
 
-    @article{gryffin_feasibility,
-      title={},
-      author={},
-      year={},
-      journal = {},
-      number = {},
-      pages = {}
+    @article{gryffin_known_constraints,
+      title={Bayesian optimization with known experimental and design constraints for chemistry applications},
+      author={Hickman, Riley J. and Aldeghi, Matteo and Häse, Florian and Aspuru-Guzik, Alán},
+      year={2022},
+      journal = {arXiv:2203.17241 [math.OC]},
       }
