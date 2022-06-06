@@ -40,7 +40,7 @@ jobs:
         pip install pytest-cov
     - name: Install package
       run: |
-        pip install -e .
+        pip install .
 
     - name: Test with pytest
       run: |
