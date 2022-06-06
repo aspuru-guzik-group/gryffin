@@ -25,7 +25,6 @@ from typing import Callable, Union, List, Dict
 
 
 class Gryffin(Logger):
-    """ Test docstring """
 
     def __init__(
         self,
