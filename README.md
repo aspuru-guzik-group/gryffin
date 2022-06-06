@@ -94,7 +94,14 @@ This is a minimalist example of Gryffin in action.
 
 ## Documentation
 
-Refer to the [documentation](https://gryffin.readthedocs.io/en/latest/) for an API and configuration reference.
+Please refer to the [documentation](https://gryffin.readthedocs.io/en/latest/) website for:
+
+* [Getting Started](https://gryffin.readthedocs.io/en/latest/getting_started.html)
+* [Configuration](https://gryffin.readthedocs.io/en/latest/configuration.html)
+* [Tutorials](https://gryffin.readthedocs.io/en/latest/tutorial.html)
+* [API Reference](https://gryffin.readthedocs.io/en/latest/api_documentation.html)
+* [CLI Reference](https://gryffin.readthedocs.io/en/latest/cli_documentation.html)
+
 
 ## Citation
 
