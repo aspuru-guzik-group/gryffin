@@ -7,3 +7,5 @@ Gryffin
 -------
 .. autoclass:: Gryffin
     :members:
+
+    .. automethod:: __init__
