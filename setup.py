@@ -50,7 +50,7 @@ setup(name='matter-gryffin',
       zip_safe=False,
       tests_require=['pytest'],
       install_requires=['numpy', 'sqlalchemy', 'rich', 'pandas', 'matter-chimera',
-                        'tensorflow>=2.3.0', 'tensorflow-probability>=0.11'],
+                        'tensorflow>=2.3.0', 'tensorflow-probability>=0.11, deap'],
       python_requires=">=3.7",
       ext_modules=ext_modules,
       entry_points={"console_scripts": ["gryffin = gryffin.cli:entry_point"]}

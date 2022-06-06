@@ -8,7 +8,7 @@ Gryffin CLI
     $ gryffin -f FILE -c JSON
 
 
-There are two required argurments to run ``Gryffin`` from the command line. A filepath to and Excel or CSV file with all previous experiments must be provided and usual ``Gryffin`` configuration file must be provided. Please refer to the Configuration section for the details of all configuration parameters.
+There are two required argurments to run ``Gryffin`` from the command line. A filepath to an Excel or CSV file with all previous experiments must be provided and the usual ``Gryffin`` configuration file must be provided. Please refer to the Configuration section for the details of all configuration parameters.
 
 Required arguments:
   -f                Excel/CSV file with all previous experiments.
