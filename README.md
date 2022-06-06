@@ -46,17 +46,15 @@ Installation
 To install ``gryffin`` from [PyPI](https://pypi.org/project/gryffin/):
 
 ```console
-
-    $ pip install gryffin
+$ pip install gryffin
 ```
 
 To install ``gryffin`` from source:
 
 ``` console
-
-    $ git clone git@github.com:aspuru-guzik-group/gryffin.git
-    $ cd gryffin
-    $ pip install .
+$ git clone git@github.com:aspuru-guzik-group/gryffin.git
+$ cd gryffin
+$ pip install .
 ```
 
 Example Usage 
