@@ -28,7 +28,7 @@ ext_modules = [Extension('gryffin.bayesian_network.kernel_evaluations',
 # -----
 # Setup
 # -----
-setup(name='matter-gryffin',
+setup(name='gryffin',
       version=versioneer.get_version(),
       cmdclass=versioneer.get_cmdclass(),
       description='Bayesian optimization for continuous and categorical variables',
