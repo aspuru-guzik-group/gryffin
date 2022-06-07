@@ -36,7 +36,7 @@ setup(name='matter-gryffin',
       long_description_content_type='text/markdown',
       classifiers=[
         'Development Status :: 4 - Beta',
-        'License :: OSI Approved :: Apache License 2.0',
+        'License :: OSI Approved :: Apache Software License',
         'Programming Language :: Python',
         'Intended Audience :: Science/Research',
         'Topic :: Scientific/Engineering',
