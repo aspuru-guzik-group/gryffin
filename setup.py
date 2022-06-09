@@ -4,7 +4,7 @@
 __author__ = 'Florian Hase, Matteo Aldeghi'
 
 import versioneer
-from setuptools import setup
+from setuptools import setup, find_packages
 from distutils.extension import Extension
 import numpy as np
 
@@ -28,7 +28,7 @@ ext_modules = [Extension('gryffin.bayesian_network.kernel_evaluations',
 # -----
 # Setup
 # -----
-setup(name='matter-gryffin',
+setup(name='gryffin',
       version=versioneer.get_version(),
       cmdclass=versioneer.get_cmdclass(),
       description='Bayesian optimization for continuous and categorical variables',
@@ -36,7 +36,7 @@ setup(name='matter-gryffin',
       long_description_content_type='text/markdown',
       classifiers=[
         'Development Status :: 4 - Beta',
-        'License :: OSI Approved :: Apache License 2.0',
+        'License :: OSI Approved :: Apache Software License',
         'Programming Language :: Python',
         'Intended Audience :: Science/Research',
         'Topic :: Scientific/Engineering',
@@ -45,12 +45,12 @@ setup(name='matter-gryffin',
       author='Florian Hase, Matteo Aldeghi',
       author_email='matteo.aldeghi@vectorinstitute.ai',
       license='Apache License 2.0',
-      packages=['gryffin'],
+      packages=find_packages('./src'),
       package_dir={'': 'src'},
       zip_safe=False,
       tests_require=['pytest'],
       install_requires=['numpy', 'sqlalchemy', 'rich', 'pandas', 'matter-chimera',
-                        'tensorflow>=2.3.0', 'tensorflow-probability>=0.11'],
+                        'tensorflow>=2.3.0', 'tensorflow-probability>=0.11', 'deap'],
       python_requires=">=3.7",
       ext_modules=ext_modules,
       entry_points={"console_scripts": ["gryffin = gryffin.cli:entry_point"]}

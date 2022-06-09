@@ -1,6 +1,0 @@
-Objectives
-==========
-
-blablabla
-
-

@@ -7,10 +7,12 @@ on:
     branches:
     - master
     - feas
+    - develop
   pull_request:
     branches:
     - master
     - feas
+    - develop
 
 jobs:
   build:
@@ -19,7 +21,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: [3.7]
+        python-version: [3.7, 3.8, 3.9]
 
     steps:
     - uses: actions/checkout@v2
@@ -38,7 +40,7 @@ jobs:
         pip install pytest-cov
     - name: Install package
       run: |
-        pip install -e .
+        pip install .
 
     - name: Test with pytest
       run: |
