@@ -9,7 +9,9 @@ from gryffin.utilities import Logger, parse_time
 from gryffin.utilities import GryffinUnknownSettingsError
 from .kernel_evaluations import KernelEvaluator
 from .tfprob_interface import run_tf_network
+from .torch_interface import BNNTrainer
 from contextlib import nullcontext
+import pickle
 
 
 class BayesianNetwork(Logger):
@@ -100,16 +102,53 @@ class BayesianNetwork(Logger):
         else:
             cm = nullcontext()
 
+        # print(obs_params)
+        # print(self.frac_feas)
+        # print(self.config)
+        # print(self.model_details)
+        # with open('tf_params.pickle', 'wb') as handle:
+        #     pickle.dump(
+        #         {
+        #             "observer_params": obs_params,
+        #             "frac_feas": self.frac_feas,
+        #             "config": {
+        #                 "kernel_names": self.config.kernel_names,
+        #                 "feature_sizes": self.config.feature_sizes,
+        #                 "feature_types": self.config.feature_types,
+        #                 "kernel_uppers": self.config.kernel_uppers,
+        #                 "kernel_lowers": self.config.kernel_lowers,
+        #                 "kernel_ranges": self.config.kernel_ranges,
+        #                 "kernel_sizes": self.config.kernel_sizes,
+        #                 "kernel_types": self.config.kernel_types,
+        #                 "param_name": self.config.param_names
+
+        #             },
+        #             "model_details": self.model_details
+        #         }, 
+        #         handle, 
+        #         protocol=pickle.HIGHEST_PROTOCOL
+        #     )
+
+
+
         with cm:
-            trace_kernels = run_tf_network(
-                observed_params=obs_params,
-                frac_feas=self.frac_feas,
-                config=self.config,
-                model_details=self.model_details,
+            trainer = BNNTrainer(
+                self.config,
+                self.model_details,
+                self.frac_feas
             )
+            model = trainer.train(obs_params)
+            # trace_kernels = run_tf_network(
+            #     observed_params=obs_params,
+            #     frac_feas=self.frac_feas,
+            #     config=self.config,
+            #     model_details=self.model_details,
+            # )
+
+        self.trace_kernels = model.get_kernels()
 
 
-        self.trace_kernels = trace_kernels
+        # self.trace_kernels = trace_kernels
 
         end = time.time()
         time_string = parse_time(start, end)
