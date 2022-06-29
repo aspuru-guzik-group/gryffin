@@ -123,7 +123,9 @@ class BNN(nn.Module):
         self.layers = nn.Sequential(OrderedDict([
             ('linear1', bnn.BayesLinear(prior_mu=0.0, prior_sigma=1.0, in_features=self.feature_size, out_features=self.hidden_shape, bias=True)),
             ('relu1', nn.ReLU()),
-            ('linear2', bnn.BayesLinear(prior_mu=0.0, prior_sigma=1.0, in_features=self.hidden_shape, out_features=self.bnn_output_size, bias=True)),
+            ('linear2', bnn.BayesLinear(prior_mu=0.0, prior_sigma=1.0, in_features=self.hidden_shape, out_features=self.hidden_shape, bias=True)),
+            ('relu2', nn.ReLU()),
+            ('linear3', bnn.BayesLinear(prior_mu=0.0, prior_sigma=1.0, in_features=self.hidden_shape, out_features=self.bnn_output_size, bias=True)),
         ]))
         
         self.tau_rescaling = torch.zeros((self.num_obs, self.bnn_output_size))
@@ -192,8 +194,8 @@ class BNN(nn.Module):
                 # sample_test = weight_dist.sample(sample_shape=(num_draws, 1))
                 # print(sample_test.shape)
                 # print(sample_test[0])
-                posterior_samples['weight_%d' % idx] = weight_dist.sample(sample_shape=(num_draws, 1)).squeeze()
-                posterior_samples['bias_%d' % idx] = bias_dist.sample(sample_shape=(num_draws, 1)).squeeze()
+                posterior_samples['weight_%d' % idx] = weight_dist.sample(sample_shape=(num_draws, 1)).squeeze(1)
+                posterior_samples['bias_%d' % idx] = bias_dist.sample(sample_shape=(num_draws, 1)).squeeze(1)
                 idx += 1
 
         print(posterior_samples)
