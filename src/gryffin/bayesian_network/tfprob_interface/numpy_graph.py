@@ -48,9 +48,11 @@ class NumpyGraph:
             outputs = []
             for sample_index in range(len(weight)):
 
+                print(sample_index)
+                print(weight)
                 single_weight = weight[sample_index]
                 single_bias   = bias[sample_index]
-
+                print(post_layer_outputs[-1][sample_index])
                 output = activation( np.matmul( post_layer_outputs[-1][sample_index], single_weight) + single_bias)
                 outputs.append(output)
 

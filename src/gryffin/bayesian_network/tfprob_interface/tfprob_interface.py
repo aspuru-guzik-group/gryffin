@@ -6,6 +6,7 @@ import warnings
 warnings.filterwarnings('ignore')
 import os
 import sys
+import pickle
 import numpy as np
 import tensorflow as tf
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
@@ -129,28 +130,28 @@ class TfprobNetwork(Logger):
             # ---------------
             # construct prior
             # ---------------
-            self.prior_layer_outputs = [self.x]
-            self.priors = {}
-            for layer_index in range(self.num_layers):
-                weight_shape, bias_shape = weight_shapes[layer_index], bias_shapes[layer_index]
-                activation = activations[layer_index]
+            # self.prior_layer_outputs = [self.x]
+            # self.priors = {}
+            # for layer_index in range(self.num_layers):
+            #     weight_shape, bias_shape = weight_shapes[layer_index], bias_shapes[layer_index]
+            #     activation = activations[layer_index]
 
-                weight = tfd.Normal(loc=tf.zeros(weight_shape) + self.weight_loc, scale=tf.zeros(weight_shape) + self.weight_scale)
-                bias = tfd.Normal(loc=tf.zeros(bias_shape) + self.bias_loc, scale=tf.zeros(bias_shape) + self.bias_scale)
-                self.priors['weight_%d' % layer_index] = weight
-                self.priors['bias_%d' % layer_index] = bias
+            #     weight = tfd.Normal(loc=tf.zeros(weight_shape) + self.weight_loc, scale=tf.zeros(weight_shape) + self.weight_scale)
+            #     bias = tfd.Normal(loc=tf.zeros(bias_shape) + self.bias_loc, scale=tf.zeros(bias_shape) + self.bias_scale)
+            #     self.priors['weight_%d' % layer_index] = weight
+            #     self.priors['bias_%d' % layer_index] = bias
 
-                prior_layer_output = activation(tf.matmul(self.prior_layer_outputs[-1], weight.sample()) + bias.sample())
-                self.prior_layer_outputs.append(prior_layer_output)
+            #     prior_layer_output = activation(tf.matmul(self.prior_layer_outputs[-1], weight.sample()) + bias.sample())
+            #     self.prior_layer_outputs.append(prior_layer_output)
 
-            self.prior_bnn_output = self.prior_layer_outputs[-1]
-            # draw precisions from gamma distribution
-            self.prior_tau_normed = tfd.Gamma(
-                            12*(self.num_obs/self.frac_feas)**2 + tf.zeros((self.num_obs, self.bnn_output_size)),
-                            tf.ones((self.num_obs, self.bnn_output_size)),
-                        )
-            self.prior_tau        = self.prior_tau_normed.sample() / self.tau_rescaling
-            self.prior_scale      = tfd.Deterministic(1. / tf.sqrt(self.prior_tau))
+            # self.prior_bnn_output = self.prior_layer_outputs[-1]
+            # # draw precisions from gamma distribution
+            # self.prior_tau_normed = tfd.Gamma(
+            #                 12*(self.num_obs/self.frac_feas)**2 + tf.zeros((self.num_obs, self.bnn_output_size)),
+            #                 tf.ones((self.num_obs, self.bnn_output_size)),
+            #             )
+            # self.prior_tau        = self.prior_tau_normed.sample() / self.tau_rescaling
+            # self.prior_scale      = tfd.Deterministic(1. / tf.sqrt(self.prior_tau))
 
             # -------------------
             # construct posterior
@@ -195,7 +196,7 @@ class TfprobNetwork(Logger):
                 feature_begin, feature_end = target_element_index, target_element_index + 1
                 kernel_begin, kernel_end   = kernel_element_index, kernel_element_index + kernel_size
 
-                prior_relevant = self.prior_bnn_output[:, kernel_begin: kernel_end]
+                # prior_relevant = self.prior_bnn_output[:, kernel_begin: kernel_end]
                 post_relevant  = self.post_bnn_output[:,  kernel_begin: kernel_end]
 
                 if kernel_type == 'continuous':
@@ -203,13 +204,13 @@ class TfprobNetwork(Logger):
                     target = self.y[:, kernel_begin: kernel_end]
                     lowers, uppers = self.config.kernel_lowers[kernel_begin: kernel_end], self.config.kernel_uppers[kernel_begin : kernel_end]
 
-                    prior_support = (uppers - lowers) * (1.2 * tf.nn.sigmoid(prior_relevant) - 0.1) + lowers
+                    # prior_support = (uppers - lowers) * (1.2 * tf.nn.sigmoid(prior_relevant) - 0.1) + lowers
                     post_support = (uppers - lowers) * (1.2 * tf.nn.sigmoid(post_relevant) - 0.1) + lowers
 
-                    prior_predict = tfd.Normal(prior_support, self.prior_scale[:, kernel_begin: kernel_end].sample())
+                    # prior_predict = tfd.Normal(prior_support, self.prior_scale[:, kernel_begin: kernel_end].sample())
                     post_predict = tfd.Normal(post_support,  self.post_scale[:,  kernel_begin: kernel_end].sample())
 
-                    targets_dict[prior_predict] = target
+                    # targets_dict[prior_predict] = target
                     post_kernels['param_%d' % target_element_index] = {
                         'loc':       tfd.Deterministic(post_support),
                         'sqrt_prec': tfd.Deterministic(self.post_sqrt_tau[:, kernel_begin: kernel_end]),
@@ -255,7 +256,7 @@ class TfprobNetwork(Logger):
                 kernel_element_index += kernel_size
 
             self.post_kernels = post_kernels
-            self.targets_dict = targets_dict
+            # self.targets_dict = targets_dict
 
             self.loss = 0.
             for inference in inferences:
@@ -348,6 +349,7 @@ def run_tf_network(observed_params, frac_feas, config, model_details):
     otherwise TensorFlow keeps a bunch of global variables that do not get garbage collected and memory usage
     keeps increasing when Gryffin is run in a loop, until we run out of memory.
     """
+
     check_passed = False
     counter = 0
     learning_rate = model_details['learning_rate']

@@ -24,12 +24,16 @@ class BNNTrainer(Logger):
         observed_params = torch.tensor(observed_params)
         features, targets = self._generate_train_data(observed_params)
         num_observations = len(observed_params)
+
         model = self._construct_model(num_observations)
+        model.register_numpy_graph(features)
         optimizer = optim.Adam(model.parameters(), lr=self.model_details['learning_rate'])
         kl_loss = bnn.BKLLoss(reduction='mean', last_layer_only=False)
 
         # tmp until added to real config
         self.model_details['kl_weight'] = 0.01
+
+
 
         for _ in range(self.model_details['num_epochs']):
             inferences = model(features, targets)
@@ -107,6 +111,8 @@ class BNN(nn.Module):
         self.num_obs = num_observations
         self.frac_feas = frac_feas
 
+        self.numpy_graph = NumpyGraph(config, model_details)
+
         self.kernel_names = config.kernel_names
         self.kernel_types = config.kernel_types
         self.kernel_ranges = torch.tensor(config.kernel_ranges)
@@ -164,25 +170,36 @@ class BNN(nn.Module):
                 
         return inferences
 
+    def register_numpy_graph(self, features):
+        self.numpy_graph.declare_training_data(features)
+
     def _sample(self, num_draws):
 
         print('here')
         posterior_samples = {}
 
+        idx = 0
         for name, module in self.layers.named_modules():
             print(module)
             if isinstance(module, bnn.BayesLinear):
                 print('here2')
+                # weight_dist = td.multivariate_normal.MultivariateNormal(module.weight_mu, torch.exp(module.weight_log_sigma))
                 weight_dist = td.normal.Normal(module.weight_mu, torch.exp(module.weight_log_sigma))
-                bias_dist = td.normal.Normal(module.weight_mu, torch.exp(module.weight_log_sigma))
-                print(weight_dist)
-                print(weight_dist.sample())
-                posterior_samples[name + '_weight'] = weight_dist.sample(sample_shape=num_draws)
-                posterior_samples[name + '_bias'] = bias_dist.sample(sample_shape=num_draws)
+                bias_dist = td.normal.Normal(module.weight_mu, torch.diag(torch.exp(module.weight_log_sigma)))
+                # print(weight_dist)
+                # print(weight_dist.sample())
+                # #print(weight_dist.sample(sample_shape=(num_draws, module.weight_mu.shape[0])))
+                # sample_test = weight_dist.sample(sample_shape=(num_draws, 1))
+                # print(sample_test.shape)
+                # print(sample_test[0])
+                posterior_samples['weight_%d' % idx] = weight_dist.sample(sample_shape=(num_draws, 1)).squeeze()
+                posterior_samples['bias_%d' % idx] = bias_dist.sample(sample_shape=(num_draws, 1)).squeeze()
+                idx += 1
 
         print(posterior_samples)
-        posterior_samples['gamma'] = self.tau_normed.sample(num_draws)
+        posterior_samples['gamma'] = self.tau_normed.sample(sample_shape=(num_draws, 1))
         print('here3')
+        print(posterior_samples.keys())
         post_kernels = self.numpy_graph.compute_kernels(posterior_samples, self.frac_feas)
 
         self.trace = {}
