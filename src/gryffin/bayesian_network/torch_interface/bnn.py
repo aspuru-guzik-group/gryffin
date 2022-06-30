@@ -187,7 +187,7 @@ class BNN(nn.Module):
                 print('here2')
                 # weight_dist = td.multivariate_normal.MultivariateNormal(module.weight_mu, torch.exp(module.weight_log_sigma))
                 weight_dist = td.normal.Normal(module.weight_mu, torch.exp(module.weight_log_sigma))
-                bias_dist = td.normal.Normal(module.weight_mu, torch.diag(torch.exp(module.weight_log_sigma)))
+                bias_dist = td.normal.Normal(module.bias_mu, torch.exp(module.bias_log_sigma))
                 # print(weight_dist)
                 # print(weight_dist.sample())
                 # #print(weight_dist.sample(sample_shape=(num_draws, module.weight_mu.shape[0])))
@@ -200,7 +200,7 @@ class BNN(nn.Module):
                     weight_sample = weight_sample.unsqueeze(1)
                 elif idx == 2:
                     weight_sample = weight_sample.unsqueeze(-1)
-
+                import pdb; pdb.set_trace()
                 bias_sample = bias_dist.sample(sample_shape=(num_draws, 1)).squeeze()
 
                 posterior_samples['weight_%d' % idx] = weight_sample.numpy()
