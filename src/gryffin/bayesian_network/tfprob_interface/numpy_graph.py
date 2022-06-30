@@ -36,7 +36,9 @@ class NumpyGraph:
         tau_rescaling = tau_rescaling**2
 
         # sample from BNN
-        activations = [np.tanh, np.tanh, lambda x: x]
+        #activations = [np.tanh, np.tanh, lambda x: x]
+        lambda x: np.maximum(x, 0),
+        activations = [lambda x: np.maximum(x, 0), lambda x: np.maximum(x, 0), lambda x: x]
         post_layer_outputs = [np.array([self.features for _ in range(self._num_draws)])]
 
         for layer_index in range(self._num_layers):
