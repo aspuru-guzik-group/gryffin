@@ -50,7 +50,7 @@ class NumpyGraph:
             print(self.features.shape)
             print(weight.shape)
             print(len(weight))
-            import pdb; pdb.set_trace()
+            # import pdb; pdb.set_trace()
             for sample_index in range(len(weight)):
                 
                 single_weight = weight[sample_index]
@@ -58,7 +58,7 @@ class NumpyGraph:
                 
                 output = activation( np.matmul( post_layer_outputs[-1][sample_index], single_weight) + single_bias)
                 outputs.append(output)
-            import pdb; pdb.set_trace()
+            # import pdb; pdb.set_trace()
             post_layer_output = np.array(outputs)
             post_layer_outputs.append(post_layer_output)
 
@@ -76,7 +76,7 @@ class NumpyGraph:
 
         target_element_index = 0
         kernel_element_index = 0
-
+        import pdb; pdb.set_trace()
         while kernel_element_index < len(self.config.kernel_names):
 
             kernel_type = self.config.kernel_types[kernel_element_index]

@@ -196,12 +196,14 @@ class BNN(nn.Module):
                 # print(sample_test[0])
                 #import pdb; pdb.set_trace()
                 weight_sample = weight_dist.sample(sample_shape=(num_draws, 1)).squeeze()
+                bias_sample = bias_dist.sample(sample_shape=(num_draws, 1)).squeeze()
                 if idx == 0:
                     weight_sample = weight_sample.unsqueeze(1)
                 elif idx == 2:
                     weight_sample = weight_sample.unsqueeze(-1)
+                    bias_sample = bias_sample.unsqueeze(-1)
                 import pdb; pdb.set_trace()
-                bias_sample = bias_dist.sample(sample_shape=(num_draws, 1)).squeeze()
+                #bias_sample = bias_dist.sample(sample_shape=(num_draws, 1)).squeeze()
 
                 posterior_samples['weight_%d' % idx] = weight_sample.numpy()
                 posterior_samples['bias_%d' % idx] = bias_sample.numpy()
