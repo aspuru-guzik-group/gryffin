@@ -38,7 +38,7 @@ class NumpyGraph:
         # sample from BNN
         activations = [lambda x: np.maximum(x, 0), lambda x: np.maximum(x, 0), lambda x: x]
         post_layer_outputs = [np.array([self.features for _ in range(self._num_draws)])]
-
+        import pdb; pdb.set_trace()
         for layer_index in range(self._num_layers):
 
             weight = posteriors['weight_%d' % layer_index]

@@ -51,7 +51,7 @@ class BNNTrainer(Logger):
         return BNN(self.config, self.model_details, num_observations, self.frac_feas)
 
     def _generate_train_data(self, observed_params):
-        
+        import pdb; pdb.set_trace()
         feature_size = len(self.config.kernel_names)
         bnn_output_size = len(self.config.kernel_names) 
         target_size = len(self.config.kernel_names)
@@ -65,7 +65,7 @@ class BNNTrainer(Logger):
         feature_begin = 0
         feature_sizes = self.config.feature_sizes
         for feature_index, feature_type in enumerate(self.config.feature_types):
-            feature_size = feature_sizes[feature_index]
+            feature_size_idx = feature_sizes[feature_index]
             if feature_type == 'categorical':
                 for obs_param_index, obs_param in enumerate(observed_params):
                     features[obs_param_index, feature_begin + int(obs_param[feature_index])] += 1
@@ -76,7 +76,7 @@ class BNNTrainer(Logger):
                 features[:, feature_begin] = observed_params[:, feature_index]
             else:
                 raise NotImplementedError
-            feature_begin += feature_size
+            feature_begin += feature_size_idx
         targets = features.clone() ## Do I need to break graph here?
 
         # rescale features
