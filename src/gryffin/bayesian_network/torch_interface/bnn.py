@@ -5,6 +5,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 import torch.distributions as td
 import torchbnn as bnn
+import numpy as np
 
 from gryffin.utilities import Logger, GryffinUnknownSettingsError, GryffinComputeError
 from ..tfprob_interface.numpy_graph import NumpyGraph
@@ -32,8 +33,6 @@ class BNNTrainer(Logger):
 
         # tmp until added to real config
         self.model_details['kl_weight'] = 0.01
-
-
 
         for _ in range(self.model_details['num_epochs']):
             inferences = model(features, targets)
@@ -103,7 +102,6 @@ class BNN(nn.Module):
     def __init__(self, config, model_details, num_observations, frac_feas):
         super(BNN, self).__init__() 
 
-        print(model_details)
         self.num_draws = model_details['num_draws']
         self.hidden_shape = model_details['hidden_shape']
         self.feature_size = len(config.kernel_names)
@@ -119,6 +117,8 @@ class BNN(nn.Module):
         self.kernel_uppers = torch.tensor(config.kernel_uppers)
         self.kernel_lowers = torch.tensor(config.kernel_lowers)
         self.kernel_sizes = torch.tensor(config.kernel_sizes)
+
+        self.param_names = config.param_names
         
         self.layers = nn.Sequential(OrderedDict([
             ('linear1', bnn.BayesLinear(prior_mu=0.0, prior_sigma=1.0, in_features=self.feature_size, out_features=self.hidden_shape, bias=True)),
@@ -177,24 +177,13 @@ class BNN(nn.Module):
 
     def _sample(self, num_draws):
 
-        print('here')
         posterior_samples = {}
-
         idx = 0
         for name, module in self.layers.named_modules():
-            print(module)
             if isinstance(module, bnn.BayesLinear):
-                print('here2')
-                # weight_dist = td.multivariate_normal.MultivariateNormal(module.weight_mu, torch.exp(module.weight_log_sigma))
                 weight_dist = td.normal.Normal(module.weight_mu, torch.exp(module.weight_log_sigma))
                 bias_dist = td.normal.Normal(module.bias_mu, torch.exp(module.bias_log_sigma))
-                # print(weight_dist)
-                # print(weight_dist.sample())
-                # #print(weight_dist.sample(sample_shape=(num_draws, module.weight_mu.shape[0])))
-                # sample_test = weight_dist.sample(sample_shape=(num_draws, 1))
-                # print(sample_test.shape)
-                # print(sample_test[0])
-                #import pdb; pdb.set_trace()
+
                 weight_sample = weight_dist.sample(sample_shape=(num_draws, 1)).squeeze()
                 bias_sample = bias_dist.sample(sample_shape=(num_draws, 1)).squeeze()
                 if idx == 0:
@@ -202,17 +191,12 @@ class BNN(nn.Module):
                 elif idx == 2:
                     weight_sample = weight_sample.unsqueeze(-1)
                     bias_sample = bias_sample.unsqueeze(-1)
-                import pdb; pdb.set_trace()
-                #bias_sample = bias_dist.sample(sample_shape=(num_draws, 1)).squeeze()
 
                 posterior_samples['weight_%d' % idx] = weight_sample.numpy()
                 posterior_samples['bias_%d' % idx] = bias_sample.numpy()
                 idx += 1
 
-        print(posterior_samples)
         posterior_samples['gamma'] = self.tau_normed.sample(sample_shape=(num_draws, 1))
-        print('here3')
-        print(posterior_samples.keys())
         post_kernels = self.numpy_graph.compute_kernels(posterior_samples, self.frac_feas)
 
         self.trace = {}
@@ -223,25 +207,23 @@ class BNN(nn.Module):
                 self.trace[key][kernel_name] = kernel_values
 
     def get_kernels(self, num_draws=None):
-
+        
         if num_draws == None:
             num_draws = self.num_draws
         self._sample(num_draws)
-        
-        print(self.trace)
 
         trace_kernels = {'locs': [], 'sqrt_precs': [], 'probs': []}
-        for param_index in range(len(self.config['param_names'])):
+        for param_index in range(len(self.param_names)):
             post_kernel = self.trace['param_%d' % param_index]
 
             # ------------------
             # continuous kernels
             # ------------------
             if 'loc' in post_kernel and 'sqrt_prec' in post_kernel:
-                trace_kernels['locs'].append(post_kernel['loc'].astype(torch.float64))
-                trace_kernels['sqrt_precs'].append(post_kernel['sqrt_prec'].astype(torch.float64))
+                trace_kernels['locs'].append(post_kernel['loc'].astype(np.float64))
+                trace_kernels['sqrt_precs'].append(post_kernel['sqrt_prec'].astype(np.float64))
                 # for continuous variables, key "probs" contains all zeros
-                trace_kernels['probs'].append(torch.zeros(post_kernel['loc'].shape, dtype=torch.float64))
+                trace_kernels['probs'].append(np.zeros(post_kernel['loc'].shape, dtype=np.float64))
 
             # ------------------
             # categorical kernels
