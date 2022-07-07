@@ -51,7 +51,7 @@ class BNNTrainer(Logger):
         return BNN(self.config, self.model_details, num_observations, self.frac_feas)
 
     def _generate_train_data(self, observed_params):
-        import pdb; pdb.set_trace()
+        #import pdb; pdb.set_trace()
         feature_size = len(self.config.kernel_names)
         bnn_output_size = len(self.config.kernel_names) 
         target_size = len(self.config.kernel_names)
@@ -179,6 +179,7 @@ class BNN(nn.Module):
 
         posterior_samples = {}
         idx = 0
+        import pdb; pdb.set_trace()
         for name, module in self.layers.named_modules():
             if isinstance(module, bnn.BayesLinear):
                 weight_dist = td.normal.Normal(module.weight_mu, torch.exp(module.weight_log_sigma))
@@ -186,11 +187,15 @@ class BNN(nn.Module):
 
                 weight_sample = weight_dist.sample(sample_shape=(num_draws, 1)).squeeze()
                 bias_sample = bias_dist.sample(sample_shape=(num_draws, 1)).squeeze()
-                if idx == 0:
-                    weight_sample = weight_sample.unsqueeze(1)
-                elif idx == 2:
-                    weight_sample = weight_sample.unsqueeze(-1)
-                    bias_sample = bias_sample.unsqueeze(-1)
+
+                if weight_sample.shape[-1] != self.feature_size:
+                    weight_sample.unsqueeze(-1)
+                weight_sample = weight_sample.transpose(-2, -1)
+                # if idx == 0:
+                #     weight_sample = weight_sample.unsqueeze(1)
+                # elif idx == 2:
+                #     weight_sample = weight_sample.unsqueeze(-1)
+                #     bias_sample = bias_sample.unsqueeze(-1)
 
                 posterior_samples['weight_%d' % idx] = weight_sample.numpy()
                 posterior_samples['bias_%d' % idx] = bias_sample.numpy()
