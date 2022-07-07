@@ -36,7 +36,7 @@ sampling_strategies = [1, -1]
 
 
 observations = []
-MAX_ITER = 24
+MAX_ITER = 100
 
 for num_iter in range(MAX_ITER):
     print('-'*20, 'Iteration:', num_iter+1, '-'*20)

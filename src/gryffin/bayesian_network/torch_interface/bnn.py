@@ -40,7 +40,7 @@ class BNNTrainer(Logger):
             for inference in inferences:
                 loss = loss - torch.sum(inference['pred'].log_prob(inference['target']))
                 loss = loss +  self.model_details['kl_weight'] * kl_loss(model)
-
+            print(loss)
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
@@ -179,17 +179,18 @@ class BNN(nn.Module):
 
         posterior_samples = {}
         idx = 0
-        import pdb; pdb.set_trace()
+        #import pdb; pdb.set_trace()
         for name, module in self.layers.named_modules():
             if isinstance(module, bnn.BayesLinear):
                 weight_dist = td.normal.Normal(module.weight_mu, torch.exp(module.weight_log_sigma))
                 bias_dist = td.normal.Normal(module.bias_mu, torch.exp(module.bias_log_sigma))
 
-                weight_sample = weight_dist.sample(sample_shape=(num_draws, 1)).squeeze()
+                weight_sample = weight_dist.sample(sample_shape=(num_draws, 1)).squeeze(1)
                 bias_sample = bias_dist.sample(sample_shape=(num_draws, 1)).squeeze()
 
-                if weight_sample.shape[-1] != self.feature_size:
-                    weight_sample.unsqueeze(-1)
+                # if weight_sample.shape[-1] != self.feature_size:
+                #     weight_sample = weight_sample.unsqueeze(-1)
+                #if idx == 0 or idx == 2:
                 weight_sample = weight_sample.transpose(-2, -1)
                 # if idx == 0:
                 #     weight_sample = weight_sample.unsqueeze(1)

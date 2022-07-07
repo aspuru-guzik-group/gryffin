@@ -46,12 +46,12 @@ class NumpyGraph:
             activation = activations[layer_index]
 
             outputs = []
-            # print(layer_index)
-            # print(self.features.shape)
-            # print(weight.shape)
-            # print(len(weight))
-            # print(bias.shape)
-            # print(len(bias))
+            print(layer_index)
+            print(self.features.shape)
+            print(weight.shape)
+            print(len(weight))
+            print(bias.shape)
+            print(len(bias))
             for sample_index in range(len(weight)):
                 
                 single_weight = weight[sample_index]
