@@ -8,7 +8,7 @@ import torchbnn as bnn
 import numpy as np
 
 from gryffin.utilities import Logger, GryffinUnknownSettingsError, GryffinComputeError
-from ..tfprob_interface.numpy_graph import NumpyGraph
+from .numpy_graph import NumpyGraph
 
 
 class BNNTrainer(Logger):
@@ -40,7 +40,7 @@ class BNNTrainer(Logger):
             for inference in inferences:
                 loss = loss - torch.sum(inference['pred'].log_prob(inference['target']))
                 loss = loss +  self.model_details['kl_weight'] * kl_loss(model)
-            print(loss)
+            # print(loss)
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
@@ -89,8 +89,8 @@ class BNNTrainer(Logger):
             lower_rescalings[kernel_index] = low  # - 0.1 * (up - low)
             upper_rescalings[kernel_index] = up   # + 0.1 * (up - low)
 
-        lower_rescalings = lower_rescalings
-        upper_rescalings = upper_rescalings
+        # lower_rescalings = lower_rescalings
+        # upper_rescalings = upper_rescalings
 
         rescaled_features = (features - lower_rescalings) / (upper_rescalings - lower_rescalings)
         rescaled_targets = (targets - lower_rescalings) / (upper_rescalings - lower_rescalings)
@@ -156,16 +156,37 @@ class BNN(nn.Module):
 
                 post_relevant  = x[:,  kernel_begin: kernel_end]
                 
-                target = y[:, kernel_begin: kernel_end]
-                lowers, uppers = self.kernel_lowers[kernel_begin: kernel_end], self.kernel_uppers[kernel_begin : kernel_end]
+                if kernel_type == 'continuous':
+                    target = y[:, kernel_begin: kernel_end]
+                    lowers, uppers = self.kernel_lowers[kernel_begin: kernel_end], self.kernel_uppers[kernel_begin : kernel_end]
 
-                post_support = (uppers - lowers) * (1.2 * F.sigmoid(post_relevant) - 0.1) + lowers
+                    post_support = (uppers - lowers) * (1.2 * F.sigmoid(post_relevant) - 0.1) + lowers
 
-                post_predict = td.normal.Normal(post_support,  scale[:,  kernel_begin: kernel_end])
+                    post_predict = td.normal.Normal(post_support,  scale[:,  kernel_begin: kernel_end])
 
-            
-                inference = {'pred': post_predict, 'target': target}
-                inferences.append(inference)
+                
+                    inference = {'pred': post_predict, 'target': target}
+                    inferences.append(inference)
+
+                elif kernel_type in ['categorical', 'discrete']:
+                    target = y[:, kernel_begin: kernel_end]
+
+                    post_temperature = 0.5 + 10.0 / (self.num_obs / self.frac_feas)
+                    post_support = post_relevant
+
+                    # prior_predict_relaxed = tfd.RelaxedOneHotCategorical(prior_temperature, prior_support)
+                    # prior_predict = tfd.OneHotCategorical(probs=prior_predict_relaxed.sample())
+                    #import pdb; pdb.set_trace()
+                    post_predict_relaxed = td.relaxed_categorical.RelaxedOneHotCategorical(post_temperature, logits=post_support)
+                    post_predict = td.OneHotCategorical(probs=post_predict_relaxed.sample())
+
+                    # targets_dict[prior_predict] = target
+                    # post_kernels['param_%d' % target_element_index] = {'probs': post_predict_relaxed}
+
+                    inference = {'pred': post_predict, 'target': target}
+                    inferences.append(inference)
+                else:
+                    GryffinUnknownSettingsError(f'did not understand kernel type: {kernel_type}')
                 
                 kernel_element_index += kernel_size
                 target_element_index += 1

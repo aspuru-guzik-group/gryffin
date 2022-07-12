@@ -25,7 +25,7 @@ class NumpyGraph:
 
     def declare_training_data(self, features):
         self.num_obs = len(features)
-        self.features = features
+        self.features = features.numpy()
 
     def compute_kernels(self, posteriors, frac_feas):
 
