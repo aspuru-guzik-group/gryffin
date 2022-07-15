@@ -22,6 +22,7 @@ class BNNTrainer(Logger):
         Logger.__init__(self, 'BNNTrainer', verbosity=self.config.get('verbosity'))
 
     def train(self, observed_params):
+        #import pdb; pdb.set_trace()
         observed_params = torch.tensor(observed_params)
         features, targets = self._generate_train_data(observed_params)
         num_observations = len(observed_params)
@@ -40,11 +41,13 @@ class BNNTrainer(Logger):
             for inference in inferences:
                 loss = loss - torch.sum(inference['pred'].log_prob(inference['target']))
                 loss = loss +  self.model_details['kl_weight'] * kl_loss(model)
-            # print(loss)
+            #print(loss)
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
 
+        #import pdb; pdb.set_trace()
+        print("Loss: ", loss)
         return model
 
     def _construct_model(self, num_observations):
@@ -77,7 +80,7 @@ class BNNTrainer(Logger):
             else:
                 raise NotImplementedError
             feature_begin += feature_size_idx
-        targets = features.clone() ## Do I need to break graph here?
+        targets = features.detach().clone() ## Detach then clone or reverse?
 
         # rescale features
         lower_rescalings = torch.empty(feature_size)
@@ -121,11 +124,11 @@ class BNN(nn.Module):
         self.param_names = config.param_names
         
         self.layers = nn.Sequential(OrderedDict([
-            ('linear1', bnn.BayesLinear(prior_mu=0.0, prior_sigma=1.0, in_features=self.feature_size, out_features=self.hidden_shape, bias=True)),
+            ('linear1', bnn.BayesLinear(prior_mu=0.0, prior_sigma=0.5, in_features=self.feature_size, out_features=self.hidden_shape, bias=True)),
             ('relu1', nn.ReLU()),
-            ('linear2', bnn.BayesLinear(prior_mu=0.0, prior_sigma=1.0, in_features=self.hidden_shape, out_features=self.hidden_shape, bias=True)),
+            ('linear2', bnn.BayesLinear(prior_mu=0.0, prior_sigma=0.5, in_features=self.hidden_shape, out_features=self.hidden_shape, bias=True)),
             ('relu2', nn.ReLU()),
-            ('linear3', bnn.BayesLinear(prior_mu=0.0, prior_sigma=1.0, in_features=self.hidden_shape, out_features=self.bnn_output_size, bias=True)),
+            ('linear3', bnn.BayesLinear(prior_mu=0.0, prior_sigma=0.5, in_features=self.hidden_shape, out_features=self.bnn_output_size, bias=True)),
         ]))
         
         self.tau_rescaling = torch.zeros((self.num_obs, self.bnn_output_size))
@@ -208,16 +211,8 @@ class BNN(nn.Module):
 
                 weight_sample = weight_dist.sample(sample_shape=(num_draws, 1)).squeeze(1)
                 bias_sample = bias_dist.sample(sample_shape=(num_draws, 1)).squeeze()
-
-                # if weight_sample.shape[-1] != self.feature_size:
-                #     weight_sample = weight_sample.unsqueeze(-1)
-                #if idx == 0 or idx == 2:
+                
                 weight_sample = weight_sample.transpose(-2, -1)
-                # if idx == 0:
-                #     weight_sample = weight_sample.unsqueeze(1)
-                # elif idx == 2:
-                #     weight_sample = weight_sample.unsqueeze(-1)
-                #     bias_sample = bias_sample.unsqueeze(-1)
 
                 posterior_samples['weight_%d' % idx] = weight_sample.numpy()
                 posterior_samples['bias_%d' % idx] = bias_sample.numpy()
