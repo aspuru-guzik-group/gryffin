@@ -25,6 +25,9 @@ def compute_objective(param):
 
 
 config = {
+    "general": {
+        "random_seed": 42,
+    },
     "parameters": [
         {"name": "x", "type": "continuous", "low": 0., "high": 1., "size": 1}
     ],

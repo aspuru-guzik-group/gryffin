@@ -49,7 +49,6 @@ default_model_configuration = {
     'num_epochs':  2 * 10**3,
     'learning_rate': 0.05,
     'num_draws': 10**3,
-    #'num_draws': 2,
     'num_layers': 3,
     'hidden_shape': 6,
     'weight_loc': 0.,

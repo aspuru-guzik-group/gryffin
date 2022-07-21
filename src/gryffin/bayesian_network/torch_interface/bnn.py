@@ -22,7 +22,7 @@ class BNNTrainer(Logger):
         Logger.__init__(self, 'BNNTrainer', verbosity=self.config.get('verbosity'))
 
     def train(self, observed_params):
-        #import pdb; pdb.set_trace()
+        torch.manual_seed(0)
         observed_params = torch.tensor(observed_params)
         features, targets = self._generate_train_data(observed_params)
         num_observations = len(observed_params)
@@ -30,31 +30,24 @@ class BNNTrainer(Logger):
         model = self._construct_model(num_observations)
         model.register_numpy_graph(features)
         optimizer = optim.Adam(model.parameters(), lr=self.model_details['learning_rate'])
-        kl_loss = bnn.BKLLoss(reduction='mean', last_layer_only=False)
-
-        # tmp until added to real config
-        self.model_details['kl_weight'] = 0.01
 
         for _ in range(self.model_details['num_epochs']):
             inferences = model(features, targets)
+
             loss = 0.0
             for inference in inferences:
                 loss = loss - torch.sum(inference['pred'].log_prob(inference['target']))
-                loss = loss +  self.model_details['kl_weight'] * kl_loss(model)
-            #print(loss)
+
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
 
-        #import pdb; pdb.set_trace()
-        print("Loss: ", loss)
         return model
 
     def _construct_model(self, num_observations):
         return BNN(self.config, self.model_details, num_observations, self.frac_feas)
 
     def _generate_train_data(self, observed_params):
-        #import pdb; pdb.set_trace()
         feature_size = len(self.config.kernel_names)
         bnn_output_size = len(self.config.kernel_names) 
         target_size = len(self.config.kernel_names)
@@ -92,9 +85,6 @@ class BNNTrainer(Logger):
             lower_rescalings[kernel_index] = low  # - 0.1 * (up - low)
             upper_rescalings[kernel_index] = up   # + 0.1 * (up - low)
 
-        # lower_rescalings = lower_rescalings
-        # upper_rescalings = upper_rescalings
-
         rescaled_features = (features - lower_rescalings) / (upper_rescalings - lower_rescalings)
         rescaled_targets = (targets - lower_rescalings) / (upper_rescalings - lower_rescalings)
         return (rescaled_features, rescaled_targets)
@@ -124,11 +114,11 @@ class BNN(nn.Module):
         self.param_names = config.param_names
         
         self.layers = nn.Sequential(OrderedDict([
-            ('linear1', bnn.BayesLinear(prior_mu=0.0, prior_sigma=0.5, in_features=self.feature_size, out_features=self.hidden_shape, bias=True)),
+            ('linear1', bnn.BayesLinear(prior_mu=0.0, prior_sigma=1.0, in_features=self.feature_size, out_features=self.hidden_shape, bias=True)),
             ('relu1', nn.ReLU()),
-            ('linear2', bnn.BayesLinear(prior_mu=0.0, prior_sigma=0.5, in_features=self.hidden_shape, out_features=self.hidden_shape, bias=True)),
+            ('linear2', bnn.BayesLinear(prior_mu=0.0, prior_sigma=1.0, in_features=self.hidden_shape, out_features=self.hidden_shape, bias=True)),
             ('relu2', nn.ReLU()),
-            ('linear3', bnn.BayesLinear(prior_mu=0.0, prior_sigma=0.5, in_features=self.hidden_shape, out_features=self.bnn_output_size, bias=True)),
+            ('linear3', bnn.BayesLinear(prior_mu=0.0, prior_sigma=1.0, in_features=self.hidden_shape, out_features=self.bnn_output_size, bias=True)),
         ]))
         
         self.tau_rescaling = torch.zeros((self.num_obs, self.bnn_output_size))
@@ -143,8 +133,7 @@ class BNN(nn.Module):
     def forward(self, x, y):
 
         x = self.layers(x)
-        
-        scale = 1.0 / torch.sqrt(self.tau_normed.sample() / self.tau_rescaling)
+        scale = 1.0 / torch.sqrt(td.gamma.Gamma(F.softplus(self.gamma_concentration, threshold=0.01), F.softplus(self.gamma_rate, threshold=0.01)).rsample() / self.tau_rescaling)
         
         inferences = []
         kernel_element_index = 0
@@ -164,7 +153,6 @@ class BNN(nn.Module):
                     lowers, uppers = self.kernel_lowers[kernel_begin: kernel_end], self.kernel_uppers[kernel_begin : kernel_end]
 
                     post_support = (uppers - lowers) * (1.2 * F.sigmoid(post_relevant) - 0.1) + lowers
-
                     post_predict = td.normal.Normal(post_support,  scale[:,  kernel_begin: kernel_end])
 
                 
@@ -174,17 +162,11 @@ class BNN(nn.Module):
                 elif kernel_type in ['categorical', 'discrete']:
                     target = y[:, kernel_begin: kernel_end]
 
-                    post_temperature = 0.5 + 10.0 / (self.num_obs / self.frac_feas)
+                    post_temperature = 0.5 + (10.0 / (self.num_obs / self.frac_feas))
                     post_support = post_relevant
 
-                    # prior_predict_relaxed = tfd.RelaxedOneHotCategorical(prior_temperature, prior_support)
-                    # prior_predict = tfd.OneHotCategorical(probs=prior_predict_relaxed.sample())
-                    #import pdb; pdb.set_trace()
                     post_predict_relaxed = td.relaxed_categorical.RelaxedOneHotCategorical(post_temperature, logits=post_support)
-                    post_predict = td.OneHotCategorical(probs=post_predict_relaxed.sample())
-
-                    # targets_dict[prior_predict] = target
-                    # post_kernels['param_%d' % target_element_index] = {'probs': post_predict_relaxed}
+                    post_predict = td.OneHotCategorical(probs=post_predict_relaxed.rsample())
 
                     inference = {'pred': post_predict, 'target': target}
                     inferences.append(inference)
@@ -203,7 +185,6 @@ class BNN(nn.Module):
 
         posterior_samples = {}
         idx = 0
-        #import pdb; pdb.set_trace()
         for name, module in self.layers.named_modules():
             if isinstance(module, bnn.BayesLinear):
                 weight_dist = td.normal.Normal(module.weight_mu, torch.exp(module.weight_log_sigma))
@@ -262,7 +243,6 @@ class BNN(nn.Module):
             trace_kernels[key] = np.concatenate(kernel, axis=2)
 
         return trace_kernels
-
 
 
 
