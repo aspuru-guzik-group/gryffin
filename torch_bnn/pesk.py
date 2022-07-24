@@ -8,7 +8,7 @@ budget = 192
 sampling_strategies = np.array([-1, 1])
 with_desc = True
 dynamic = True
-random_seed = 2022
+random_seed = 2020
 
 # the categorical options corresponding to the minimum bandgap in the dataset (optimum)
 optimum = ['hydrazinium', 'I', 'Sn'] # value = 1.5249 eV
@@ -54,6 +54,7 @@ else:
 # gryffin config
 config = {
     "general": {
+        #"num_cpus": 'all',
         "num_cpus": 4,
         "auto_desc_gen": dynamic,
         "batches": 1,
@@ -62,7 +63,7 @@ config = {
         "caching": True,
         "random_seed": random_seed,
         "acquisition_optimizer": "genetic",
-        "verbosity": 3
+        # "verbosity": 3
     },
     "parameters": [
         {"name": "organic", "type": "categorical", 'options': organic_options, 'category_details': desc_organic},
@@ -77,7 +78,7 @@ config = {
 observations = []
 
 # initialize gryffin
-gryffin =  Gryffin(config_dict=config, silent=True)
+gryffin =  Gryffin(config_dict=config)#, silent=True)
 
 for num_iter in range(budget):
     print('-'*20, 'Iteration:', num_iter+1, '-'*20)

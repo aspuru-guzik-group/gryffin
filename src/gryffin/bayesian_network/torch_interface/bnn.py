@@ -97,6 +97,7 @@ class BNN(nn.Module):
 
         self.num_draws = model_details['num_draws']
         self.hidden_shape = model_details['hidden_shape']
+        self.num_layers = model_details['num_layers']
         self.feature_size = len(config.kernel_names)
         self.bnn_output_size = len(config.kernel_names)
         self.num_obs = num_observations
@@ -112,14 +113,25 @@ class BNN(nn.Module):
         self.kernel_sizes = torch.tensor(config.kernel_sizes)
 
         self.param_names = config.param_names
-        
-        self.layers = nn.Sequential(OrderedDict([
+
+        layers = [
             ('linear1', bnn.BayesLinear(prior_mu=0.0, prior_sigma=1.0, in_features=self.feature_size, out_features=self.hidden_shape, bias=True)),
-            ('relu1', nn.ReLU()),
-            ('linear2', bnn.BayesLinear(prior_mu=0.0, prior_sigma=1.0, in_features=self.hidden_shape, out_features=self.hidden_shape, bias=True)),
-            ('relu2', nn.ReLU()),
-            ('linear3', bnn.BayesLinear(prior_mu=0.0, prior_sigma=1.0, in_features=self.hidden_shape, out_features=self.bnn_output_size, bias=True)),
-        ]))
+            ('relu1', nn.ReLU())
+        ]
+        for idx in range(2, self.num_layers):
+            layers.append(('linear' + str(idx) , bnn.BayesLinear(prior_mu=0.0, prior_sigma=1.0, in_features=self.hidden_shape, out_features=self.hidden_shape, bias=True)))
+            layers.append(('relu' + str(idx), nn.ReLU()))
+        layers.append(('linear' + str(self.num_layers), bnn.BayesLinear(prior_mu=0.0, prior_sigma=1.0, in_features=self.hidden_shape, out_features=self.bnn_output_size, bias=True)))
+
+        self.layers = nn.Sequential(OrderedDict(layers))
+        
+        # self.layers = nn.Sequential(OrderedDict([
+        #     ('linear1', bnn.BayesLinear(prior_mu=0.0, prior_sigma=1.0, in_features=self.feature_size, out_features=self.hidden_shape, bias=True)),
+        #     ('relu1', nn.ReLU()),
+        #     ('linear2', bnn.BayesLinear(prior_mu=0.0, prior_sigma=1.0, in_features=self.hidden_shape, out_features=self.hidden_shape, bias=True)),
+        #     ('relu2', nn.ReLU()),
+        #     ('linear3', bnn.BayesLinear(prior_mu=0.0, prior_sigma=1.0, in_features=self.hidden_shape, out_features=self.bnn_output_size, bias=True)),
+        # ]))
         
         self.tau_rescaling = torch.zeros((self.num_obs, self.bnn_output_size))
         for obs_index in range(self.num_obs):
