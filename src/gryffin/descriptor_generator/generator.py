@@ -12,7 +12,6 @@ import torch.distributions as td
 import torchbnn as bnn
 
 import numpy as np
-import tensorflow as tf
 from gryffin.utilities.decorators import processify
 from gryffin.utilities import GryffinComputeError
 

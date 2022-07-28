@@ -8,7 +8,6 @@ from . import CategoryReshaper
 from gryffin.utilities import Logger, parse_time
 from gryffin.utilities import GryffinUnknownSettingsError
 from .kernel_evaluations import KernelEvaluator
-from .tfprob_interface import run_tf_network
 from .torch_interface import BNNTrainer
 from contextlib import nullcontext
 import pickle

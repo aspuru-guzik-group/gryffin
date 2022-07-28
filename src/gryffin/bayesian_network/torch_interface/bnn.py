@@ -125,14 +125,6 @@ class BNN(nn.Module):
 
         self.layers = nn.Sequential(OrderedDict(layers))
         
-        # self.layers = nn.Sequential(OrderedDict([
-        #     ('linear1', bnn.BayesLinear(prior_mu=0.0, prior_sigma=1.0, in_features=self.feature_size, out_features=self.hidden_shape, bias=True)),
-        #     ('relu1', nn.ReLU()),
-        #     ('linear2', bnn.BayesLinear(prior_mu=0.0, prior_sigma=1.0, in_features=self.hidden_shape, out_features=self.hidden_shape, bias=True)),
-        #     ('relu2', nn.ReLU()),
-        #     ('linear3', bnn.BayesLinear(prior_mu=0.0, prior_sigma=1.0, in_features=self.hidden_shape, out_features=self.bnn_output_size, bias=True)),
-        # ]))
-        
         self.tau_rescaling = torch.zeros((self.num_obs, self.bnn_output_size))
         for obs_index in range(self.num_obs):
             self.tau_rescaling[obs_index] += self.kernel_ranges
