@@ -33,7 +33,7 @@ class DescriptorGenerator(Logger):
         # else:
         #     self.num_cpus = int(self.config.get('num_cpus'))
 
-    def _generate_single_descriptors(self, feature_index, result_dict=None, weights_dict=None, sufficient_indices_dict=None, n_results=None):
+    def _generate_single_descriptors(self, feature_index, result_dict=None, weights_dict=None, sufficient_indices_dict=None):
         """Parse description generation for a specific parameter, ad indicated by the feature_index"""
 
         self.log('running one optimization process', 'DEBUG')
@@ -90,8 +90,6 @@ class DescriptorGenerator(Logger):
         # sufficient_indices: the descriptor indices for which the absolute value of the correlation is larger than the minimium correlation  (num_sufficient_indices,)
         # reduced_gen_descs: auto_gen_descs with only the sufficient_indices kept SHAPE (num_options, num_sufficient_indices)
 
-        if n_results is not None:
-            n_results[feature_index] = deepcopy(network_results)
         if result_dict is not None:
             result_dict[feature_index] = deepcopy(network_results['reduced_gen_descs'])
         if weights_dict is not None:
@@ -183,10 +181,9 @@ class DescriptorGenerator(Logger):
             self.weights = {}
             self.sufficient_indices = {}
             result_dict = {}
-            n_results = {}
             for feature_index in feature_indices:
                 #gen_descriptor = self._generate_single_descriptors(feature_index=feature_index, result_dict=None)
-                _ = self._generate_single_descriptors(feature_index=feature_index, result_dict=result_dict, weights_dict=self.weights, sufficient_indices_dict=self.sufficient_indices, n_results=n_results)
+                _ = self._generate_single_descriptors(feature_index=feature_index, result_dict=result_dict, weights_dict=self.weights, sufficient_indices_dict=self.sufficient_indices)
                 #result_dict[feature_index] = gen_descriptor
 
         # reorder correctly the descriptors following asynchronous execution

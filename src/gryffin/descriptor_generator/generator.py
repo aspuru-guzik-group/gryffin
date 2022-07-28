@@ -116,15 +116,11 @@ class Generator:
         auto_gen_descs = generator_network(self.grid_descs)
 
         results = {}
-        # results['descs'] = self.descs.cpu().detach().numpy()
-        # results['objs'] = self.objs.cpu().detach().numpy()
-        # results['gen_descs'] = gen_descs.cpu().detach().numpy()
         results['auto_gen_descs'] = auto_gen_descs.cpu().detach().numpy()
         results['comp_corr_coeffs'] = corr_coeffs.cpu().detach().numpy()
         results['gen_descs_cov'] = cov_gen_descs.cpu().detach().numpy()
         results['min_corrs'] = min_corr
 
-        #results['weights'] = generator_network.linear_layer.weight_mu.detach().clone().numpy()
         results['weights'] = generator_network.linear_layer.weight.detach().clone().numpy()
 
         sufficient_desc_indices = np.where(np.abs(results['comp_corr_coeffs']) > results['min_corrs'])[0]
