@@ -25,7 +25,7 @@ class NumpyGraph:
 
     def declare_training_data(self, features):
         self.num_obs = len(features)
-        self.features = features
+        self.features = features.numpy()
 
     def compute_kernels(self, posteriors, frac_feas):
 
@@ -36,7 +36,7 @@ class NumpyGraph:
         tau_rescaling = tau_rescaling**2
 
         # sample from BNN
-        activations = [np.tanh, np.tanh, lambda x: x]
+        activations = [lambda x: np.maximum(x, 0), lambda x: np.maximum(x, 0), lambda x: x]
         post_layer_outputs = [np.array([self.features for _ in range(self._num_draws)])]
 
         for layer_index in range(self._num_layers):
@@ -47,7 +47,7 @@ class NumpyGraph:
 
             outputs = []
             for sample_index in range(len(weight)):
-
+                
                 single_weight = weight[sample_index]
                 single_bias   = bias[sample_index]
 
@@ -71,7 +71,6 @@ class NumpyGraph:
 
         target_element_index = 0
         kernel_element_index = 0
-
         while kernel_element_index < len(self.config.kernel_names):
 
             kernel_type = self.config.kernel_types[kernel_element_index]

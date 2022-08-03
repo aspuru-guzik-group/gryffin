@@ -8,8 +8,9 @@ from . import CategoryReshaper
 from gryffin.utilities import Logger, parse_time
 from gryffin.utilities import GryffinUnknownSettingsError
 from .kernel_evaluations import KernelEvaluator
-from .tfprob_interface import run_tf_network
+from .torch_interface import BNNTrainer
 from contextlib import nullcontext
+import pickle
 
 
 class BayesianNetwork(Logger):
@@ -101,15 +102,14 @@ class BayesianNetwork(Logger):
             cm = nullcontext()
 
         with cm:
-            trace_kernels = run_tf_network(
-                observed_params=obs_params,
-                frac_feas=self.frac_feas,
-                config=self.config,
-                model_details=self.model_details,
+            trainer = BNNTrainer(
+                self.config,
+                self.model_details,
+                self.frac_feas
             )
+            model = trainer.train(obs_params)
 
-
-        self.trace_kernels = trace_kernels
+        self.trace_kernels = model.get_kernels()
 
         end = time.time()
         time_string = parse_time(start, end)
