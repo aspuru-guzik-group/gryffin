@@ -105,7 +105,7 @@ Please refer to the [documentation](https://gryffin.readthedocs.io/en/latest/) w
 
 ## Citation
 
-If you found Gryffin useful, please include to the relevant [citation](https://gryffin.readthedocs.io/en/latest/citation.html) in your work.
+If you found Gryffin useful, please include the relevant [citation](https://gryffin.readthedocs.io/en/latest/citation.html) in your work.
 
 ## License
 
