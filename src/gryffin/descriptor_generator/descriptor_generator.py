@@ -6,7 +6,7 @@ import copy
 import numpy as np
 import multiprocessing
 from gryffin.utilities import Logger
-from .generation_process import run_generator_network
+from .generator import Generator
 from multiprocessing import Process, Manager
 from copy import deepcopy
 
@@ -27,10 +27,11 @@ class DescriptorGenerator(Logger):
         verbosity = self.config.get('verbosity')
         Logger.__init__(self, 'DescriptorGenerator', verbosity=verbosity)
 
-        if self.config.get('num_cpus') == 'all':
-            self.num_cpus = multiprocessing.cpu_count()
-        else:
-            self.num_cpus = int(self.config.get('num_cpus'))
+        self.num_cpus = 1
+        # if self.config.get('num_cpus') == 'all':
+        #     self.num_cpus = multiprocessing.cpu_count()
+        # else:
+        #     self.num_cpus = int(self.config.get('num_cpus'))
 
     def _generate_single_descriptors(self, feature_index, result_dict=None, weights_dict=None, sufficient_indices_dict=None):
         """Parse description generation for a specific parameter, ad indicated by the feature_index"""
@@ -74,7 +75,8 @@ class DescriptorGenerator(Logger):
         objs = np.reshape(obs_objs, (len(obs_objs), 1))
 
         # run the generation process
-        network_results = run_generator_network(descs=descs, objs=objs, grid_descs=feature_descriptors[feature_index])
+        generator = Generator(descs=descs, objs=objs, grid_descs=feature_descriptors[feature_index])
+        network_results = generator.generate_descriptors()
 
         # for key in network_results.keys():
         #     print(key, network_results[key].shape)
@@ -87,7 +89,6 @@ class DescriptorGenerator(Logger):
         # auto_gen_descs: generated descriptors for each categorical option SHAPE (num_options, num_desc)
         # sufficient_indices: the descriptor indices for which the absolute value of the correlation is larger than the minimium correlation  (num_sufficient_indices,)
         # reduced_gen_descs: auto_gen_descs with only the sufficient_indices kept SHAPE (num_options, num_sufficient_indices)
-
 
         if result_dict is not None:
             result_dict[feature_index] = deepcopy(network_results['reduced_gen_descs'])
@@ -181,8 +182,9 @@ class DescriptorGenerator(Logger):
             self.sufficient_indices = {}
             result_dict = {}
             for feature_index in feature_indices:
-                gen_descriptor = self._generate_single_descriptors(feature_index=feature_index, result_dict=None)
-                result_dict[feature_index] = gen_descriptor
+                #gen_descriptor = self._generate_single_descriptors(feature_index=feature_index, result_dict=None)
+                _ = self._generate_single_descriptors(feature_index=feature_index, result_dict=result_dict, weights_dict=self.weights, sufficient_indices_dict=self.sufficient_indices)
+                #result_dict[feature_index] = gen_descriptor
 
         # reorder correctly the descriptors following asynchronous execution
         gen_feature_descriptors = []
@@ -219,7 +221,6 @@ class DescriptorGenerator(Logger):
             return summary
 
         # If we have generated new descriptors
-
         for feature_index in range(len(self.config.feature_options)):
 
             if feature_types[feature_index] == 'continuous':

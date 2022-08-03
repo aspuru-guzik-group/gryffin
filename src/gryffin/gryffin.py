@@ -285,15 +285,16 @@ class Gryffin(Logger):
             if self.config.get('auto_desc_gen') is True and can_generate_desc is True:
                 self.log_chapter('Descriptor Refinement')
                 start = time.time()
-                with self.console.status("Refining categories descriptors..."):
-                    # only feasible points with known objectives
-                    if len(obs_params[mask_kwn]) > 3:
-                        self.descriptor_generator.generate_descriptors(obs_params[mask_kwn], obs_objs[mask_kwn])
-                    # for feasibility descriptors, we use all data, but we run descriptor generation
-                    # only if we have at least 1 infeasible point, otherwise they are all feasible and there is no point
-                    # running this. Remember that feasible = 0 and infeasible = 1.
-                    if len(obs_params) > 3 and np.sum(obs_feas) > 0.1:
-                        self.descriptor_generator_feas.generate_descriptors(obs_params, obs_feas)
+                #with self.console.status("Refining categories descriptors..."):
+                #import pdb; pdb.set_trace()
+                # only feasible points with known objectives
+                if len(obs_params[mask_kwn]) > 3:
+                    self.descriptor_generator.generate_descriptors(obs_params[mask_kwn], obs_objs[mask_kwn])
+                # for feasibility descriptors, we use all data, but we run descriptor generation
+                # only if we have at least 1 infeasible point, otherwise they are all feasible and there is no point
+                # running this. Remember that feasible = 0 and infeasible = 1.
+                if len(obs_params) > 3 and np.sum(obs_feas) > 0.1:
+                    self.descriptor_generator_feas.generate_descriptors(obs_params, obs_feas)
 
                 end = time.time()
                 time_string = parse_time(start, end)
