@@ -4,8 +4,8 @@ try:
     import resource
 except ModuleNotFoundError:
     pass
-import sys
 import platform
+
 
 def parse_time(start, end):
     elapsed = end - start  # elapsed time in seconds
