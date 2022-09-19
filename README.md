@@ -62,34 +62,37 @@ This is a minimalist example of Gryffin in action.
 ```python
 
     from gryffin import Gryffin
-    import experiment
-
+    import random
+    
     # load config
     config = {
         "parameters": [
             {"name": "param_0", "type": "continuous", "low": 0.0, "high": 1.0},
         ],
-        objectives: [
+        "objectives": [
             {"name": "obj", "goal": "min"},
         ]
     }
-
+    
     # initialize gryffin
     gryffin = Gryffin(
         config_dict=config
     )
-
-    observations = [] 
-    for iter in range(ITER_BUDGET):
-
+    
+    
+    ITER_BUDGET = 10
+    observations = []
+    
+    for _ in range(ITER_BUDGET):
         # query gryffin for new params
-        params  = gryffin.recommend(observations=observations)
-
-        # evaluate the proposed parameters
-        merit = experiment.run(params)
-        params['obj'] = merit
-
-        observations.append(params)
+        params = gryffin.recommend(observations=observations)
+    
+        # evaluate the proposed parameters (as default, a batch of 2)
+        for conditions in params:
+            # Get this from your experiment!
+            conditions['obj'] = random.random()
+    
+        observations.extend(params)
 ```
 
 ## Documentation
@@ -110,9 +113,3 @@ If you found Gryffin useful, please include the relevant [citation](https://gryf
 ## License
 
 [Apache License 2.0](https://choosealicense.com/licenses/apache-2.0/)
-
-
-
-
-
-
