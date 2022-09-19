@@ -1,8 +1,11 @@
 #!/usr/bin/env python
 
-import resource
+try:
+    import resource
+except ModuleNotFoundError:
+    pass
 import sys
-
+import platform
 
 def parse_time(start, end):
     elapsed = end - start  # elapsed time in seconds
@@ -18,7 +21,9 @@ def parse_time(start, end):
 
 
 def memory_usage():
-    if sys.platform == 'darwin':  # MacOS --> memory in bytes
+    if platform.system() == 'Windows':
+        return 0, 0, 0
+    elif platform.system() == 'Darwin':  # MacOS --> memory in bytes
         kB = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss // 1000.
     else:  # Linux --> memory in kilobytes
         kB = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
