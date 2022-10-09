@@ -31,6 +31,7 @@ class Gryffin(Logger):
         config_dict=None,
         known_constraints=None,
         frac_feas=None,
+        all_options=None,
         silent=False,
     ):
         """
@@ -68,9 +69,13 @@ class Gryffin(Logger):
 
         # if param space is fully categorical, maintain list of all options
         if np.all([p['type']=='categorical' for p in self.config.parameters]):
-            self.all_options = compute_constrained_cartesian(self.known_constraints, self.config)
+            if not all_options:
+                self.all_options = compute_constrained_cartesian(self.known_constraints, self.config)
+            else:
+                self.all_options = all_options
         else:
             self.all_options = None
+
 
         # store timings for possible analysis
         self.timings = {}
