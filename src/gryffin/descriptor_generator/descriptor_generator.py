@@ -46,7 +46,7 @@ class DescriptorGenerator(Logger):
         # if continuous ==> no descriptors, return None
         if feature_types[feature_index] in ['continuous', 'discrete']:
             self.weights[feature_index] = None
-            self.reduced_gen_descs[feature_index] = None
+            #self.reduced_gen_descs[feature_index] = None
             if result_dict is not None:
                 result_dict[feature_index] = None
             return None
@@ -54,7 +54,7 @@ class DescriptorGenerator(Logger):
         # if None, i.e. naive Gryffin ==> no descriptors, return None
         if feature_descriptors[feature_index] is None:
             self.weights[feature_index] = None
-            self.reduced_gen_descs[feature_index] = None
+            #self.reduced_gen_descs[feature_index] = None
             if result_dict is not None:
                 result_dict[feature_index] = None
             return None
@@ -62,7 +62,7 @@ class DescriptorGenerator(Logger):
         # if single descriptor ==> cannot get new descriptors, return the same static descriptor
         if feature_descriptors[feature_index].shape[1] == 1:
             self.weights[feature_index] = np.array([[1.]])
-            self.reduced_gen_descs[feature_index] = feature_descriptors[feature_index]
+            #self.reduced_gen_descs[feature_index] = feature_descriptors[feature_index]
             if result_dict is not None:
                 result_dict[feature_index] = feature_descriptors[feature_index]
             return feature_descriptors[feature_index]

@@ -177,8 +177,12 @@ class RandomSampler(Logger):
             # add +/- 5% perturbation to sample
             perturbed_sample = ref_value + sampled_values
             # make sure we do not cross optimization boundaries
-            perturbed_sample = np.where(perturbed_sample < specs['low'], specs['low'], perturbed_sample)
-            perturbed_sample = np.where(perturbed_sample > specs['high'], specs['high'], perturbed_sample)
+            if param_type == 'discrete':
+                perturbed_sample = np.where(perturbed_sample < 0, 0, perturbed_sample)
+                perturbed_sample = np.where(perturbed_sample > (specs['high']-specs['low']), specs['high']-specs['low'], perturbed_sample)
+            elif param_type == 'continuous':
+                perturbed_sample = np.where(perturbed_sample < specs['low'], specs['low'], perturbed_sample)
+                perturbed_sample = np.where(perturbed_sample > specs['high'], specs['high'], perturbed_sample)
         elif param_type == 'categorical':
             # i.e. do not perturb
             if perturb_categorical is False:
