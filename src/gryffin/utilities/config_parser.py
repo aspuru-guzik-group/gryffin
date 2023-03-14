@@ -290,13 +290,13 @@ class ConfigParser(Logger):
 
     @property
     def feature_descriptors(self):
-        descriptors = []
-        for spec in self.features.specifics:
+        descriptors = np.empty(len(self.features.specifics), dtype=object)
+        for i, spec in enumerate(self.features.specifics):
             if 'descriptors' in spec:
-                descriptors.append(spec['descriptors'])
+                descriptors[i] = spec['descriptors']
             else:
-                descriptors.append(None)
-        return np.array(descriptors)
+                descriptors[i] = None
+        return descriptors
 
     @property
     def feature_process_constrained(self):
